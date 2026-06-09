@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CulturaEduca - Ficha Técnica</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #iframe-metabase {
+            width: 100%;
+            height: 800px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-light pb-5">
+
+    <div class="container mt-5">
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1 class="display-5 text-primary fw-bold">Evolução Escolar</h1>
+                <p class="lead text-muted">Protótipo de Análise de Dados - CulturaEduca</p>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <label for="escolaInput" class="form-label fw-bold">Pesquisar por Escola</label>
+                        <div class="input-group">
+                            <input type="number" id="escolaInput" class="form-control form-control-lg" placeholder="Digite o Código Inep (ex: 11000040)">
+                            <button class="btn btn-primary btn-lg" onclick="carregarPainel()" id="btnBuscar">Analisar</button>
+                        </div>
+                        <div id="mensagem-erro" class="text-danger mt-2 d-none"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-12" id="area-painel">
+                <div class="text-center text-muted" id="texto-espera">
+                    <p>Digite um código de escola acima e clique em "Analisar" para carregar os dados.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function carregarPainel() {
+            const codigo = document.getElementById('escolaInput').value;
+            const mensagemErro = document.getElementById('mensagem-erro');
+            const areaPainel = document.getElementById('area-painel');
+            const btnBuscar = document.getElementById('btnBuscar');
+            
+            mensagemErro.classList.add('d-none');
+            
+            if(!codigo) {
+                mensagemErro.textContent = "Por favor, introduza um código de escola válido.";
+                mensagemErro.classList.remove('d-none');
+                return;
+            }
+
+            btnBuscar.innerHTML = "A carregar...";
+            btnBuscar.disabled = true;
+
+            fetch(`http://localhost:5000/api/painel/${codigo}`)
+                .then(resposta => resposta.json())
+                .then(dados => {
+                    if(dados.sucesso) {
+                        areaPainel.innerHTML = `<iframe id="iframe-metabase" src="${dados.url}" allowtransparency></iframe>`;
+                    } else {
+                        mensagemErro.textContent = "Erro ao gerar o painel: " + dados.erro;
+                        mensagemErro.classList.remove('d-none');
+                    }
+                })
+                .catch(erro => {
+                    mensagemErro.textContent = "Não foi possível contactar o servidor. Verifique se o Flask está a correr.";
+                    mensagemErro.classList.remove('d-none');
+                })
+                .finally(() => {
+                    btnBuscar.innerHTML = "Analisar";
+                    btnBuscar.disabled = false;
+                });
+        }
+    </script>
+</body>
+</html>
