@@ -26,14 +26,17 @@
         </div>
         
         <div class="row justify-content-center mb-5">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
+            <div class="col-md-6 position-relative"> <div class="card shadow-sm">
                     <div class="card-body">
                         <label for="escolaInput" class="form-label fw-bold">Pesquisar por Escola</label>
                         <div class="input-group">
-                            <input type="number" id="escolaInput" class="form-control form-control-lg" placeholder="Digite o Código Inep (ex: 11000040)">
-                            <button class="btn btn-primary btn-lg" onclick="carregarPainel()" id="btnBuscar">Analisar</button>
+                            <input type="text" id="escolaInput" class="form-control form-control-lg" placeholder="Digite o nome da escola (mínimo 3 letras)..." autocomplete="off">
+                            <button class="btn btn-primary btn-lg" disabled id="btnBuscar">Analisar</button>
                         </div>
+                        
+                        <div id="caixaSugestoes" class="list-group position-absolute w-100 shadow mt-1 d-none" style="z-index: 1000; max-height: 250px; overflow-y: auto;">
+                        </div>
+
                         <div id="mensagem-erro" class="text-danger mt-2 d-none"></div>
                     </div>
                 </div>
@@ -50,22 +53,53 @@
     </div>
 
     <script>
-        function carregarPainel() {
-            const codigo = document.getElementById('escolaInput').value;
+        const input = document.getElementById('escolaInput');
+        const caixaSugestoes = document.getElementById('caixaSugestoes');
+    
+        input.addEventListener('input', function() {
+            const texto = this.value;
+            
+            if(texto.length >= 3) {
+                fetch(`http://localhost:5000/api/busca/${texto}`)
+                    .then(resposta => resposta.json())
+                    .then(escolas => {
+                        caixaSugestoes.innerHTML = '';
+                        
+                        if(escolas.length > 0) {
+                            caixaSugestoes.classList.remove('d-none');
+                            
+                            escolas.forEach(escola => {
+                                const botao = document.createElement('button');
+                                botao.className = "list-group-item list-group-item-action text-start py-2";
+                                
+                                botao.innerHTML = `
+                                    <div class="fw-bold text-dark">${escola.nome}</div>
+                                    <small class="text-muted">${escola.cidade} - ${escola.estado}</small>
+                                `;
+                                
+                                botao.onclick = function() {
+                                    input.value = escola.nome; 
+                                    caixaSugestoes.classList.add('d-none'); 
+                                    carregarPainel(escola.codigo); 
+                                };
+                                
+                                caixaSugestoes.appendChild(botao);
+                            });
+                        } else {
+                            caixaSugestoes.classList.add('d-none');
+                        }
+                    });
+            } else {
+                caixaSugestoes.classList.add('d-none');
+            }
+        });
+
+        function carregarPainel(codigo) {
             const mensagemErro = document.getElementById('mensagem-erro');
             const areaPainel = document.getElementById('area-painel');
-            const btnBuscar = document.getElementById('btnBuscar');
             
             mensagemErro.classList.add('d-none');
-            
-            if(!codigo) {
-                mensagemErro.textContent = "Por favor, introduza um código de escola válido.";
-                mensagemErro.classList.remove('d-none');
-                return;
-            }
-
-            btnBuscar.innerHTML = "A carregar...";
-            btnBuscar.disabled = true;
+            areaPainel.innerHTML = `<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">A carregar painel...</p></div>`;
 
             fetch(`http://localhost:5000/api/painel/${codigo}`)
                 .then(resposta => resposta.json())
@@ -76,14 +110,6 @@
                         mensagemErro.textContent = "Erro ao gerar o painel: " + dados.erro;
                         mensagemErro.classList.remove('d-none');
                     }
-                })
-                .catch(erro => {
-                    mensagemErro.textContent = "Não foi possível contactar o servidor. Verifique se o Flask está a correr.";
-                    mensagemErro.classList.remove('d-none');
-                })
-                .finally(() => {
-                    btnBuscar.innerHTML = "Analisar";
-                    btnBuscar.disabled = false;
                 });
         }
     </script>
