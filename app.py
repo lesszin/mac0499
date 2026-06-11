@@ -1,8 +1,10 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import jwt
 import time
 import psycopg2
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -72,6 +74,47 @@ def gerar_link_painel(codigo_escola):
 
     except Exception as e:
         return jsonify({"sucesso": False, "erro": str(e)}), 500
+
+@app.route('/api/escolas-mapa')
+def escolas_mapa():
+    try:
+        lat_min = request.args.get('lat_min', type=float)
+        lat_max = request.args.get('lat_max', type=float)
+        lng_min = request.args.get('lng_min', type=float)
+        lng_max = request.args.get('lng_max', type=float)
+
+        if None in [lat_min, lat_max, lng_min, lng_max]:
+            return jsonify({"erro": "Coordenadas incompletas da tela"}), 400
+
+        conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
+        cur = conn.cursor()
+        
+        query = """
+            SELECT "CO_ENTIDADE", "NO_ENTIDADE", "LATITUDE", "LONGITUDE"
+            FROM dim_escola
+            WHERE "LATITUDE" BETWEEN %s AND %s
+              AND "LONGITUDE" BETWEEN %s AND %s
+            LIMIT 500
+        """
+
+        cur.execute(query, (lat_min, lat_max, lng_min, lng_max))
+        resultados = cur.fetchall()
+        
+        escolas_mapa = [
+            {
+                "codigo": linha[0], 
+                "nome": linha[1], 
+                "lat": float(linha[2]), 
+                "lng": float(linha[3])
+            } for linha in resultados if linha[2] is not None and linha[3] is not None
+        ]
+        
+        cur.close()
+        conn.close()
+        return jsonify(escolas_mapa)
+        
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 if __name__ == '__main__':
     print("Servidor Flask a correr em http://localhost:5000")
