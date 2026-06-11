@@ -1,20 +1,26 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import jwt
 import time
 import psycopg2
 
+load_dotenv()
+
 app = Flask(__name__)
 CORS(app) 
 
 METABASE_SITE_URL = "http://localhost:3000"
-METABASE_SECRET_KEY = "e72048d933aee9af95f59b6d59e2da44add528e208c76e6d40bf452e67d3cafe"
 DASHBOARD_ID = 2
 
-DB_HOST = "localhost"
-DB_NAME = "culturaeduca"
-DB_USER = "postgres"
-DB_PASS = "1234"
+METABASE_SECRET_KEY = os.getenv("METABASE_SECRET_KEY")
+DB_HOST = os.getenv("DB_HOST")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/api/busca/<string:texto>')
 def buscar_escolas(texto):
