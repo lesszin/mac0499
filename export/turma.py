@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 
 DB_USER = 'postgres'
 DB_PASS = '1234'
@@ -20,12 +20,27 @@ colunas_desejadas = [
     'NU_ANO_CENSO', 
     'CO_ENTIDADE', 
     'QT_TUR_BAS',  
-    'QT_TUR_INF',  
-    'QT_TUR_FUND', 
-    'QT_TUR_MED'   
+    'QT_TUR_INF',
+    'QT_TUR_INF_CRE',     
+    'QT_TUR_INF_PRE',  
+    'QT_TUR_FUND',
+    'QT_TUR_FUND_AI',      
+    'QT_TUR_FUND_AF', 
+    'QT_TUR_MED',          
+    'QT_TUR_MED_IFTP_CT',
+    'QT_TUR_EJA_FUND',    
+    'QT_TUR_EJA_MED'   
 ]
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
+
+def otimizar_tabela():
+    with engine.connect() as conexao:
+        print("\nOtimizando o banco de dados...")
+        conexao.execute(text(f'CREATE INDEX IF NOT EXISTS idx_{NOME_TABELA}_escola ON {NOME_TABELA} ("CO_ENTIDADE");'))
+        conexao.execute(text(f'CREATE INDEX IF NOT EXISTS idx_{NOME_TABELA}_ano ON {NOME_TABELA} ("NU_ANO_CENSO");'))
+        conexao.commit()
+        print("Índices criados com sucesso!")
 
 def consolidar_fato_turma():
     print("Iniciando a construção da Tabela Fato de Turmas...")
@@ -36,7 +51,8 @@ def consolidar_fato_turma():
         
         if ano != 2025:
             inspector = inspect(engine)
-            colunas_db = [col['name'] for col in inspector.get_columns(NOME_TABELA)]
+            if NOME_TABELA in inspector.get_table_names():
+                colunas_db = [col['name'] for col in inspector.get_columns(NOME_TABELA)]
         
         def filtar_colunas(nome_coluna):
             return nome_coluna in colunas_desejadas if ano == 2025 else nome_coluna in colunas_db
@@ -54,6 +70,8 @@ def consolidar_fato_turma():
             for i, chunk in enumerate(leitor_csv):
                 print(f"[{ano}] Injetando lote {i + 1}...")
                 
+                chunk = chunk.fillna(0)
+                
                 acao = 'replace' if (ano == 2025 and i == 0) else 'append'
                 
                 chunk.to_sql(
@@ -66,8 +84,12 @@ def consolidar_fato_turma():
             print(f"Sucesso! Dados de turmas de {ano} integrados.")
 
         except Exception as e:
-            print(f"Erro ao processar o ano {ano}: {e}")
-            break 
+            print(f"Aviso [{ano}]: Tabela de colunas inexistente neste ano ou erro: {e}")
+            pass
+
+    inspector = inspect(engine)
+    if NOME_TABELA in inspector.get_table_names():
+        otimizar_tabela()
 
 if __name__ == "__main__":
     consolidar_fato_turma()
