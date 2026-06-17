@@ -166,44 +166,75 @@ def escolas_mapa():
 
 @app.route('/api/escola/<int:codigo>/ficha')
 def ficha_escola(codigo):
-    """Retorna os dados cadastrais da dim_escola para a aba Ficha"""
     try:
         with engine.connect() as conexao:
-            query = text("""
+            query_escola = text("""
                 SELECT 
-                    "DS_ENDERECO", 
-                    "NU_ENDERECO", 
-                    "NO_MUNICIPIO", 
-                    "SG_UF", 
-                    "TP_DEPENDENCIA", 
-                    "TP_LOCALIZACAO", 
-                    "TP_SITUACAO_FUNCIONAMENTO"
+                    "NO_ENTIDADE", "DS_ENDERECO", "NU_ENDERECO", "NO_MUNICIPIO", "SG_UF", 
+                    "TP_DEPENDENCIA", "TP_LOCALIZACAO", "TP_SITUACAO_FUNCIONAMENTO",
+                    "TP_CATEGORIA_ESCOLA_PRIVADA"
                 FROM dim_escola
                 WHERE "CO_ENTIDADE" = :codigo
             """)
+            res_escola = conexao.execute(query_escola, {"codigo": codigo}).fetchone()
             
-            resultado = conexao.execute(query, {"codigo": codigo}).fetchone()
-            
-            if resultado:
-                map_dependencia = {1: 'Federal', 2: 'Estadual', 3: 'Municipal', 4: 'Privada'}
-                map_localizacao = {1: 'Urbana', 2: 'Rural'}
-                map_situacao = {1: 'Em Atividade', 2: 'Paralisada', 3: 'Extinta', 4: 'Escola extinta em anos anteriores'}
-
-                return jsonify({
-                    'endereco': resultado[0],
-                    'numero': resultado[1],
-                    'municipio': resultado[2],
-                    'uf': resultado[3],
-                    'dependencia': map_dependencia.get(resultado[4], f'Código {resultado[4]}'),
-                    'localizacao': map_localizacao.get(resultado[5], f'Código {resultado[5]}'),
-                    'situacao': map_situacao.get(resultado[6], f'Código {resultado[6]}')
-                })
-            else:
+            if not res_escola:
                 return jsonify({'erro': 'Escola não encontrada no banco de dados.'}), 404
+            
+            query_matricula = text("""
+                SELECT 
+                    "QT_MAT_BAS", "QT_MAT_INF_CRE", "QT_MAT_INF_PRE", 
+                    "QT_MAT_FUND_AI", "QT_MAT_FUND_AF", "QT_MAT_MED", 
+                    "QT_MAT_MED_IFTP_CT", "QT_MAT_EJA_FUND", "QT_MAT_EJA_MED",
+                    "QT_MAT_ESP"
+                FROM fato_matricula
+                WHERE "CO_ENTIDADE" = :codigo AND "NU_ANO_CENSO" = 2025
+            """)
+            res_mat = conexao.execute(query_matricula, {"codigo": codigo}).fetchone()
+
+            map_dependencia = {1: 'Federal', 2: 'Estadual', 3: 'Municipal', 4: 'Privada'}
+            map_localizacao = {1: 'Urbana', 2: 'Rural'}
+            map_situacao = {1: 'Em Atividade', 2: 'Paralisada', 3: 'Extinta', 4: 'Escola extinta em anos anteriores'}
+            map_categoria_privada = {1: 'Particular', 2: 'Comunitária', 3: 'Confessional', 4: 'Filantrópica'}
+
+            dados_ficha = {
+                'nome': res_escola[0],
+                'identificacao': {
+                    'endereco': res_escola[1],
+                    'numero': res_escola[2],
+                    'municipio': res_escola[3],
+                    'uf': res_escola[4],
+                    'dependencia': map_dependencia.get(res_escola[5], f'Código {res_escola[5]}'),
+                    'localizacao': map_localizacao.get(res_escola[6], f'Código {res_escola[6]}'),
+                    'situacao': map_situacao.get(res_escola[7], f'Código {res_escola[7]}'),
+                    'categoria_privada': map_categoria_privada.get(res_escola[8], None) if res_escola[8] else None
+                },
+                'matriculas': None
+            }
+            
+            if res_mat:
+                dados_ficha['matriculas'] = {
+                    'basica': int(res_mat[0] or 0),
+                    'creche': int(res_mat[1] or 0),
+                    'pre_escola': int(res_mat[2] or 0),
+                    'fund_ai': int(res_mat[3] or 0),
+                    'fund_af': int(res_mat[4] or 0),
+                    'medio': int(res_mat[5] or 0),
+                    'profissional': int(res_mat[6] or 0),
+                    'eja_fund': int(res_mat[7] or 0),
+                    'eja_med': int(res_mat[8] or 0),
+                    'especial': int(res_mat[9] or 0)
+                }
+
+            return jsonify(dados_ficha)
 
     except Exception as e:
         print(f"Erro ao buscar ficha da escola {codigo}: {e}")
-        return jsonify({'erro': 'Falha interna no servidor.'}), 500
+        return jsonify({'erro': str(e)}), 500
+
+@app.route('/escola/<int:codigo>')
+def pagina_detalhes(codigo):
+    return render_template('details.html', codigo=codigo)
 
 if __name__ == '__main__':
     print("Servidor Flask a correr em http://localhost:5000")
