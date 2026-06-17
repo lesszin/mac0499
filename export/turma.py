@@ -29,7 +29,8 @@ colunas_desejadas = [
     'QT_TUR_MED',          
     'QT_TUR_MED_IFTP_CT',
     'QT_TUR_EJA_FUND',    
-    'QT_TUR_EJA_MED'   
+    'QT_TUR_EJA_MED',
+    'QT_TUR_ESP'
 ]
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
