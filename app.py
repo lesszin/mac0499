@@ -172,7 +172,20 @@ def ficha_escola(codigo):
                 SELECT 
                     "NO_ENTIDADE", "DS_ENDERECO", "NU_ENDERECO", "NO_MUNICIPIO", "SG_UF", 
                     "TP_DEPENDENCIA", "TP_LOCALIZACAO", "TP_SITUACAO_FUNCIONAMENTO",
-                    "TP_CATEGORIA_ESCOLA_PRIVADA"
+                    "TP_CATEGORIA_ESCOLA_PRIVADA",
+                    "IN_EDUCACAO_INDIGENA", "TP_AEE", "TP_ATIVIDADE_COMPLEMENTAR",
+                    "IN_ALIMENTACAO", "IN_EDUC_AMBIENTAL",
+                    "IN_AGUA_REDE_PUBLICA", "IN_ENERGIA_REDE_PUBLICA", 
+                    "IN_ESGOTO_REDE_PUBLICA", "IN_LIXO_SERVICO_COLETA",
+                    "IN_AREA_PLANTIO", "IN_AREA_VERDE", "IN_AUDITORIO", "IN_BIBLIOTECA",
+                    "IN_LABORATORIO_CIENCIAS", "IN_LABORATORIO_INFORMATICA",
+                    "IN_QUADRA_ESPORTES_COBERTA", "IN_QUADRA_ESPORTES_DESCOBERTA",
+                    "IN_SALA_ATELIE_ARTES", "IN_SALA_MUSICA_CORAL", "IN_SALA_ESTUDIO_DANCA",
+                    "IN_SALA_MULTIUSO", "IN_SALA_ESTUDIO_GRAVACAO", "IN_SALA_PROFESSOR",
+                    "IN_SALA_ATENDIMENTO_ESPECIAL", "IN_REFEITORIO", "QT_SALAS_UTILIZADAS",
+                    "IN_BANHEIRO_PNE", "IN_ACESSIBILIDADE_CORRIMAO", "IN_ACESSIBILIDADE_ELEVADOR",
+                    "IN_ACESSIBILIDADE_PISOS_TATEIS", "IN_ACESSIBILIDADE_VAO_LIVRE", "IN_ACESSIBILIDADE_RAMPAS",
+                    "IN_ACESSIBILIDADE_SINAL_SONORO", "IN_ACESSIBILIDADE_SINAL_TATIL", "IN_ACESSIBILIDADE_SINAL_VISUAL"
                 FROM dim_escola
                 WHERE "CO_ENTIDADE" = :codigo
             """)
@@ -197,6 +210,8 @@ def ficha_escola(codigo):
             map_situacao = {1: 'Em Atividade', 2: 'Paralisada', 3: 'Extinta', 4: 'Escola extinta em anos anteriores'}
             map_categoria_privada = {1: 'Particular', 2: 'Comunitária', 3: 'Confessional', 4: 'Filantrópica'}
 
+            map_aee_comp = {0: 'Não oferece', 1: 'Não exclusivamente', 2: 'Exclusivamente'}
+
             dados_ficha = {
                 'nome': res_escola[0],
                 'identificacao': {
@@ -208,6 +223,49 @@ def ficha_escola(codigo):
                     'localizacao': map_localizacao.get(res_escola[6], f'Código {res_escola[6]}'),
                     'situacao': map_situacao.get(res_escola[7], f'Código {res_escola[7]}'),
                     'categoria_privada': map_categoria_privada.get(res_escola[8], None) if res_escola[8] else None
+                },
+                'atendimentos': {
+                    'indigena': int(res_escola[9] or 0),
+                    'aee': map_aee_comp.get(res_escola[10], 'Não informado'),
+                    'complementar': map_aee_comp.get(res_escola[11], 'Não informado'),
+                    'alimentacao': int(res_escola[12] or 0),
+                    'ambiental': int(res_escola[13] or 0)
+                },
+                'infraestrutura': {
+                    'agua': int(res_escola[14] or 0),
+                    'energia': int(res_escola[15] or 0),
+                    'esgoto': int(res_escola[16] or 0),
+                    'lixo': int(res_escola[17] or 0)
+                },
+                'dependencias': {
+                    'plantio': int(res_escola[18] or 0),
+                    'verde': int(res_escola[19] or 0),
+                    'auditorio': int(res_escola[20] or 0),
+                    'biblioteca': int(res_escola[21] or 0),
+                    'lab_ciencias': int(res_escola[22] or 0),
+                    'lab_informatica': int(res_escola[23] or 0),
+                    'quadra_coberta': int(res_escola[24] or 0),
+                    'quadra_descoberta': int(res_escola[25] or 0),
+                    'artes': int(res_escola[26] or 0),
+                    'musica': int(res_escola[27] or 0),
+                    'danca': int(res_escola[28] or 0),
+                    'multiuso': int(res_escola[29] or 0),
+                    'gravacao': int(res_escola[30] or 0),
+                    'professores': int(res_escola[31] or 0),
+                    'aee': int(res_escola[32] or 0),
+                    'refeitorio': int(res_escola[33] or 0),
+                    'salas_utilizadas': int(res_escola[34] or 0)
+                },
+                'acessibilidade': {
+                    'banheiro_pne': int(res_escola[35] or 0),
+                    'corrimao': int(res_escola[36] or 0),
+                    'elevador': int(res_escola[37] or 0),
+                    'pisos_tateis': int(res_escola[38] or 0),
+                    'vao_livre': int(res_escola[39] or 0),
+                    'rampas': int(res_escola[40] or 0),
+                    'sinal_sonoro': int(res_escola[41] or 0),
+                    'sinal_tatil': int(res_escola[42] or 0),
+                    'sinal_visual': int(res_escola[43] or 0)
                 },
                 'matriculas': None
             }
