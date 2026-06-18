@@ -62,6 +62,13 @@ function carregarFichaEscola() {
                 return html;
             };
 
+            const iconeBooleano = (valor) => {
+                if (valor === 1) {
+                    return `<i class="bi bi-check-circle-fill text-success fs-5"></i>`;
+                }
+                return `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
+            };
+
             const linhasIdentificacao = [
                 { rotulo: 'Dependência Administrativa:', valor: iden.dependencia }
             ];
@@ -74,6 +81,17 @@ function carregarFichaEscola() {
             linhasIdentificacao.push({ rotulo: 'Situação de Funcionamento:', valor: iden.situacao });
 
             const htmlIdentificacao = criarCardGrupo('Identificação', linhasIdentificacao);
+
+            const a = dados.atendimentos;
+            const linhasAtendimentos = [
+                { rotulo: 'Escola Indígena', valor: iconeBooleano(a.indigena) },
+                { rotulo: 'Atendimento Educacional Especializado (AEE)', valor: a.aee },
+                { rotulo: 'Atividade Complementar', valor: a.complementar },
+                { rotulo: 'Alimentação escolar para os alunos - PNAE/FNDE', valor: iconeBooleano(a.alimentacao) },
+                { rotulo: 'A escola desenvolve ações na área de educação ambiental?', valor: iconeBooleano(a.ambiental) }
+            ];
+            
+            const htmlAtendimentos = criarCardGrupo('Atendimentos e Atividades', linhasAtendimentos);
 
             let htmlMatriculas = '';
             
@@ -110,8 +128,56 @@ function carregarFichaEscola() {
                 }
             }
 
+            const inf = dados.infraestrutura;
+            const linhasInfraestrutura = [
+                { rotulo: 'Abastecimento de água - Rede pública', valor: iconeBooleano(inf.agua) },
+                { rotulo: 'Abastecimento de energia elétrica - Rede pública', valor: iconeBooleano(inf.energia) },
+                { rotulo: 'Esgoto sanitário - Rede pública', valor: iconeBooleano(inf.esgoto) },
+                { rotulo: 'Destinação do lixo - Serviço de coleta', valor: iconeBooleano(inf.lixo) }
+            ];
+            
+            const htmlInfraestrutura = criarCardGrupo('Infraestrutura', linhasInfraestrutura);
+
+            const dep = dados.dependencias;
+            const linhasDependencias = [
+                { rotulo: 'Área de horta, plantio e/ou produção agricola', valor: iconeBooleano(dep.plantio) },
+                { rotulo: 'Área de vegetação ou gramado', valor: iconeBooleano(dep.verde) },
+                { rotulo: 'Auditório', valor: iconeBooleano(dep.auditorio) },
+                { rotulo: 'Biblioteca', valor: iconeBooleano(dep.biblioteca) },
+                { rotulo: 'Laboratório de ciências', valor: iconeBooleano(dep.lab_ciencias) },
+                { rotulo: 'Laboratório de informática', valor: iconeBooleano(dep.lab_informatica) },
+                { rotulo: 'Quadra de esportes coberta', valor: iconeBooleano(dep.quadra_coberta) },
+                { rotulo: 'Quadra de esportes descoberta', valor: iconeBooleano(dep.quadra_descoberta) },
+                { rotulo: 'Sala/ateliê de artes', valor: iconeBooleano(dep.artes) },
+                { rotulo: 'Sala de música/coral', valor: iconeBooleano(dep.musica) },
+                { rotulo: 'Sala/estúdio de dança', valor: iconeBooleano(dep.danca) },
+                { rotulo: 'Sala multiuso (música, dança e artes)', valor: iconeBooleano(dep.multiuso) },
+                { rotulo: 'Estúdio de gravação e edição', valor: iconeBooleano(dep.gravacao) },
+                { rotulo: 'Sala de professores', valor: iconeBooleano(dep.professores) },
+                { rotulo: 'Sala de Recursos Multifuncionais para Atendimento Educacional Especializado (AEE)', valor: iconeBooleano(dep.aee) },
+                { rotulo: 'Refeitório', valor: iconeBooleano(dep.refeitorio) },
+                { rotulo: 'Número de salas de aula utilizadas na escola (dentro e fora do prédio)', valor: dep.salas_utilizadas }
+            ];
+            
+            const htmlDependencias = criarCardGrupo('Dependências', linhasDependencias);
+
+            const ac = dados.acessibilidade;
+            const linhasAcessibilidade = [
+                { rotulo: 'Banheiro acessível, adequado ao uso de pessoas com deficiência ou mobilidade reduzida', valor: iconeBooleano(ac.banheiro_pne) },
+                { rotulo: 'Corrimão e guarda corpos', valor: iconeBooleano(ac.corrimao) },
+                { rotulo: 'Elevador', valor: iconeBooleano(ac.elevador) },
+                { rotulo: 'Pisos táteis', valor: iconeBooleano(ac.pisos_tateis) },
+                { rotulo: 'Portas com vão livre de, no mínimo, 80 cm', valor: iconeBooleano(ac.vao_livre) },
+                { rotulo: 'Rampas', valor: iconeBooleano(ac.rampas) },
+                { rotulo: 'Sinalização sonora', valor: iconeBooleano(ac.sinal_sonoro) },
+                { rotulo: 'Sinalização tátil (piso/paredes)', valor: iconeBooleano(ac.sinal_tatil) },
+                { rotulo: 'Sinalização visual (piso/paredes)', valor: iconeBooleano(ac.sinal_visual) }
+            ];
+            
+            const htmlAcessibilidade = criarCardGrupo('Recursos de Acessibilidade', linhasAcessibilidade);
+
             divDados.classList.remove('text-center', 'py-5');
-            divDados.innerHTML = htmlIdentificacao + htmlMatriculas;
+            divDados.innerHTML = htmlIdentificacao + htmlMatriculas + htmlAtendimentos + htmlInfraestrutura + htmlDependencias + htmlAcessibilidade;
         })
         .catch(erro => {
             console.error(erro);
