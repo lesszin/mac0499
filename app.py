@@ -185,7 +185,19 @@ def ficha_escola(codigo):
                     "IN_SALA_ATENDIMENTO_ESPECIAL", "IN_REFEITORIO", "QT_SALAS_UTILIZADAS",
                     "IN_BANHEIRO_PNE", "IN_ACESSIBILIDADE_CORRIMAO", "IN_ACESSIBILIDADE_ELEVADOR",
                     "IN_ACESSIBILIDADE_PISOS_TATEIS", "IN_ACESSIBILIDADE_VAO_LIVRE", "IN_ACESSIBILIDADE_RAMPAS",
-                    "IN_ACESSIBILIDADE_SINAL_SONORO", "IN_ACESSIBILIDADE_SINAL_TATIL", "IN_ACESSIBILIDADE_SINAL_VISUAL"
+                    "IN_ACESSIBILIDADE_SINAL_SONORO", "IN_ACESSIBILIDADE_SINAL_TATIL", "IN_ACESSIBILIDADE_SINAL_VISUAL",
+                    "IN_ESPACO_ATIVIDADE", "IN_ESPACO_EQUIPAMENTO", "IN_ORGAO_ASS_PAIS", 
+                    "IN_ORGAO_ASS_PAIS_MESTRES", "IN_ORGAO_CONSELHO_ESCOLAR", 
+                    "IN_ORGAO_GREMIO_ESTUDANTIL", "TP_PROPOSTA_PEDAGOGICA",
+                    "IN_INTERNET", "IN_BANDA_LARGA", "TP_REDE_LOCAL", "IN_INTERNET_ALUNOS",
+                    "IN_INTERNET_ADMINISTRATIVO", "IN_INTERNET_APRENDIZAGEM", "IN_INTERNET_COMUNIDADE",
+                    "QT_DESKTOP_ALUNO", "QT_COMP_PORTATIL_ALUNO", "QT_TABLET_ALUNO",
+                    "QT_EQUIP_SOM", "QT_EQUIP_TV", "QT_EQUIP_LOUSA_DIGITAL", "QT_EQUIP_MULTIMIDIA",
+                    "IN_MATERIAL_PED_MULTIMIDIA", "IN_MATERIAL_PED_INFANTIL", "IN_MATERIAL_PED_CIENTIFICO",
+                    "IN_MATERIAL_PED_DIFUSAO", "IN_MATERIAL_PED_MUSICAL", "IN_MATERIAL_PED_JOGOS",
+                    "IN_MATERIAL_PED_ARTISTICAS", "IN_MATERIAL_PED_PROFISSIONAL", "IN_MATERIAL_PED_INDIGENA",
+                    "IN_MATERIAL_PED_ETNICO", "IN_MATERIAL_PED_CAMPO", "IN_MATERIAL_PED_BIL_SURDOS",
+                    "IN_MATERIAL_PED_AGRICOLA", "IN_MATERIAL_PED_QUILOMBOLA", "IN_MATERIAL_PED_EDU_ESP"
                 FROM dim_escola
                 WHERE "CO_ENTIDADE" = :codigo
             """)
@@ -266,6 +278,48 @@ def ficha_escola(codigo):
                     'sinal_sonoro': int(res_escola[41] or 0),
                     'sinal_tatil': int(res_escola[42] or 0),
                     'sinal_visual': int(res_escola[43] or 0)
+                },
+                'comunidade': {
+                    'espaco_atividade': int(res_escola[44] if res_escola[44] is not None else 9),
+                    'espaco_equipamento': int(res_escola[45] if res_escola[45] is not None else 9),
+                    'orgao_pais': int(res_escola[46] or 0),
+                    'orgao_pais_mestres': int(res_escola[47] or 0),
+                    'orgao_conselho': int(res_escola[48] or 0),
+                    'orgao_gremio': int(res_escola[49] or 0),
+                    'proposta_pedagogica': int(res_escola[50] if res_escola[50] is not None else 9)
+                },
+                'tecnologia': {
+                    'internet': int(res_escola[51] or 0),
+                    'banda_larga': int(res_escola[52]) if res_escola[52] is not None else None,
+                    'rede_local': int(res_escola[53] if res_escola[53] is not None else 9),
+                    'internet_alunos': int(res_escola[54] or 0),
+                    'internet_admin': int(res_escola[55] or 0),
+                    'internet_aprendizagem': int(res_escola[56] or 0),
+                    'internet_comunidade': int(res_escola[57] or 0),
+                    'desktop_aluno': int(res_escola[58] or 0),
+                    'portatil_aluno': int(res_escola[59] or 0),
+                    'tablet_aluno': int(res_escola[60] or 0),
+                    'equip_som': int(res_escola[61] or 0),
+                    'equip_tv': int(res_escola[62] or 0),
+                    'lousa_digital': int(res_escola[63] or 0),
+                    'equip_multimidia': int(res_escola[64] or 0)
+                },
+                'materiais': {
+                    'multimidia': int(res_escola[65] or 0),
+                    'infantil': int(res_escola[66] or 0),
+                    'cientifico': int(res_escola[67] or 0),
+                    'difusao': int(res_escola[68] or 0),
+                    'musical': int(res_escola[69] or 0),
+                    'jogos': int(res_escola[70] or 0),
+                    'artisticas': int(res_escola[71] or 0),
+                    'profissional': int(res_escola[72] or 0),
+                    'indigena': int(res_escola[73] or 0),
+                    'etnico': int(res_escola[74] or 0),
+                    'campo': int(res_escola[75] or 0),
+                    'bil_surdos': int(res_escola[76] or 0),
+                    'agricola': int(res_escola[77] or 0),
+                    'quilombola': int(res_escola[78] or 0),
+                    'edu_esp': int(res_escola[79] or 0)
                 },
                 'matriculas': None
             }
