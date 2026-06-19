@@ -197,7 +197,13 @@ def ficha_escola(codigo):
                     "IN_MATERIAL_PED_DIFUSAO", "IN_MATERIAL_PED_MUSICAL", "IN_MATERIAL_PED_JOGOS",
                     "IN_MATERIAL_PED_ARTISTICAS", "IN_MATERIAL_PED_PROFISSIONAL", "IN_MATERIAL_PED_INDIGENA",
                     "IN_MATERIAL_PED_ETNICO", "IN_MATERIAL_PED_CAMPO", "IN_MATERIAL_PED_BIL_SURDOS",
-                    "IN_MATERIAL_PED_AGRICOLA", "IN_MATERIAL_PED_QUILOMBOLA", "IN_MATERIAL_PED_EDU_ESP"
+                    "IN_MATERIAL_PED_AGRICOLA", "IN_MATERIAL_PED_QUILOMBOLA", "IN_MATERIAL_PED_EDU_ESP",
+                    "QT_PROF_ADMINISTRATIVOS", "QT_PROF_SERVICOS_GERAIS", "QT_PROF_BIBLIOTECARIO",
+                    "QT_PROF_SAUDE", "QT_PROF_COORDENADOR", "QT_PROF_FONAUDIOLOGO",
+                    "QT_PROF_NUTRICIONISTA", "QT_PROF_PSICOLOGO", "QT_PROF_ALIMENTACAO",
+                    "QT_PROF_PEDAGOGIA", "QT_PROF_SECRETARIO", "QT_PROF_SEGURANCA",
+                    "QT_PROF_MONITORES", "QT_PROF_GESTAO", "QT_PROF_ASSIST_SOCIAL",
+                    "QT_PROF_TRAD_LIBRAS", "QT_PROF_AGRICOLA", "QT_PROF_REVISOR_BRAILLE"
                 FROM dim_escola
                 WHERE "CO_ENTIDADE" = :codigo
             """)
@@ -216,6 +222,18 @@ def ficha_escola(codigo):
                 WHERE "CO_ENTIDADE" = :codigo AND "NU_ANO_CENSO" = 2025
             """)
             res_mat = conexao.execute(query_matricula, {"codigo": codigo}).fetchone()
+
+            query_docente = text("""
+                SELECT 
+                    "QT_DOC_BAS", "QT_DOC_INF_CRE", "QT_DOC_INF_PRE", 
+                    "QT_DOC_FUND_AI", "QT_DOC_FUND_AF", "QT_DOC_MED", 
+                    "QT_DOC_PROF", "QT_DOC_EJA"
+                FROM fato_docente
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO" DESC
+                LIMIT 1
+            """)
+            res_docente = conexao.execute(query_docente, {"codigo": codigo}).fetchone()
 
             map_dependencia = {1: 'Federal', 2: 'Estadual', 3: 'Municipal', 4: 'Privada'}
             map_localizacao = {1: 'Urbana', 2: 'Rural'}
@@ -321,6 +339,36 @@ def ficha_escola(codigo):
                     'quilombola': int(res_escola[78] or 0),
                     'edu_esp': int(res_escola[79] or 0)
                 },
+                'profissionais': {
+                    'administrativos': int(res_escola[80] or 0),
+                    'servicos_gerais': int(res_escola[81] or 0),
+                    'bibliotecario': int(res_escola[82] or 0),
+                    'saude': int(res_escola[83] or 0),
+                    'coordenador': int(res_escola[84] or 0),
+                    'fonoaudiologo': int(res_escola[85] or 0),
+                    'nutricionista': int(res_escola[86] or 0),
+                    'psicologo': int(res_escola[87] or 0),
+                    'alimentacao': int(res_escola[88] or 0),
+                    'pedagogia': int(res_escola[89] or 0),
+                    'secretario': int(res_escola[90] or 0),
+                    'seguranca': int(res_escola[91] or 0),
+                    'monitores': int(res_escola[92] or 0),
+                    'gestao': int(res_escola[93] or 0),
+                    'assist_social': int(res_escola[94] or 0),
+                    'trad_libras': int(res_escola[95] or 0),
+                    'agricola': int(res_escola[96] or 0),
+                    'revisor_braille': int(res_escola[97] or 0)
+                },
+                'docentes': {
+                    'basica': int(res_docente[0] or 0),
+                    'creche': int(res_docente[1] or 0),
+                    'pre_escola': int(res_docente[2] or 0),
+                    'fund_ai': int(res_docente[3] or 0),
+                    'fund_af': int(res_docente[4] or 0),
+                    'medio': int(res_docente[5] or 0),
+                    'profissional': int(res_docente[6] or 0),
+                    'eja': int(res_docente[7] or 0)
+                } if res_docente else None,
                 'matriculas': None
             }
             

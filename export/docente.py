@@ -21,9 +21,9 @@ colunas_desejadas = [
     'NU_ANO_CENSO', 
     'CO_ENTIDADE', 
     'QT_DOC_BAS',  
-    'QT_DOC_INF',  
-    'QT_DOC_FUND', 
-    'QT_DOC_MED'   
+    'QT_DOC_INF', 'QT_DOC_INF_CRE', 'QT_DOC_INF_PRE', 
+    'QT_DOC_FUND', 'QT_DOC_FUND_AI', 'QT_DOC_FUND_AF', 
+    'QT_DOC_MED', 'QT_DOC_PROF', 'QT_DOC_EJA',
 ]
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
