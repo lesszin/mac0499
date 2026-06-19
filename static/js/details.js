@@ -176,8 +176,83 @@ function carregarFichaEscola() {
             
             const htmlAcessibilidade = criarCardGrupo('Recursos de Acessibilidade', linhasAcessibilidade);
 
+            const com = dados.comunidade;
+            
+            const mapEspaco = { 0: 'Não', 1: 'Sim', 9: 'Não informado' };
+            const mapProposta = { 
+                0: 'Não', 
+                1: 'Sim', 
+                2: 'A escola não possui projeto político pedagógico/proposta pedagógica', 
+                9: 'Não informado' 
+            };
+
+            const linhasComunidade = [
+                { rotulo: 'A escola compartilha espaços para atividades de integração escola-comunidade', valor: mapEspaco[com.espaco_atividade] || 'Não informado' },
+                { rotulo: 'A escola usa espaços e equipamentos do entorno escolar para atividades regulares com os alunos', valor: mapEspaco[com.espaco_equipamento] || 'Não informado' },
+                { rotulo: 'Órgãos colegiados em funcionamento na escola - Associação de Pais', valor: iconeBooleano(com.orgao_pais) },
+                { rotulo: 'Órgãos colegiados em funcionamento na escola - Associação de Pais e Mestres', valor: iconeBooleano(com.orgao_pais_mestres) },
+                { rotulo: 'Órgãos colegiados em funcionamento na escola - Conselho Escolar', valor: iconeBooleano(com.orgao_conselho) },
+                { rotulo: 'Órgãos colegiados em funcionamento na escola - Grêmio Estudantil', valor: iconeBooleano(com.orgao_gremio) },
+                { rotulo: 'O projeto político pedagógico ou a proposta pedagógica da escola foi atualizado nos últimos 12 meses até a data de referência', valor: mapProposta[com.proposta_pedagogica] || 'Não informado' }
+            ];
+            
+            const htmlComunidade = criarCardGrupo('Relação escola-comunidade', linhasComunidade);
+
+            const tec = dados.tecnologia;
+            
+            // Dicionários para opções textuais complexas deste bloco
+            const mapBandaLarga = { 0: 'Não', 1: 'Sim', null: 'Não aplicável para escolas sem acesso à internet' };
+            const mapRedeLocal = { 
+                0: 'Não há rede local interligando computadores', 
+                1: 'A cabo', 
+                2: 'Wireless', 
+                3: 'A cabo e Wireless', 
+                9: 'Não informado' 
+            };
+
+            const linhasTecnologia = [
+                { rotulo: 'Acesso à Internet', valor: iconeBooleano(tec.internet) },
+                { rotulo: 'Internet Banda Larga', valor: tec.banda_larga === null ? 'Não aplicável para escolas sem acesso à internet' : (tec.banda_larga === 1 ? 'Sim' : 'Não') },
+                { rotulo: 'Rede local de interligação de computadores', valor: mapRedeLocal[tec.rede_local] || 'Não informado' },
+                { rotulo: 'Acesso à Internet - Para uso dos alunos', valor: iconeBooleano(tec.internet_alunos) },
+                { rotulo: 'Acesso à Internet - Para uso administrativo', valor: iconeBooleano(tec.internet_admin) },
+                { rotulo: 'Acesso à Internet - Para uso nos processos de ensino e aprendizagem', valor: iconeBooleano(tec.internet_aprendizagem) },
+                { rotulo: 'Acesso à Internet - Para uso da comunidade', valor: iconeBooleano(tec.internet_comunidade) },
+                { rotulo: 'Quantidade de computadores em uso pelos alunos - Computador de mesa (desktop)', valor: tec.desktop_aluno },
+                { rotulo: 'Quantidade de computadores em uso pelos alunos - Computador portátil', valor: tec.portatil_aluno },
+                { rotulo: 'Quantidade de computadores em uso pelos alunos - Tablet', valor: tec.tablet_aluno },
+                { rotulo: 'Quantidade de Aparelhos de som', valor: tec.equip_som },
+                { rotulo: 'Quantidade de Aparelhos de televisão', valor: tec.equip_tv },
+                { rotulo: 'Quantidade de Lousas digitais', valor: tec.lousa_digital },
+                { rotulo: 'Quantidade de Projetores Multimídia (Datashow)', valor: tec.equip_multimidia }
+            ];
+            
+            const htmlTecnologia = criarCardGrupo('Internet, Computadores e Equipamentos Multimídia', linhasTecnologia);
+
+            const mat = dados.materiais;
+            
+            const linhasMateriais = [
+                { rotulo: 'Acervo multimídia', valor: iconeBooleano(mat.multimidia) },
+                { rotulo: 'Brinquedos para Educação Infantil', valor: iconeBooleano(mat.infantil) },
+                { rotulo: 'Conjunto de materiais científicos', valor: iconeBooleano(mat.cientifico) },
+                { rotulo: 'Equipamento para amplificação e difusão de som/áudio', valor: iconeBooleano(mat.difusao) },
+                { rotulo: 'Instrumentos musicais para conjunto, banda/fanfarra e/ou aulas de música', valor: iconeBooleano(mat.musical) },
+                { rotulo: 'Jogos Educativos', valor: iconeBooleano(mat.jogos) },
+                { rotulo: 'Materiais para atividades culturais e artísticas', valor: iconeBooleano(mat.artisticas) },
+                { rotulo: 'Materiais para Educação Profissional', valor: iconeBooleano(mat.profissional) },
+                { rotulo: 'Instrumentos e materiais socioculturais e/ou pedagógicos - Indígena', valor: iconeBooleano(mat.indigena) },
+                { rotulo: 'Materiais pedagógicos para a educação das relações étnico-raciais', valor: iconeBooleano(mat.etnico) },
+                { rotulo: 'Materiais pedagógicos para a educação do campo', valor: iconeBooleano(mat.campo) },
+                { rotulo: 'Materiais pedagógicos para a educação bilíngue de surdos', valor: iconeBooleano(mat.bil_surdos) },
+                { rotulo: 'Equipamentos e instrumentos para atividades em área de horta, plantio e/ou produção agrícola', valor: iconeBooleano(mat.agricola) },
+                { rotulo: 'Materiais pedagógicos para a educação escolar quilombola', valor: iconeBooleano(mat.quilombola) },
+                { rotulo: 'Materiais pedagógicos para a educação especial', valor: iconeBooleano(mat.edu_esp) }
+            ];
+            
+            const htmlMateriais = criarCardGrupo('Instrumentos e materiais socioculturais e/ou pedagógicos', linhasMateriais);
+
             divDados.classList.remove('text-center', 'py-5');
-            divDados.innerHTML = htmlIdentificacao + htmlMatriculas + htmlAtendimentos + htmlInfraestrutura + htmlDependencias + htmlAcessibilidade;
+            divDados.innerHTML = htmlIdentificacao + htmlMatriculas + htmlAtendimentos + htmlInfraestrutura + htmlDependencias + htmlAcessibilidade + htmlComunidade + htmlTecnologia + htmlMateriais;
         })
         .catch(erro => {
             console.error(erro);
