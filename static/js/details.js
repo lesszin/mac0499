@@ -251,8 +251,66 @@ function carregarFichaEscola() {
             
             const htmlMateriais = criarCardGrupo('Instrumentos e materiais socioculturais e/ou pedagógicos', linhasMateriais);
 
+            let htmlDocentes = '';
+            
+            if (dados.docentes) {
+                const d = dados.docentes;
+                const linhasDocentes = [];
+
+                if (d.basica > 0) linhasDocentes.push({ rotulo: 'Número de total de Docentes da Educação Básica', valor: d.basica });
+                if (d.creche > 0) linhasDocentes.push({ rotulo: 'Número de Docentes da Educação Infantil - Creche', valor: d.creche });
+                if (d.pre_escola > 0) linhasDocentes.push({ rotulo: 'Número de Docentes da Educação Infantil - Pré-Escola', valor: d.pre_escola });
+                if (d.fund_ai > 0) linhasDocentes.push({ rotulo: 'Número de Docentes do Ensino Fundamental - Anos Iniciais', valor: d.fund_ai });
+                if (d.fund_af > 0) linhasDocentes.push({ rotulo: 'Número de Docentes do Ensino Fundamental - Anos Finais', valor: d.fund_af });
+                if (d.medio > 0) linhasDocentes.push({ rotulo: 'Número de Docentes do Ensino Médio', valor: d.medio });
+                if (d.profissional > 0) linhasDocentes.push({ rotulo: 'Número de Docentes da Educação Profissional', valor: d.profissional });
+                if (d.eja > 0) linhasDocentes.push({ rotulo: 'Número de Docentes da Educação de Jovens e Adultos (EJA)', valor: d.eja });
+
+                if (linhasDocentes.length > 0) {
+                    htmlDocentes = criarCardGrupo('Professores/Docentes', linhasDocentes);
+                } else {
+                    htmlDocentes = `
+                        <div class="card shadow-sm border-0 rounded-3 mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="text-primary mb-3">Professores/Docentes</h5>
+                                <p class="text-muted mb-0">Nenhum registro de docente encontrado.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            let htmlProfissionais = '';
+            
+            if (dados.profissionais) {
+                const p = dados.profissionais;
+                
+                const linhasProf = [
+                    { rotulo: 'Auxiliares de secretaria ou auxiliares administrativos, atendentes', valor: p.administrativos },
+                    { rotulo: 'Auxiliar de serviços gerais, porteiro(a), zelador(a), faxineiro(a), jardineiro(a)', valor: p.servicos_gerais },
+                    { rotulo: 'Bibliotecário(a), auxiliar de biblioteca ou monitor(a) da sala de leitura', valor: p.bibliotecario },
+                    { rotulo: 'Bombeiro(a) brigadista, profissionais de assistência à saúde (urgência e emergência), Enfermeiro(a), Técnico(a) de enfermagem e socorrista', valor: p.saude },
+                    { rotulo: 'Coordenador(a) de turno/disciplina', valor: p.coordenador },
+                    { rotulo: 'Fonoaudiólogo(a)', valor: p.fonoaudiologo },
+                    { rotulo: 'Nutricionista', valor: p.nutricionista },
+                    { rotulo: 'Psicólogo(a) Escolar', valor: p.psicologo },
+                    { rotulo: 'Profissionais de preparação e segurança alimentar, cozinheiro(a), merendeiro(a) e auxiliar de cozinha', valor: p.alimentacao },
+                    { rotulo: 'Profissionais de apoio e supervisão pedagógica: pedagogo(a), coordenador(a) pedagógico(a), orientador(a) educacional, supervisor(a) escolar e coordenador(a) de área de ensino', valor: p.pedagogia },
+                    { rotulo: 'Secretário(a) escolar', valor: p.secretario },
+                    { rotulo: 'Segurança, guarda ou segurança patrimonial', valor: p.seguranca },
+                    { rotulo: 'Técnicos(as), monitores(as), supervisores(as) ou auxiliares de laboratório(s), de apoio a tecnologias educacionais ou em multimeios/multimídias eletrônico/digitais', valor: p.monitores },
+                    { rotulo: 'Vice-diretor(a) ou diretor(a) adjunto(a), profissionais responsáveis pela gestão administrativa e/ou financeira', valor: p.gestao },
+                    { rotulo: 'Orientador(a) comunitário(a) ou assistente social', valor: p.assist_social },
+                    { rotulo: 'Tradutor e Intérprete de Libras para atendimento em outros ambientes da escola que não seja sala de aula', valor: p.trad_libras },
+                    { rotulo: 'Agrônomos(as), horticultores(as), técnicos ou monitores(as) responsáveis pela gestão da área de horta, plantio e/ou produção agrícola', valor: p.agricola },
+                    { rotulo: 'Revisor de texto Braille, assistente vidente (assistente de revisão do texto em Braille)', valor: p.revisor_braille }
+                ];
+
+                htmlProfissionais = criarCardGrupo('Demais profissionais/educadores', linhasProf);
+            }
+
             divDados.classList.remove('text-center', 'py-5');
-            divDados.innerHTML = htmlIdentificacao + htmlMatriculas + htmlAtendimentos + htmlInfraestrutura + htmlDependencias + htmlAcessibilidade + htmlComunidade + htmlTecnologia + htmlMateriais;
+            divDados.innerHTML = htmlIdentificacao + htmlMatriculas + htmlAtendimentos + htmlInfraestrutura + htmlDependencias + htmlAcessibilidade + htmlComunidade + htmlTecnologia + htmlMateriais + htmlDocentes + htmlProfissionais;
         })
         .catch(erro => {
             console.error(erro);
