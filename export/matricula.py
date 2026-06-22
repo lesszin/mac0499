@@ -6,10 +6,10 @@ DB_PASS = '1234'
 DB_HOST = 'localhost'
 DB_PORT = '5432'
 DB_NAME = 'culturaeduca'
-NOME_TABELA = 'fato_matricula' 
-TAMANHO_LOTE = 100000
+TABLE_NAME = 'fato_matricula' 
+BATCH_SIZE = 100000
 
-ARQUIVOS_CENSO = {
+CENSUS_FILES = {
     2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Matricula_2025.csv',
     2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/microdados_ed_basica_2024.csv',
     2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/microdados_ed_basica_2023.csv',
@@ -18,50 +18,55 @@ ARQUIVOS_CENSO = {
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
-def consolidar_fato_matricula():
-    print("Iniciando a construção da Tabela Fato de Matrículas...")
-    colunas_db = []
+def consolidate_enrollment_fact():
+    print("Starting the construction of the Enrollment Fact Table...")
+    db_columns = []
     
-    for ano, caminho_arquivo in ARQUIVOS_CENSO.items():
-        print(f"\n--- Processando dados do Censo {ano} ---")
+    sorted_years = sorted(CENSUS_FILES.keys(), reverse=True)
+    first_run = True
+    
+    for year in sorted_years:
+        file_path = CENSUS_FILES[year]
+        print(f"\n--- Processing Census data for year {year} ---")
         
-        if ano != 2025:
+        if not first_run:
             inspector = inspect(engine)
-            colunas_db = [col['name'] for col in inspector.get_columns(NOME_TABELA)]
-            print(f"Estrutura lida: A tabela possui {len(colunas_db)} colunas ativas.")
+            db_columns = [col['name'] for col in inspector.get_columns(TABLE_NAME)]
+            print(f"Database schema read: The table has {len(db_columns)} active columns.")
         
-        def filtar_colunas(nome_coluna):
-            return nome_coluna in colunas_db if ano != 2025 else True
+        def filter_columns(column_name):
+            return column_name in db_columns if not first_run else True
 
         try:
-            leitor_csv = pd.read_csv(
-                caminho_arquivo, 
+            csv_reader = pd.read_csv(
+                file_path, 
                 sep=';', 
                 encoding='latin-1', 
-                chunksize=TAMANHO_LOTE,
-                usecols=filtar_colunas if ano != 2025 else None,
+                chunksize=BATCH_SIZE,
+                usecols=filter_columns if not first_run else None,
                 low_memory=False
             )
 
-            for i, chunk in enumerate(leitor_csv):
-                print(f"[{ano}] Injetando lote {i + 1}...")
+            for i, chunk in enumerate(csv_reader):
+                print(f"[{year}] Injecting batch {i + 1}...")
                 
-                acao = 'replace' if (ano == 2025 and i == 0) else 'append'
+                action = 'replace' if (first_run and i == 0) else 'append'
                 
                 chunk.to_sql(
-                    name=NOME_TABELA,
+                    name=TABLE_NAME,
                     con=engine,
-                    if_exists=acao,
+                    if_exists=action,
                     index=False
                 )
                 
-            print(f"Sucesso! Dados de {ano} integrados à série temporal.")
+            print(f"Success! {year} data integrated into the time series.")
+            first_run = False
 
         except Exception as e:
-            print(f"Erro crítico ao processar o ano {ano}: {e}")
-            print("Interrompendo a execução para proteger a integridade do banco.")
+            print(f"Critical error processing year {year}: {e}")
+            print("Halting execution to protect database integrity.")
             break 
 
 if __name__ == "__main__":
-    consolidar_fato_matricula()
-    print("\nProcesso de injeção finalizado com sucesso!")
+    consolidate_enrollment_fact()
+    print("\nInjection process finished successfully!")
