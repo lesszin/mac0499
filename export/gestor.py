@@ -6,17 +6,17 @@ DB_PASS = '1234'
 DB_HOST = 'localhost'
 DB_PORT = '5432'
 DB_NAME = 'culturaeduca'
-NOME_TABELA = 'fato_gestor'
-TAMANHO_LOTE = 100000
+TABLE_NAME = 'fato_gestor'
+BATCH_SIZE = 100000
 
-ARQUIVOS_GESTOR = {
+CENSUS_FILES = {
     2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Gestor_Escolar_2025.csv',
     2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/microdados_ed_basica_2024.csv',
     2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/microdados_ed_basica_2023.csv',
     2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
 }
 
-colunas_desejadas = [
+target_columns = [
     'NU_ANO_CENSO', 
     'CO_ENTIDADE', 
     'QT_GEST_BAS',       
@@ -27,48 +27,55 @@ colunas_desejadas = [
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
-def consolidar_fato_gestor():
-    print("Iniciando a construção da Tabela Fato de Gestores...")
-    colunas_db = []
+def consolidate_manager_fact():
+    print("Starting the construction of the Manager Fact Table...")
+    db_columns = []
     
-    for ano, caminho_arquivo in ARQUIVOS_GESTOR.items():
-        print(f"\n--- Processando dados de Gestores do Censo {ano} ---")
+    sorted_years = sorted(CENSUS_FILES.keys(), reverse=True)
+    first_run = True
+    
+    for year in sorted_years:
+        file_path = CENSUS_FILES[year]
+        print(f"\n--- Processing Manager data for Census year {year} ---")
         
-        if ano != 2025:
+        if not first_run:
             inspector = inspect(engine)
-            colunas_db = [col['name'] for col in inspector.get_columns(NOME_TABELA)]
+            db_columns = [col['name'] for col in inspector.get_columns(TABLE_NAME)]
+            print(f"Database schema read: The table has {len(db_columns)} active columns.")
         
-        def filtar_colunas(nome_coluna):
-            return nome_coluna in colunas_desejadas if ano == 2025 else nome_coluna in colunas_db
+        def filter_columns(column_name):
+            return column_name in target_columns if first_run else column_name in db_columns
 
         try:
-            leitor_csv = pd.read_csv(
-                caminho_arquivo, 
+            csv_reader = pd.read_csv(
+                file_path, 
                 sep=';', 
                 encoding='latin-1', 
-                chunksize=TAMANHO_LOTE,
-                usecols=filtar_colunas,
+                chunksize=BATCH_SIZE,
+                usecols=filter_columns,
                 low_memory=False
             )
 
-            for i, chunk in enumerate(leitor_csv):
-                print(f"[{ano}] Injetando lote {i + 1}...")
+            for i, chunk in enumerate(csv_reader):
+                print(f"[{year}] Injecting batch {i + 1}...")
                 
-                acao = 'replace' if (ano == 2025 and i == 0) else 'append'
+                action = 'replace' if (first_run and i == 0) else 'append'
                 
                 chunk.to_sql(
-                    name=NOME_TABELA,
+                    name=TABLE_NAME,
                     con=engine,
-                    if_exists=acao,
+                    if_exists=action,
                     index=False
                 )
                 
-            print(f"Sucesso! Dados de gestores de {ano} integrados.")
+            print(f"Success! {year} manager data integrated into the time series.")
+            first_run = False
 
         except Exception as e:
-            print(f"Erro ao processar o ano {ano}: {e}")
+            print(f"Critical error processing year {year}: {e}")
+            print("Halting execution to protect database integrity.")
             break 
 
 if __name__ == "__main__":
-    consolidar_fato_gestor()
-    print("\nProcesso de injeção finalizado com sucesso!")
+    consolidate_manager_fact()
+    print("\nInjection process finished successfully!")

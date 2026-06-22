@@ -9,14 +9,14 @@ DB_NAME = 'culturaeduca'
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
-ARQUIVOS = {
+CENSUS_FILES = {
     2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Escola_2025.csv',
     2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/microdados_ed_basica_2024.csv',
     2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/microdados_ed_basica_2023.csv',
     2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
 }
 
-colunas_desejadas = [
+target_columns = [
     'NU_ANO_CENSO', 'CO_ENTIDADE', 'NO_ENTIDADE', 
     
     'CO_MUNICIPIO', 'NO_MUNICIPIO', 'CO_UF', 'SG_UF', 
@@ -65,48 +65,48 @@ colunas_desejadas = [
     'QT_PROF_AGRICOLA', 'QT_PROF_REVISOR_BRAILLE',
 ]
 
-print("Iniciando a Engenharia da Dimensão Histórica com Otimização de RAM...")
+print("Starting Historical Dimension Engineering with RAM Optimization...")
 
-df_master = pd.DataFrame()
+master_df = pd.DataFrame()
 
 try:
-    anos_ordenados = sorted(ARQUIVOS.keys(), reverse=True)
+    sorted_years = sorted(CENSUS_FILES.keys(), reverse=True)
     
-    for ano in anos_ordenados:
-        caminho = ARQUIVOS[ano]
-        print(f"\n[Processando {ano}] Lendo arquivo...")
+    for year in sorted_years:
+        file_path = CENSUS_FILES[year]
+        print(f"\n[Processing {year}] Reading file...")
         
-        def filtrar_existentes(coluna):
-            return coluna in colunas_desejadas
+        def filter_existing(column):
+            return column in target_columns
 
-        df_ano = pd.read_csv(
-            caminho, 
+        year_df = pd.read_csv(
+            file_path, 
             sep=';', 
             encoding='latin-1', 
-            usecols=filtrar_existentes,
+            usecols=filter_existing,
             low_memory=False
         )
         
-        df_ano = df_ano.dropna(subset=['CO_ENTIDADE'])
-        df_ano['CO_ENTIDADE'] = df_ano['CO_ENTIDADE'].astype(int)
-        df_ano = df_ano.drop_duplicates(subset=['CO_ENTIDADE'], keep='first')
+        year_df = year_df.dropna(subset=['CO_ENTIDADE'])
+        year_df['CO_ENTIDADE'] = year_df['CO_ENTIDADE'].astype(int)
+        year_df = year_df.drop_duplicates(subset=['CO_ENTIDADE'], keep='first')
         
-        if df_master.empty:
-            df_master = df_ano
-            print(f"-> Base inicial (2025) carregada com {len(df_master)} escolas.")
+        if master_df.empty:
+            master_df = year_df
+            print(f"-> Initial base ({year}) loaded with {len(master_df)} schools.")
         else:
-            escolas_novas = df_ano[~df_ano['CO_ENTIDADE'].isin(df_master['CO_ENTIDADE'])]
-            print(f"-> Das {len(df_ano)} escolas encontradas em {ano}, {len(escolas_novas)} são novas e serão adicionadas.")
+            new_schools = year_df[~year_df['CO_ENTIDADE'].isin(master_df['CO_ENTIDADE'])]
+            print(f"-> Out of {len(year_df)} schools found in {year}, {len(new_schools)} are new and will be added.")
             
-            df_master = pd.concat([df_master, escolas_novas], ignore_index=True)
-            print(f"-> Total acumulado de escolas únicas na memória: {len(df_master)}")
+            master_df = pd.concat([master_df, new_schools], ignore_index=True)
+            print(f"-> Total accumulated unique schools in memory: {len(master_df)}")
 
-    if 'NU_ANO_CENSO' in df_master.columns:
-        df_master = df_master.drop(columns=['NU_ANO_CENSO'])
+    if 'NU_ANO_CENSO' in master_df.columns:
+        master_df = master_df.drop(columns=['NU_ANO_CENSO'])
 
-    print(f"\nSalvando {len(df_master)} escolas no PostgreSQL...")
+    print(f"\nSaving {len(master_df)} schools to PostgreSQL...")
 
-    df_master.to_sql(
+    master_df.to_sql(
         name='dim_escola',
         con=engine,
         if_exists='replace',
@@ -114,7 +114,7 @@ try:
         chunksize=1000
     )
     
-    print("\n Sucesso MÁXIMO! Sua dimensão consolidada está salva e pronta no banco de dados.")
+    print("\nMAXIMUM Success! Your consolidated dimension is saved and ready in the database.")
 
 except Exception as e:
-    print(f"\n Ocorreu um erro crítico durante o processo: {e}")
+    print(f"\nA critical error occurred during the process: {e}")

@@ -6,17 +6,17 @@ DB_PASS = '1234'
 DB_HOST = 'localhost'
 DB_PORT = '5432'
 DB_NAME = 'culturaeduca'
-NOME_TABELA = 'fato_turma'
-TAMANHO_LOTE = 100000
+TABLE_NAME = 'fato_turma'
+BATCH_SIZE = 100000
 
-ARQUIVOS_TURMA = {
+CENSUS_FILES = {
     2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Turma_2025.csv',
     2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/microdados_ed_basica_2024.csv',
     2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/microdados_ed_basica_2023.csv',
     2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
 }
 
-colunas_desejadas = [
+target_columns = [
     'NU_ANO_CENSO', 
     'CO_ENTIDADE', 
     'QT_TUR_BAS',  
@@ -35,63 +35,69 @@ colunas_desejadas = [
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
-def otimizar_tabela():
-    with engine.connect() as conexao:
-        print("\nOtimizando o banco de dados...")
-        conexao.execute(text(f'CREATE INDEX IF NOT EXISTS idx_{NOME_TABELA}_escola ON {NOME_TABELA} ("CO_ENTIDADE");'))
-        conexao.execute(text(f'CREATE INDEX IF NOT EXISTS idx_{NOME_TABELA}_ano ON {NOME_TABELA} ("NU_ANO_CENSO");'))
-        conexao.commit()
-        print("Índices criados com sucesso!")
+def optimize_table():
+    with engine.connect() as connection:
+        print("\nOptimizing database...")
+        connection.execute(text(f'CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_escola ON {TABLE_NAME} ("CO_ENTIDADE");'))
+        connection.execute(text(f'CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_ano ON {TABLE_NAME} ("NU_ANO_CENSO");'))
+        connection.commit()
+        print("Indexes created successfully!")
 
-def consolidar_fato_turma():
-    print("Iniciando a construção da Tabela Fato de Turmas...")
-    colunas_db = []
+def consolidate_class_fact():
+    print("Starting the construction of the Class Fact Table...")
+    db_columns = []
     
-    for ano, caminho_arquivo in ARQUIVOS_TURMA.items():
-        print(f"\n--- Processando dados de Turmas do Censo {ano} ---")
+    sorted_years = sorted(CENSUS_FILES.keys(), reverse=True)
+    first_run = True
+    
+    for year in sorted_years:
+        file_path = CENSUS_FILES[year]
+        print(f"\n--- Processing Class data for Census year {year} ---")
         
-        if ano != 2025:
+        if not first_run:
             inspector = inspect(engine)
-            if NOME_TABELA in inspector.get_table_names():
-                colunas_db = [col['name'] for col in inspector.get_columns(NOME_TABELA)]
+            if TABLE_NAME in inspector.get_table_names():
+                db_columns = [col['name'] for col in inspector.get_columns(TABLE_NAME)]
+                print(f"Database schema read: The table has {len(db_columns)} active columns.")
         
-        def filtar_colunas(nome_coluna):
-            return nome_coluna in colunas_desejadas if ano == 2025 else nome_coluna in colunas_db
+        def filter_columns(column_name):
+            return column_name in target_columns if first_run else column_name in db_columns
 
         try:
-            leitor_csv = pd.read_csv(
-                caminho_arquivo, 
+            csv_reader = pd.read_csv(
+                file_path, 
                 sep=';', 
                 encoding='latin-1', 
-                chunksize=TAMANHO_LOTE,
-                usecols=filtar_colunas,
+                chunksize=BATCH_SIZE,
+                usecols=filter_columns,
                 low_memory=False
             )
 
-            for i, chunk in enumerate(leitor_csv):
-                print(f"[{ano}] Injetando lote {i + 1}...")
+            for i, chunk in enumerate(csv_reader):
+                print(f"[{year}] Injecting batch {i + 1}...")
                 
                 chunk = chunk.fillna(0)
                 
-                acao = 'replace' if (ano == 2025 and i == 0) else 'append'
+                action = 'replace' if (first_run and i == 0) else 'append'
                 
                 chunk.to_sql(
-                    name=NOME_TABELA,
+                    name=TABLE_NAME,
                     con=engine,
-                    if_exists=acao,
+                    if_exists=action,
                     index=False
                 )
                 
-            print(f"Sucesso! Dados de turmas de {ano} integrados.")
+            print(f"Success! {year} class data integrated into the time series.")
+            first_run = False
 
         except Exception as e:
-            print(f"Aviso [{ano}]: Tabela de colunas inexistente neste ano ou erro: {e}")
+            print(f"Warning [{year}]: Table columns missing or process error: {e}")
             pass
 
     inspector = inspect(engine)
-    if NOME_TABELA in inspector.get_table_names():
-        otimizar_tabela()
+    if TABLE_NAME in inspector.get_table_names():
+        optimize_table()
 
 if __name__ == "__main__":
-    consolidar_fato_turma()
-    print("\nProcesso de injeção finalizado com sucesso!")
+    consolidate_class_fact()
+    print("\nInjection process finished successfully!")
