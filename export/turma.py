@@ -27,7 +27,7 @@ target_columns = [
     'QT_TUR_FUND_AI',      
     'QT_TUR_FUND_AF', 
     'QT_TUR_MED',          
-    'QT_TUR_MED_IFTP_CT',
+    'QT_TUR_PROF',
     'QT_TUR_EJA_FUND',    
     'QT_TUR_EJA_MED',
     'QT_TUR_ESP'
