@@ -1,3 +1,5 @@
+let dashboardLoaded = false;
+
 function switchTab(tabName) {
     document.getElementById('contentSheet').style.display = 'none';
     document.getElementById('contentEvolution').style.display = 'none';
@@ -11,7 +13,36 @@ function switchTab(tabName) {
     } else if (tabName === 'evolution') {
         document.getElementById('contentEvolution').style.display = 'block';
         document.getElementById('btnEvolution').classList.add('active');
+        
+        if (!dashboardLoaded) {
+            loadMetabaseDashboard();
+        }
     }
+}
+
+function loadMetabaseDashboard() {
+    const loader = document.getElementById('evolutionLoader');
+    const iframe = document.getElementById('metabasePlayer');
+
+    fetch(`/api/painel/${SCHOOL_CODE}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso && data.url) {
+                console.log("URL DO METABASE:", data.url);
+                
+                loader.classList.add('d-none');
+                iframe.classList.remove('d-none');
+                iframe.src = data.url;
+                
+                dashboardLoaded = true;
+            } else {
+                loader.innerHTML = `<div class="alert alert-danger">Erro ao gerar token do painel: ${data.erro}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            loader.innerHTML = `<div class="alert alert-danger">Erro de conexão com o servidor de gráficos.</div>`;
+        });
 }
 
 function loadSchoolSheet() {
