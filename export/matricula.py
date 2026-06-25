@@ -16,6 +16,21 @@ CENSUS_FILES = {
     2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
 }
 
+target_columns = [
+    'NU_ANO_CENSO',
+    'CO_ENTIDADE',
+    'QT_MAT_BAS',
+    'QT_MAT_INF_CRE',
+    'QT_MAT_INF_PRE',
+    'QT_MAT_FUND_AI',
+    'QT_MAT_FUND_AF',
+    'QT_MAT_MED',
+    'QT_MAT_PROF',
+    'QT_MAT_EJA_FUND',
+    'QT_MAT_EJA_MED',
+    'QT_MAT_ESP'
+]
+
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
 def consolidate_enrollment_fact():
@@ -31,11 +46,12 @@ def consolidate_enrollment_fact():
         
         if not first_run:
             inspector = inspect(engine)
-            db_columns = [col['name'] for col in inspector.get_columns(TABLE_NAME)]
-            print(f"Database schema read: The table has {len(db_columns)} active columns.")
+            if TABLE_NAME in inspector.get_table_names():
+                db_columns = [col['name'] for col in inspector.get_columns(TABLE_NAME)]
+                print(f"Database schema read: The table has {len(db_columns)} active columns.")
         
         def filter_columns(column_name):
-            return column_name in db_columns if not first_run else True
+            return column_name in target_columns if first_run else column_name in db_columns
 
         try:
             csv_reader = pd.read_csv(
@@ -43,12 +59,14 @@ def consolidate_enrollment_fact():
                 sep=';', 
                 encoding='latin-1', 
                 chunksize=BATCH_SIZE,
-                usecols=filter_columns if not first_run else None,
+                usecols=filter_columns,
                 low_memory=False
             )
 
             for i, chunk in enumerate(csv_reader):
                 print(f"[{year}] Injecting batch {i + 1}...")
+                
+                chunk = chunk.fillna(0)
                 
                 action = 'replace' if (first_run and i == 0) else 'append'
                 
