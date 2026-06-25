@@ -81,9 +81,12 @@
 
         <div id="contentEvolution" class="tab-hidden">
             <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-body p-5 text-center text-muted">
-                    <i class="bi bi-bar-chart-line large-icon"></i>
-                    <p class="mt-3">A integração com os gráficos do Metabase será exibida aqui.</p>
+                <div class="card-body p-3 text-center">
+                    <div id="evolutionLoader" class="py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="text-muted mt-2">Carregando painel de evolução...</p>
+                    </div>
+                    <iframe id="metabasePlayer" class="w-100 d-none" frameborder="0" height="600" allowtransparency></iframe>
                 </div>
             </div>
         </div>
@@ -93,6 +96,6 @@
     <script>
         const SCHOOL_CODE = Number("{{ codigo }}");
     </script>
-    <script src="/static/js/details.js"></script>
+    <script src="/static/js/details.js?v=1"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+import datetime
 
 load_dotenv()
 
@@ -293,11 +294,11 @@ def search_schools(text_query):
 def generate_dashboard_link(school_code):
     try:
         payload = {
-            "resource": {"dashboard": DASHBOARD_ID},
+            "resource": {"dashboard": 2},
             "params": {
-                "number": school_code
+                "number": school_code 
             },
-            "exp": round(time.time()) + (10 * 60)
+            "exp": round((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)).timestamp())
         }
         
         token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
