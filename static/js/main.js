@@ -7,48 +7,184 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     maxZoom: 20
 }).addTo(map);
 
-const markerClusterGroup = L.markerClusterGroup({
-    disableClusteringAtZoom: 14
-});
-map.addLayer(markerClusterGroup);
+const schoolLayer = L.layerGroup().addTo(map);
+const selectedLayer = L.layerGroup().addTo(map);
+const schoolMarkers = new Map();
+let selectedSchoolCode = null;
+
+const dotStyle = {
+    radius: 5,
+    fillColor: "#007bff",
+    color: "#fff",
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.8
+};
 
 const redIcon = L.divIcon({
     className: 'marker-no-bg',
     html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="28" height="40" style="filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));"><path fill="#dc3545" d="M172.3 501.7C27 291 0 269.4 0 192 0 86 86 0 192 0s192 86 192 192c0 77.4-27 99-172.3 309.7-9.5 13.8-29.9 13.8-39.5 0zM192 272c44.2 0 80-35.8 80-80s-35.8-80-80-80-80 35.8-80 80 35.8 80 80 80z"/></svg>`,
     iconSize: [28, 40],
     iconAnchor: [14, 40],
-    popupAnchor: [0, -40] 
+    popupAnchor: [0, -40]
 });
 
 function loadSchoolsOnMap() {
-    const bounds = map.getBounds();
-    const lat_min = bounds.getSouth();
-    const lat_max = bounds.getNorth();
-    const lng_min = bounds.getWest();
-    const lng_max = bounds.getEast();
-
     const checkboxes = document.querySelectorAll('.modality-filter:checked');
-    const modalities = Array.from(checkboxes).map(cb => cb.value).join(',');
 
-    fetch(`/api/escolas-mapa?lat_min=${lat_min}&lat_max=${lat_max}&lng_min=${lng_min}&lng_max=${lng_max}&modalidades=${modalities}`)
+    if (checkboxes.length === 0) {
+
+        schoolMarkers.forEach((marker, codigo) => {
+            if (codigo !== selectedSchoolCode) {
+                schoolLayer.removeLayer(marker);
+                schoolMarkers.delete(codigo);
+            }
+        });
+
+        return;
+    }
+
+    const modalities = Array.from(checkboxes).map(cb => cb.value).join(',');
+    if (map.getZoom() < 5) {
+
+        schoolMarkers.forEach((marker, codigo) => {
+            if (codigo !== selectedSchoolCode) {
+                schoolLayer.removeLayer(marker);
+                schoolMarkers.delete(codigo);
+            }
+        });
+
+        return;
+    }
+
+    const bounds = map.getBounds();
+
+    let url =
+        `/api/escolas-mapa?modalidades=${modalities}`
+        + `&lat_min=${bounds.getSouth()}`
+        + `&lat_max=${bounds.getNorth()}`
+        + `&lng_min=${bounds.getWest()}`
+        + `&lng_max=${bounds.getEast()}`;
+
+    return fetch(url)
         .then(response => response.json())
         .then(schools => {
-            markerClusterGroup.clearLayers();
 
+            const visibleSchools = new Set();
             schools.forEach(school => {
-                const marker = L.marker([school.lat, school.lng], { icon: redIcon });
-                
-                marker.bindPopup(`
-                    <strong>${school.nome}</strong><br>
-                    <button class="btn btn-sm btn-primary mt-2" onclick="window.open('/escola/${school.codigo}', '_blank')">
-                        Ver Detalhes
-                    </button>
-                `);
-                
-                markerClusterGroup.addLayer(marker);
+                visibleSchools.add(school.codigo);
+
+                if (school.codigo === selectedSchoolCode) {
+
+                    if (!schoolMarkers.has(school.codigo)) {
+
+                        const marker = L.circleMarker(
+                            [school.lat, school.lng],
+                            dotStyle
+                        );
+
+                        marker.options.schoolData = school;
+                        marker.on("click", () => selectSchool(marker, school));
+
+                        schoolMarkers.set(school.codigo, marker);
+                        schoolLayer.addLayer(marker);
+                    }
+
+                    return;
+                }
+
+                if (schoolMarkers.has(school.codigo))
+                    return;
+
+                const marker = L.circleMarker(
+                    [school.lat, school.lng],
+                    dotStyle
+                );
+
+                marker.options.schoolData = school;
+                marker.on('click', function () {
+                    selectSchool(marker, school);
+                });
+
+                schoolMarkers.set(school.codigo, marker);
+                schoolLayer.addLayer(marker);
             });
+
+            schoolMarkers.forEach((marker, codigo) => {
+                if (
+                    !visibleSchools.has(codigo) &&
+                    codigo !== selectedSchoolCode
+                ) {
+                    schoolLayer.removeLayer(marker);
+                    schoolMarkers.delete(codigo);
+                }
+            });
+
         })
-        .catch(error => console.error(error));
+        .catch(console.error);
+}
+
+function selectSchool(marker, schoolData) {
+
+    selectedLayer.clearLayers();
+
+    const pin = L.marker(
+        [schoolData.lat, schoolData.lng],
+        { icon: redIcon }
+    );
+
+    pin.bindPopup(`
+        <strong>${schoolData.nome}</strong><br>
+        <button class="btn btn-sm btn-primary mt-2"
+            onclick="window.open('/escola/${schoolData.codigo}','_blank')">
+            Ver Detalhes
+        </button>
+    `);
+
+    selectedLayer.addLayer(pin);
+
+    pin.openPopup();
+
+    selectedSchoolCode = schoolData.codigo;
+}
+
+function selectSchoolByData(schoolData) {
+
+    selectedLayer.clearLayers();
+
+    let marker = schoolMarkers.get(schoolData.codigo);
+
+    if (!marker) {
+        marker = L.circleMarker(
+            [schoolData.lat, schoolData.lng],
+            dotStyle
+        );
+
+        marker.options.schoolData = schoolData;
+        marker.on("click", () => selectSchool(marker, schoolData));
+
+        schoolMarkers.set(schoolData.codigo, marker);
+        schoolLayer.addLayer(marker);
+    }
+
+    const pin = L.marker(
+        marker.getLatLng(),
+        { icon: redIcon }
+    );
+
+    pin.bindPopup(`
+        <strong>${schoolData.nome}</strong><br>
+        <button class="btn btn-sm btn-primary mt-2"
+            onclick="window.open('/escola/${schoolData.codigo}','_blank')">
+            Ver Detalhes
+        </button>
+    `);
+
+    selectedLayer.addLayer(pin);
+
+    pin.openPopup();
+
+    selectedSchoolCode = schoolData.codigo;
 }
 
 map.on('moveend', loadSchoolsOnMap);
@@ -57,10 +193,21 @@ document.querySelectorAll('.modality-filter').forEach(checkbox => {
     checkbox.addEventListener('change', loadSchoolsOnMap);
 });
 
-loadSchoolsOnMap();
-
 const searchInput = document.getElementById('schoolInput');
 const suggestionsBox = document.getElementById('searchSuggestions');
+
+window.addEventListener("load", () => {
+
+    document.querySelectorAll(".modality-filter").forEach(cb => {
+        cb.checked = false;
+    });
+
+    schoolLayer.clearLayers();
+    selectedLayer.clearLayers();
+    schoolMarkers.clear();
+    selectedSchoolCode = null;
+
+});
 
 searchInput.addEventListener('input', function() {
     const term = this.value.trim();
@@ -92,21 +239,15 @@ searchInput.addEventListener('input', function() {
                 
                 button.onclick = () => {
                     suggestionsBox.classList.add('d-none');
-                    searchInput.value = ''; 
-                    
+                    searchInput.value = '';
+
+                    map.once("moveend", () => {
+                        setTimeout(() => {
+                            selectSchoolByData(school);
+                        }, 100);
+                    });
+
                     map.flyTo([school.lat, school.lng], 16);
-                    
-                    setTimeout(() => {
-                        L.popup({ offset: [0, -32] })
-                            .setLatLng([school.lat, school.lng])
-                            .setContent(`
-                                <strong>${school.nome}</strong><br>
-                                <button class="btn btn-sm btn-primary mt-2" onclick="window.open('/escola/${school.codigo}', '_blank')">
-                                    Ver Detalhes
-                                </button>
-                            `)
-                            .openOn(map);
-                    }, 500);
                 };
                 
                 suggestionsBox.appendChild(button);

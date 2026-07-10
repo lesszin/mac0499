@@ -313,10 +313,23 @@ def generate_dashboard_link(school_code):
 @app.route('/api/escolas-mapa')
 def get_map_schools():
     try:
-        lat_min = float(request.args.get('lat_min'))
-        lat_max = float(request.args.get('lat_max'))
-        lng_min = float(request.args.get('lng_min'))
-        lng_max = float(request.args.get('lng_max'))
+        modalities_str = request.args.get('modalidades', '')
+
+        if not modalities_str:
+            return jsonify([])
+
+        lat_min = request.args.get('lat_min')
+        lat_max = request.args.get('lat_max')
+        lng_min = request.args.get('lng_min')
+        lng_max = request.args.get('lng_max')
+
+        has_bounds = all(v is not None for v in [lat_min, lat_max, lng_min, lng_max])
+
+        if has_bounds:
+            lat_min = float(lat_min)
+            lat_max = float(lat_max)
+            lng_min = float(lng_min)
+            lng_max = float(lng_max)
 
         modalities_str = request.args.get('modalidades', '')
         modalities = modalities_str.split(',') if modalities_str else []
@@ -335,14 +348,21 @@ def get_map_schools():
         query = """
             SELECT "CO_ENTIDADE", "NO_ENTIDADE", "LATITUDE", "LONGITUDE"
             FROM dim_escola e
-            WHERE "LATITUDE" BETWEEN :lat_min AND :lat_max
-              AND "LONGITUDE" BETWEEN :lng_min AND :lng_max
+            WHERE 1=1
+                AND "LATITUDE" IS NOT NULL
+                AND "LONGITUDE" IS NOT NULL
         """
+
+        if has_bounds:
+            query += """
+                AND "LATITUDE" BETWEEN :lat_min AND :lat_max
+                AND "LONGITUDE" BETWEEN :lng_min AND :lng_max
+            """
 
         class_filters = [filter_map[mod] for mod in modalities if mod in filter_map]
         
         if class_filters:
-            class_clauses = " AND ".join(class_filters)
+            class_clauses = " OR ".join(class_filters)
             
             query += f"""
               AND EXISTS (
@@ -362,13 +382,24 @@ def get_map_schools():
               )
             """
 
-        query += " LIMIT 1500"
+        if has_bounds:
+            query += " LIMIT 5000"
 
         with engine.connect() as connection:
-            results = connection.execute(text(query), {
-                "lat_min": lat_min, "lat_max": lat_max,
-                "lng_min": lng_min, "lng_max": lng_max
-            }).fetchall()
+            params = {}
+
+            if has_bounds:
+                params = {
+                    "lat_min": lat_min,
+                    "lat_max": lat_max,
+                    "lng_min": lng_min,
+                    "lng_max": lng_max
+                }
+
+            results = connection.execute(
+                text(query),
+                params
+            ).fetchall()
 
             schools = []
             for row in results:

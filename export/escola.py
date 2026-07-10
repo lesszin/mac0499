@@ -101,9 +101,6 @@ try:
             master_df = pd.concat([master_df, new_schools], ignore_index=True)
             print(f"-> Total accumulated unique schools in memory: {len(master_df)}")
 
-    if 'NU_ANO_CENSO' in master_df.columns:
-        master_df = master_df.drop(columns=['NU_ANO_CENSO'])
-
     print(f"\nSaving {len(master_df)} schools to PostgreSQL...")
 
     master_df.to_sql(
