@@ -11,6 +11,9 @@ const schoolLayer = L.layerGroup().addTo(map);
 const selectedLayer = L.layerGroup().addTo(map);
 const schoolMarkers = new Map();
 let selectedSchoolCode = null;
+const modalityFilters = document.querySelectorAll(".modality-filter");
+const searchInput = document.getElementById("schoolInput");
+const suggestionsBox = document.getElementById("searchSuggestions");
 
 const dotStyle = {
     radius: 5,
@@ -28,13 +31,6 @@ const redIcon = L.divIcon({
     iconAnchor: [14, 40],
     popupAnchor: [0, -40]
 });
-
-function addMarker(school) {
-    const marker = createMarker(school);
-    schoolMarkers.set(school.codigo, marker);
-    schoolLayer.addLayer(marker);
-    return marker;
-}
 
 function createPopup(school) {
     return `
@@ -65,6 +61,13 @@ function createPin(school) {
     return pin;
 }
 
+function addMarker(school) {
+    const marker = createMarker(school);
+    schoolMarkers.set(school.codigo, marker);
+    schoolLayer.addLayer(marker);
+    return marker;
+}
+
 function clearVisibleMarkers() {
     schoolMarkers.forEach((marker, codigo) => {
         if (codigo !== selectedSchoolCode) {
@@ -74,16 +77,55 @@ function clearVisibleMarkers() {
     });
 }
 
+function removeInvisibleMarkers(visibleSchools) {
+    schoolMarkers.forEach((marker, codigo) => {
+        if (
+            !visibleSchools.has(codigo) &&
+            codigo !== selectedSchoolCode
+        ) {
+            schoolLayer.removeLayer(marker);
+            schoolMarkers.delete(codigo);
+        }
+    });
+}
+
 function getSelectedModalities() {
-    const checkboxes = document.querySelectorAll(
-        ".modality-filter:checked"
-    );
-    if (checkboxes.length === 0) {
+    const selectedFilters = Array.from(modalityFilters)
+        .filter(filter => filter.checked);
+    if (selectedFilters.length === 0) {
         return null;
     }
-    return Array.from(checkboxes)
-        .map(cb => cb.value)
+    return Array.from(selectedFilters)
+        .map(filter => filter.value)
         .join(",");
+}
+
+function canLoadSchools(modalities) {
+    if (!modalities) {
+        clearVisibleMarkers();
+        return false;
+    }
+    if (map.getZoom() < 5) {
+        clearVisibleMarkers();
+        return false;
+    }
+    return true;
+}
+
+function createSchoolsUrl(modalities) {
+    const bounds = map.getBounds();
+    return (
+        `/api/escolas-mapa?modalidades=${modalities}`
+        + `&lat_min=${bounds.getSouth()}`
+        + `&lat_max=${bounds.getNorth()}`
+        + `&lng_min=${bounds.getWest()}`
+        + `&lng_max=${bounds.getEast()}`
+    );
+}
+
+function fetchSchools(modalities) {
+    return fetch(createSchoolsUrl(modalities))
+        .then(response => response.json());
 }
 
 function updateVisibleSchools(schools) {
@@ -103,43 +145,12 @@ function updateVisibleSchools(schools) {
     removeInvisibleMarkers(visibleSchools);
 }
 
-function removeInvisibleMarkers(visibleSchools) {
-    schoolMarkers.forEach((marker, codigo) => {
-        if (
-            !visibleSchools.has(codigo) &&
-            codigo !== selectedSchoolCode
-        ) {
-            schoolLayer.removeLayer(marker);
-            schoolMarkers.delete(codigo);
-        }
-    });
-}
-
 function loadSchoolsOnMap() {
     const modalities = getSelectedModalities();
-    if (!modalities) {
-
-        clearVisibleMarkers();
-
+    if (!canLoadSchools(modalities)) {
         return;
-
     }
-    if (map.getZoom() < 5) {
-
-        clearVisibleMarkers();
-
-        return;
-
-    }
-    const bounds = map.getBounds();
-    let url =
-        `/api/escolas-mapa?modalidades=${modalities}`
-        + `&lat_min=${bounds.getSouth()}`
-        + `&lat_max=${bounds.getNorth()}`
-        + `&lng_min=${bounds.getWest()}`
-        + `&lng_max=${bounds.getEast()}`;
-    return fetch(url)
-        .then(response => response.json())
+    return fetchSchools(modalities)
         .then(updateVisibleSchools)
         .catch(console.error);
 }
@@ -157,18 +168,77 @@ function selectSchool(schoolData) {
     selectedSchoolCode = schoolData.codigo;
 }
 
+function searchSchools(term) {
+    return fetch(`/api/busca/${term}`)
+        .then(response => response.json());
+}
+
+function showSuggestionsBox() {
+    suggestionsBox.classList.remove("d-none");
+}
+
+function hideSuggestionsBox() {
+    suggestionsBox.classList.add("d-none");
+}
+
+function clearSuggestions() {
+    suggestionsBox.innerHTML = "";
+    hideSuggestionsBox();
+}
+
+function createSuggestionButton(school) {
+    const button = document.createElement("button");
+    button.className =
+        "list-group-item list-group-item-action text-start py-2";
+    button.innerHTML = `
+        <div class="fw-bold text-dark">${school.nome}</div>
+        <small class="text-muted">${school.cidade} - ${school.estado}</small>
+    `;
+    button.onclick = () => {
+        hideSuggestionsBox();
+        searchInput.value = "";
+        map.once("moveend", () => {
+            setTimeout(() => selectSchool(school), 100);
+        });
+        map.flyTo([school.lat, school.lng], 16);
+    };
+    return button;
+}
+
+function showSuggestions(schools) {
+    suggestionsBox.innerHTML = "";
+    if (schools.length === 0) {
+        suggestionsBox.innerHTML =
+            '<div class="list-group-item text-muted">Nenhuma escola encontrada</div>';
+        showSuggestionsBox();
+        return;
+    }
+    schools.forEach(school => {
+        suggestionsBox.appendChild(createSuggestionButton(school));
+    });
+    showSuggestionsBox();
+}
+
+function onSearchInput() {
+    const term = searchInput.value.trim();
+    if (term.length < 3) {
+        clearSuggestions();
+        return;
+    }
+    searchSchools(term)
+        .then(showSuggestions)
+        .catch(console.error);
+}
+
 map.on('moveend', loadSchoolsOnMap);
 
-document.querySelectorAll('.modality-filter').forEach(checkbox => {
-    checkbox.addEventListener('change', loadSchoolsOnMap);
+modalityFilters.forEach(filter => {
+    filter.addEventListener("change", loadSchoolsOnMap);
 });
 
-const searchInput = document.getElementById('schoolInput');
-const suggestionsBox = document.getElementById('searchSuggestions');
-
 window.addEventListener("load", () => {
-    document.querySelectorAll(".modality-filter").forEach(cb => {
-        cb.checked = false;
+    modalityFilters.forEach(filter => {
+        filter.checked = false;
     });
     schoolLayer.clearLayers();
     selectedLayer.clearLayers();
@@ -177,48 +247,10 @@ window.addEventListener("load", () => {
 
 });
 
-searchInput.addEventListener('input', function() {
-    const term = this.value.trim();
-    if (term.length < 3) {
-        suggestionsBox.innerHTML = '';
-        suggestionsBox.classList.add('d-none');
-        return;
-    }
-    fetch(`/api/busca/${term}`)
-        .then(response => response.json())
-        .then(schools => {
-            suggestionsBox.innerHTML = '';
-            if (schools.length === 0) {
-                suggestionsBox.innerHTML = '<div class="list-group-item text-muted">Nenhuma escola encontrada</div>';
-                suggestionsBox.classList.remove('d-none');
-                return;
-            }
-            schools.forEach(school => {
-                const button = document.createElement('button');
-                button.className = 'list-group-item list-group-item-action text-start py-2';
-                button.innerHTML = `
-                    <div class="fw-bold text-dark">${school.nome}</div>
-                    <small class="text-muted">${school.cidade} - ${school.estado}</small>
-                `;           
-                button.onclick = () => {
-                    suggestionsBox.classList.add('d-none');
-                    searchInput.value = '';
-                    map.once("moveend", () => {
-                        setTimeout(() => {
-                            selectSchool(school);
-                        }, 100);
-                    });
-                    map.flyTo([school.lat, school.lng], 16);
-                };          
-                suggestionsBox.appendChild(button);
-            });         
-            suggestionsBox.classList.remove('d-none');
-        })
-        .catch(error => console.error(error));
-});
+searchInput.addEventListener("input", onSearchInput);
 
 document.addEventListener('click', (e) => {
     if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.classList.add('d-none');
+        hideSuggestionsBox();
     }
 });
