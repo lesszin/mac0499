@@ -79,6 +79,22 @@ function getBooleanIcon(value) {
         : `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
 }
 
+function updateSchoolHeader(data) {
+    const nameText = document.getElementById("schoolName");
+    const addressText = document.getElementById("schoolAddress");
+    const identification = data.identificacao;
+    nameText.innerText = data.nome;
+    const street =
+        identification.endereco || "Endereço não informado";
+
+    const number =
+        identification.numero || "S/N";
+
+    addressText.innerHTML =
+        `<i class="bi bi-geo-alt-fill text-danger"></i>
+        ${street}, ${number} - ${identification.municipio}, ${identification.uf}`;
+}
+
 function createIdentificationSection(identificacao) {
     const rows = [
         {
@@ -676,6 +692,35 @@ function createProfessionalsSection(profissionais) {
     };
 }
 
+function buildSections(data) {
+    return [
+        createIdentificationSection(data.identificacao),
+        createAttendanceSection(data.atendimentos),
+        createEnrollmentSection(data.matriculas),
+        createInfrastructureSection(data.infraestrutura),
+        createDependenciesSection(data.dependencias),
+        createAccessibilitySection(data.acessibilidade),
+        createCommunitySection(data.comunidade),
+        createTechnologySection(data.tecnologia),
+        createMaterialsSection(data.materiais),
+        createTeachersSection(data.docentes),
+        createProfessionalsSection(data.profissionais)
+    ].filter(Boolean);
+}
+
+function renderSections(dataDiv, sections) {
+    dataDiv.classList.remove("text-center", "py-5");
+    dataDiv.innerHTML = sections
+        .map(section =>
+            createGroupCard(
+                section.title,
+                section.rows,
+                section.emptyMessage
+            )
+        )
+        .join("");
+}
+
 function loadSchoolSheet() {
     const dataDiv = document.getElementById('dataSheet');
     const nameText = document.getElementById('schoolName');
@@ -692,54 +737,9 @@ function loadSchoolSheet() {
                 dataDiv.innerHTML = `<div class="alert alert-danger">${data.erro}</div>`;
                 return;
             }
-            nameText.innerText = data.nome;
-            const iden = data.identificacao;
-            const street = iden.endereco || 'Endereço não informado';
-            const number = iden.numero || 'S/N';
-            addressText.innerHTML = `<i class="bi bi-geo-alt-fill text-danger"></i> ${street}, ${number} - ${iden.municipio}, ${iden.uf}`;
-            const sections = [
-                createIdentificationSection(iden)
-            ];
-            sections.push(
-                createAttendanceSection(data.atendimentos)
-            );
-            sections.push(
-                createEnrollmentSection(data.matriculas)
-            );
-            sections.push(
-                createInfrastructureSection(data.infraestrutura)
-            );
-            sections.push(
-                createDependenciesSection(data.dependencias)
-            );
-            sections.push(
-                createAccessibilitySection(data.acessibilidade)
-            );
-            sections.push(
-                createCommunitySection(data.comunidade)
-            );
-            sections.push(
-                createTechnologySection(data.tecnologia)
-            );
-            sections.push(
-                createMaterialsSection(data.materiais)
-            );
-            if (data.docentes) {
-                sections.push(
-                    createTeachersSection(data.docentes)
-                );
-            }
-            if (data.profissionais) {
-                sections.push(
-                    createProfessionalsSection(data.profissionais)
-                );
-            }
-            let finalHtml = '';
-            sections.forEach(section => {
-                finalHtml += createGroupCard(section.title, section.rows, section.emptyMessage);
-            });
-            dataDiv.classList.remove('text-center', 'py-5');
-            dataDiv.innerHTML = finalHtml;
+            updateSchoolHeader(data);
+            const sections = buildSections(data);
+            renderSections(dataDiv, sections);
         })
         .catch(error => {
             console.error(error);
