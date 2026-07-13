@@ -29,161 +29,131 @@ const redIcon = L.divIcon({
     popupAnchor: [0, -40]
 });
 
-function loadSchoolsOnMap() {
-    const checkboxes = document.querySelectorAll('.modality-filter:checked');
+function addMarker(school) {
+    const marker = createMarker(school);
+    schoolMarkers.set(school.codigo, marker);
+    schoolLayer.addLayer(marker);
+    return marker;
+}
 
+function createPopup(school) {
+    return `
+        <strong>${school.nome}</strong><br>
+        <button class="btn btn-sm btn-primary mt-2"
+            onclick="window.open('/escola/${school.codigo}','_blank')">
+            Ver Detalhes
+        </button>
+    `;
+}
+
+function createMarker(school) {
+    const marker = L.circleMarker(
+        [school.lat, school.lng],
+        dotStyle
+    );
+    marker.options.schoolData = school;
+    marker.on("click", () => selectSchool(school));
+    return marker;
+}
+
+function createPin(school) {
+    const pin = L.marker(
+        [school.lat, school.lng],
+        { icon: redIcon }
+    );
+    pin.bindPopup(createPopup(school));
+    return pin;
+}
+
+function clearVisibleMarkers() {
+    schoolMarkers.forEach((marker, codigo) => {
+        if (codigo !== selectedSchoolCode) {
+            schoolLayer.removeLayer(marker);
+            schoolMarkers.delete(codigo);
+        }
+    });
+}
+
+function getSelectedModalities() {
+    const checkboxes = document.querySelectorAll(
+        ".modality-filter:checked"
+    );
     if (checkboxes.length === 0) {
+        return null;
+    }
+    return Array.from(checkboxes)
+        .map(cb => cb.value)
+        .join(",");
+}
 
-        schoolMarkers.forEach((marker, codigo) => {
-            if (codigo !== selectedSchoolCode) {
-                schoolLayer.removeLayer(marker);
-                schoolMarkers.delete(codigo);
+function updateVisibleSchools(schools) {
+    const visibleSchools = new Set();
+    schools.forEach(school => {
+        visibleSchools.add(school.codigo);
+        if (school.codigo === selectedSchoolCode) {
+            if (!schoolMarkers.has(school.codigo)) {
+                addMarker(school);
             }
-        });
+            return;
+        }
+        if (!schoolMarkers.has(school.codigo)) {
+            addMarker(school);
+        }
+    });
+    removeInvisibleMarkers(visibleSchools);
+}
+
+function removeInvisibleMarkers(visibleSchools) {
+    schoolMarkers.forEach((marker, codigo) => {
+        if (
+            !visibleSchools.has(codigo) &&
+            codigo !== selectedSchoolCode
+        ) {
+            schoolLayer.removeLayer(marker);
+            schoolMarkers.delete(codigo);
+        }
+    });
+}
+
+function loadSchoolsOnMap() {
+    const modalities = getSelectedModalities();
+    if (!modalities) {
+
+        clearVisibleMarkers();
 
         return;
-    }
 
-    const modalities = Array.from(checkboxes).map(cb => cb.value).join(',');
+    }
     if (map.getZoom() < 5) {
 
-        schoolMarkers.forEach((marker, codigo) => {
-            if (codigo !== selectedSchoolCode) {
-                schoolLayer.removeLayer(marker);
-                schoolMarkers.delete(codigo);
-            }
-        });
+        clearVisibleMarkers();
 
         return;
+
     }
-
     const bounds = map.getBounds();
-
     let url =
         `/api/escolas-mapa?modalidades=${modalities}`
         + `&lat_min=${bounds.getSouth()}`
         + `&lat_max=${bounds.getNorth()}`
         + `&lng_min=${bounds.getWest()}`
         + `&lng_max=${bounds.getEast()}`;
-
     return fetch(url)
         .then(response => response.json())
-        .then(schools => {
-
-            const visibleSchools = new Set();
-            schools.forEach(school => {
-                visibleSchools.add(school.codigo);
-
-                if (school.codigo === selectedSchoolCode) {
-
-                    if (!schoolMarkers.has(school.codigo)) {
-
-                        const marker = L.circleMarker(
-                            [school.lat, school.lng],
-                            dotStyle
-                        );
-
-                        marker.options.schoolData = school;
-                        marker.on("click", () => selectSchool(marker, school));
-
-                        schoolMarkers.set(school.codigo, marker);
-                        schoolLayer.addLayer(marker);
-                    }
-
-                    return;
-                }
-
-                if (schoolMarkers.has(school.codigo))
-                    return;
-
-                const marker = L.circleMarker(
-                    [school.lat, school.lng],
-                    dotStyle
-                );
-
-                marker.options.schoolData = school;
-                marker.on('click', function () {
-                    selectSchool(marker, school);
-                });
-
-                schoolMarkers.set(school.codigo, marker);
-                schoolLayer.addLayer(marker);
-            });
-
-            schoolMarkers.forEach((marker, codigo) => {
-                if (
-                    !visibleSchools.has(codigo) &&
-                    codigo !== selectedSchoolCode
-                ) {
-                    schoolLayer.removeLayer(marker);
-                    schoolMarkers.delete(codigo);
-                }
-            });
-
-        })
+        .then(updateVisibleSchools)
         .catch(console.error);
 }
 
-function selectSchool(marker, schoolData) {
-
+function selectSchool(schoolData) {
     selectedLayer.clearLayers();
-
-    const pin = L.marker(
-        [schoolData.lat, schoolData.lng],
-        { icon: redIcon }
-    );
-
-    pin.bindPopup(`
-        <strong>${schoolData.nome}</strong><br>
-        <button class="btn btn-sm btn-primary mt-2"
-            onclick="window.open('/escola/${schoolData.codigo}','_blank')">
-            Ver Detalhes
-        </button>
-    `);
-
-    selectedLayer.addLayer(pin);
-
-    pin.openPopup();
-
-    selectedSchoolCode = schoolData.codigo;
-}
-
-function selectSchoolByData(schoolData) {
-
-    selectedLayer.clearLayers();
-
+    selectedSchoolCode = null;
     let marker = schoolMarkers.get(schoolData.codigo);
-
     if (!marker) {
-        marker = L.circleMarker(
-            [schoolData.lat, schoolData.lng],
-            dotStyle
-        );
-
-        marker.options.schoolData = schoolData;
-        marker.on("click", () => selectSchool(marker, schoolData));
-
-        schoolMarkers.set(schoolData.codigo, marker);
-        schoolLayer.addLayer(marker);
+        marker = addMarker(schoolData);
     }
-
-    const pin = L.marker(
-        marker.getLatLng(),
-        { icon: redIcon }
-    );
-
-    pin.bindPopup(`
-        <strong>${schoolData.nome}</strong><br>
-        <button class="btn btn-sm btn-primary mt-2"
-            onclick="window.open('/escola/${schoolData.codigo}','_blank')">
-            Ver Detalhes
-        </button>
-    `);
-
+    const pin = createPin(schoolData);
     selectedLayer.addLayer(pin);
-
     pin.openPopup();
-
     selectedSchoolCode = schoolData.codigo;
 }
 
@@ -197,11 +167,9 @@ const searchInput = document.getElementById('schoolInput');
 const suggestionsBox = document.getElementById('searchSuggestions');
 
 window.addEventListener("load", () => {
-
     document.querySelectorAll(".modality-filter").forEach(cb => {
         cb.checked = false;
     });
-
     schoolLayer.clearLayers();
     selectedLayer.clearLayers();
     schoolMarkers.clear();
@@ -211,48 +179,39 @@ window.addEventListener("load", () => {
 
 searchInput.addEventListener('input', function() {
     const term = this.value.trim();
-    
     if (term.length < 3) {
         suggestionsBox.innerHTML = '';
         suggestionsBox.classList.add('d-none');
         return;
     }
-
     fetch(`/api/busca/${term}`)
         .then(response => response.json())
         .then(schools => {
             suggestionsBox.innerHTML = '';
-            
             if (schools.length === 0) {
                 suggestionsBox.innerHTML = '<div class="list-group-item text-muted">Nenhuma escola encontrada</div>';
                 suggestionsBox.classList.remove('d-none');
                 return;
             }
-
             schools.forEach(school => {
                 const button = document.createElement('button');
                 button.className = 'list-group-item list-group-item-action text-start py-2';
                 button.innerHTML = `
                     <div class="fw-bold text-dark">${school.nome}</div>
                     <small class="text-muted">${school.cidade} - ${school.estado}</small>
-                `;
-                
+                `;           
                 button.onclick = () => {
                     suggestionsBox.classList.add('d-none');
                     searchInput.value = '';
-
                     map.once("moveend", () => {
                         setTimeout(() => {
-                            selectSchoolByData(school);
+                            selectSchool(school);
                         }, 100);
                     });
-
                     map.flyTo([school.lat, school.lng], 16);
-                };
-                
+                };          
                 suggestionsBox.appendChild(button);
-            });
-            
+            });         
             suggestionsBox.classList.remove('d-none');
         })
         .catch(error => console.error(error));
