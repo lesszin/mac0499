@@ -25,6 +25,158 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
+def build_school_data(school_result, enrollment_result, teacher_result):
+    dependency_map = {1: 'Federal', 2: 'Estadual', 3: 'Municipal', 4: 'Privada'}
+    location_map = {1: 'Urbana', 2: 'Rural'}
+    status_map = {1: 'Em Atividade', 2: 'Paralisada', 3: 'Extinta', 4: 'Escola extinta em anos anteriores'}
+    private_category_map = {1: 'Particular', 2: 'Comunitária', 3: 'Confessional', 4: 'Filantrópica'}
+    aee_map = {0: 'Não oferece', 1: 'Não exclusivamente', 2: 'Exclusivamente'}
+    school_data = {
+        'nome': school_result[0],
+        'identificacao': {
+            'endereco': school_result[1],
+            'numero': school_result[2],
+            'municipio': school_result[3],
+            'uf': school_result[4],
+            'dependencia': dependency_map.get(school_result[5], f'Código {school_result[5]}'),
+            'localizacao': location_map.get(school_result[6], f'Código {school_result[6]}'),
+            'situacao': status_map.get(school_result[7], f'Código {school_result[7]}'),
+            'categoria_privada': private_category_map.get(school_result[8], None) if school_result[8] else None
+        },
+            'atendimentos': { 
+            'indigena': int(school_result[9] or 0),
+            'aee': aee_map.get(school_result[10], 'Não informado'),
+            'complementar': aee_map.get(school_result[11], 'Não informado'),
+            'alimentacao': int(school_result[12] or 0),
+            'ambiental': int(school_result[13] or 0)
+        },
+        'infraestrutura': {
+            'agua': int(school_result[14] or 0),
+            'energia': int(school_result[15] or 0),
+            'esgoto': int(school_result[16] or 0),
+            'lixo': int(school_result[17] or 0)
+        },
+        'dependencias': {
+            'plantio': int(school_result[18] or 0),
+            'verde': int(school_result[19] or 0),
+            'auditorio': int(school_result[20] or 0),
+            'biblioteca': int(school_result[21] or 0),
+            'lab_ciencias': int(school_result[22] or 0),
+            'lab_informatica': int(school_result[23] or 0),
+            'quadra_coberta': int(school_result[24] or 0),
+            'quadra_descoberta': int(school_result[25] or 0),
+            'artes': int(school_result[26] or 0),
+            'musica': int(school_result[27] or 0),
+            'danca': int(school_result[28] or 0),
+            'multiuso': int(school_result[29] or 0),
+            'gravacao': int(school_result[30] or 0),
+            'professores': int(school_result[31] or 0),
+            'aee': int(school_result[32] or 0),
+            'refeitorio': int(school_result[33] or 0),
+            'salas_utilizadas': int(school_result[34] or 0)
+        },
+        'acessibilidade': {
+            'banheiro_pne': int(school_result[35] or 0),
+            'corrimao': int(school_result[36] or 0),
+            'elevador': int(school_result[37] or 0),
+            'pisos_tateis': int(school_result[38] or 0),
+            'vao_livre': int(school_result[39] or 0),
+            'rampas': int(school_result[40] or 0),
+            'sinal_sonoro': int(school_result[41] or 0),
+            'sinal_tatil': int(school_result[42] or 0),
+            'sinal_visual': int(school_result[43] or 0)
+        },
+            'comunidade': {
+            'espaco_atividade': int(school_result[44] if school_result[44] is not None else 9),
+            'espaco_equipamento': int(school_result[45] if school_result[45] is not None else 9),
+            'orgao_pais': int(school_result[46] or 0),
+            'orgao_pais_mestres': int(school_result[47] or 0),
+            'orgao_conselho': int(school_result[48] or 0),
+            'orgao_gremio': int(school_result[49] or 0),
+            'proposta_pedagogica': int(school_result[50] if school_result[50] is not None else 9)
+        },
+        'tecnologia': {
+            'internet': int(school_result[51] or 0),
+            'banda_larga': int(school_result[52]) if school_result[52] is not None else None,
+            'rede_local': int(school_result[53] if school_result[53] is not None else 9),
+            'internet_alunos': int(school_result[54] or 0),
+            'internet_admin': int(school_result[55] or 0),
+            'internet_aprendizagem': int(school_result[56] or 0),
+            'internet_comunidade': int(school_result[57] or 0),
+            'desktop_aluno': int(school_result[58] or 0),
+            'portatil_aluno': int(school_result[59] or 0),
+            'tablet_aluno': int(school_result[60] or 0),
+            'equip_som': int(school_result[61] or 0),
+            'equip_tv': int(school_result[62] or 0),
+            'lousa_digital': int(school_result[63] or 0),
+            'equip_multimidia': int(school_result[64] or 0)
+        },
+        'materiais': {
+            'multimidia': int(school_result[65] or 0),
+            'infantil': int(school_result[66] or 0),
+            'cientifico': int(school_result[67] or 0),
+            'difusao': int(school_result[68] or 0),
+            'musical': int(school_result[69] or 0),
+            'jogos': int(school_result[70] or 0),
+            'artisticas': int(school_result[71] or 0),
+            'profissional': int(school_result[72] or 0),
+            'indigena': int(school_result[73] or 0),
+            'etnico': int(school_result[74] or 0),
+            'campo': int(school_result[75] or 0),
+            'bil_surdos': int(school_result[76] or 0),
+            'agricola': int(school_result[77] or 0),
+            'quilombola': int(school_result[78] or 0),
+            'edu_esp': int(school_result[79] or 0)
+        },
+        'profissionais': {
+            'administrativos': int(school_result[80] or 0),
+            'servicos_gerais': int(school_result[81] or 0),
+            'bibliotecario': int(school_result[82] or 0),
+            'saude': int(school_result[83] or 0),
+            'coordenador': int(school_result[84] or 0),
+            'fonoaudiologo': int(school_result[85] or 0),
+            'nutricionista': int(school_result[86] or 0),
+            'psicologo': int(school_result[87] or 0),
+            'alimentacao': int(school_result[88] or 0),
+            'pedagogia': int(school_result[89] or 0),
+            'secretario': int(school_result[90] or 0),
+            'seguranca': int(school_result[91] or 0),
+            'monitores': int(school_result[92] or 0),
+            'gestao': int(school_result[93] or 0),
+            'assist_social': int(school_result[94] or 0),
+            'trad_libras': int(school_result[95] or 0),
+            'agricola': int(school_result[96] or 0),
+            'revisor_braille': int(school_result[97] or 0)
+        },
+        'docentes': {
+            'basica': int(teacher_result[0] or 0),
+            'creche': int(teacher_result[1] or 0),
+            'pre_escola': int(teacher_result[2] or 0),
+            'fund_ai': int(teacher_result[3] or 0),
+            'fund_af': int(teacher_result[4] or 0),
+            'medio': int(teacher_result[5] or 0),
+            'profissional': int(teacher_result[6] or 0),
+            'eja': int(teacher_result[7] or 0)
+        } if teacher_result else None,
+        'matriculas': None
+    }
+        
+    if enrollment_result:
+        school_data['matriculas'] = {
+            'basica': int(enrollment_result[0] or 0),
+            'creche': int(enrollment_result[1] or 0),
+            'pre_escola': int(enrollment_result[2] or 0),
+            'fund_ai': int(enrollment_result[3] or 0),
+            'fund_af': int(enrollment_result[4] or 0),
+            'medio': int(enrollment_result[5] or 0),
+            'profissional': int(enrollment_result[6] or 0),
+            'eja_fund': int(enrollment_result[7] or 0),
+            'eja_med': int(enrollment_result[8] or 0),
+            'especial': int(enrollment_result[9] or 0)
+        }
+    return school_data
+
+
 def get_school_technical_sheet(school_code):
     with engine.connect() as connection:
         school_query = text("""
@@ -94,157 +246,11 @@ def get_school_technical_sheet(school_code):
         """)
         teacher_result = connection.execute(teacher_query, {"codigo": school_code}).fetchone()
 
-        dependency_map = {1: 'Federal', 2: 'Estadual', 3: 'Municipal', 4: 'Privada'}
-        location_map = {1: 'Urbana', 2: 'Rural'}
-        status_map = {1: 'Em Atividade', 2: 'Paralisada', 3: 'Extinta', 4: 'Escola extinta em anos anteriores'}
-        private_category_map = {1: 'Particular', 2: 'Comunitária', 3: 'Confessional', 4: 'Filantrópica'}
-        aee_map = {0: 'Não oferece', 1: 'Não exclusivamente', 2: 'Exclusivamente'}
-
-        school_data = {
-            'nome': school_result[0],
-            'identificacao': {
-                'endereco': school_result[1],
-                'numero': school_result[2],
-                'municipio': school_result[3],
-                'uf': school_result[4],
-                'dependencia': dependency_map.get(school_result[5], f'Código {school_result[5]}'),
-                'localizacao': location_map.get(school_result[6], f'Código {school_result[6]}'),
-                'situacao': status_map.get(school_result[7], f'Código {school_result[7]}'),
-                'categoria_privada': private_category_map.get(school_result[8], None) if school_result[8] else None
-            },
-            'atendimentos': {
-                'indigena': int(school_result[9] or 0),
-                'aee': aee_map.get(school_result[10], 'Não informado'),
-                'complementar': aee_map.get(school_result[11], 'Não informado'),
-                'alimentacao': int(school_result[12] or 0),
-                'ambiental': int(school_result[13] or 0)
-            },
-            'infraestrutura': {
-                'agua': int(school_result[14] or 0),
-                'energia': int(school_result[15] or 0),
-                'esgoto': int(school_result[16] or 0),
-                'lixo': int(school_result[17] or 0)
-            },
-            'dependencias': {
-                'plantio': int(school_result[18] or 0),
-                'verde': int(school_result[19] or 0),
-                'auditorio': int(school_result[20] or 0),
-                'biblioteca': int(school_result[21] or 0),
-                'lab_ciencias': int(school_result[22] or 0),
-                'lab_informatica': int(school_result[23] or 0),
-                'quadra_coberta': int(school_result[24] or 0),
-                'quadra_descoberta': int(school_result[25] or 0),
-                'artes': int(school_result[26] or 0),
-                'musica': int(school_result[27] or 0),
-                'danca': int(school_result[28] or 0),
-                'multiuso': int(school_result[29] or 0),
-                'gravacao': int(school_result[30] or 0),
-                'professores': int(school_result[31] or 0),
-                'aee': int(school_result[32] or 0),
-                'refeitorio': int(school_result[33] or 0),
-                'salas_utilizadas': int(school_result[34] or 0)
-            },
-            'acessibilidade': {
-                'banheiro_pne': int(school_result[35] or 0),
-                'corrimao': int(school_result[36] or 0),
-                'elevador': int(school_result[37] or 0),
-                'pisos_tateis': int(school_result[38] or 0),
-                'vao_livre': int(school_result[39] or 0),
-                'rampas': int(school_result[40] or 0),
-                'sinal_sonoro': int(school_result[41] or 0),
-                'sinal_tatil': int(school_result[42] or 0),
-                'sinal_visual': int(school_result[43] or 0)
-            },
-            'comunidade': {
-                'espaco_atividade': int(school_result[44] if school_result[44] is not None else 9),
-                'espaco_equipamento': int(school_result[45] if school_result[45] is not None else 9),
-                'orgao_pais': int(school_result[46] or 0),
-                'orgao_pais_mestres': int(school_result[47] or 0),
-                'orgao_conselho': int(school_result[48] or 0),
-                'orgao_gremio': int(school_result[49] or 0),
-                'proposta_pedagogica': int(school_result[50] if school_result[50] is not None else 9)
-            },
-            'tecnologia': {
-                'internet': int(school_result[51] or 0),
-                'banda_larga': int(school_result[52]) if school_result[52] is not None else None,
-                'rede_local': int(school_result[53] if school_result[53] is not None else 9),
-                'internet_alunos': int(school_result[54] or 0),
-                'internet_admin': int(school_result[55] or 0),
-                'internet_aprendizagem': int(school_result[56] or 0),
-                'internet_comunidade': int(school_result[57] or 0),
-                'desktop_aluno': int(school_result[58] or 0),
-                'portatil_aluno': int(school_result[59] or 0),
-                'tablet_aluno': int(school_result[60] or 0),
-                'equip_som': int(school_result[61] or 0),
-                'equip_tv': int(school_result[62] or 0),
-                'lousa_digital': int(school_result[63] or 0),
-                'equip_multimidia': int(school_result[64] or 0)
-            },
-            'materiais': {
-                'multimidia': int(school_result[65] or 0),
-                'infantil': int(school_result[66] or 0),
-                'cientifico': int(school_result[67] or 0),
-                'difusao': int(school_result[68] or 0),
-                'musical': int(school_result[69] or 0),
-                'jogos': int(school_result[70] or 0),
-                'artisticas': int(school_result[71] or 0),
-                'profissional': int(school_result[72] or 0),
-                'indigena': int(school_result[73] or 0),
-                'etnico': int(school_result[74] or 0),
-                'campo': int(school_result[75] or 0),
-                'bil_surdos': int(school_result[76] or 0),
-                'agricola': int(school_result[77] or 0),
-                'quilombola': int(school_result[78] or 0),
-                'edu_esp': int(school_result[79] or 0)
-            },
-            'profissionais': {
-                'administrativos': int(school_result[80] or 0),
-                'servicos_gerais': int(school_result[81] or 0),
-                'bibliotecario': int(school_result[82] or 0),
-                'saude': int(school_result[83] or 0),
-                'coordenador': int(school_result[84] or 0),
-                'fonoaudiologo': int(school_result[85] or 0),
-                'nutricionista': int(school_result[86] or 0),
-                'psicologo': int(school_result[87] or 0),
-                'alimentacao': int(school_result[88] or 0),
-                'pedagogia': int(school_result[89] or 0),
-                'secretario': int(school_result[90] or 0),
-                'seguranca': int(school_result[91] or 0),
-                'monitores': int(school_result[92] or 0),
-                'gestao': int(school_result[93] or 0),
-                'assist_social': int(school_result[94] or 0),
-                'trad_libras': int(school_result[95] or 0),
-                'agricola': int(school_result[96] or 0),
-                'revisor_braille': int(school_result[97] or 0)
-            },
-            'docentes': {
-                'basica': int(teacher_result[0] or 0),
-                'creche': int(teacher_result[1] or 0),
-                'pre_escola': int(teacher_result[2] or 0),
-                'fund_ai': int(teacher_result[3] or 0),
-                'fund_af': int(teacher_result[4] or 0),
-                'medio': int(teacher_result[5] or 0),
-                'profissional': int(teacher_result[6] or 0),
-                'eja': int(teacher_result[7] or 0)
-            } if teacher_result else None,
-            'matriculas': None
-        }
-        
-        if enrollment_result:
-            school_data['matriculas'] = {
-                'basica': int(enrollment_result[0] or 0),
-                'creche': int(enrollment_result[1] or 0),
-                'pre_escola': int(enrollment_result[2] or 0),
-                'fund_ai': int(enrollment_result[3] or 0),
-                'fund_af': int(enrollment_result[4] or 0),
-                'medio': int(enrollment_result[5] or 0),
-                'profissional': int(enrollment_result[6] or 0),
-                'eja_fund': int(enrollment_result[7] or 0),
-                'eja_med': int(enrollment_result[8] or 0),
-                'especial': int(enrollment_result[9] or 0)
-            }
-
-        return school_data
+        return build_school_data(
+            school_result,
+            enrollment_result,
+            teacher_result
+        )
 
 @app.route('/')
 def render_index():
