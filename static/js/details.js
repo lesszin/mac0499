@@ -117,10 +117,16 @@ function createIdentificationSection(identificacao) {
             value: identificacao.localizacao
         },
         {
-            label: "Situação de Funcionamento:",
+            label: "Situação de Funcionamento no Último Censo:",
             value: identificacao.situacao
         }
     );
+    rows.push(
+        {
+            label: "Ano do Último Censo Escolar:",
+            value: identificacao.ano_censo
+        }
+    )
     return {
         title: "Identificação",
         rows

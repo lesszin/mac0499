@@ -29,18 +29,7 @@ const redIcon = L.divIcon({
     html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="28" height="40" style="filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));"><path fill="#dc3545" d="M172.3 501.7C27 291 0 269.4 0 192 0 86 86 0 192 0s192 86 192 192c0 77.4-27 99-172.3 309.7-9.5 13.8-29.9 13.8-39.5 0zM192 272c44.2 0 80-35.8 80-80s-35.8-80-80-80-80 35.8-80 80 35.8 80 80 80z"/></svg>`,
     iconSize: [28, 40],
     iconAnchor: [14, 40],
-    popupAnchor: [0, -40]
 });
-
-function createPopup(school) {
-    return `
-        <strong>${school.nome}</strong><br>
-        <button class="btn btn-sm btn-primary mt-2"
-            onclick="window.open('/escola/${school.codigo}','_blank')">
-            Ver Detalhes
-        </button>
-    `;
-}
 
 function createMarker(school) {
     const marker = L.circleMarker(
@@ -57,7 +46,7 @@ function createPin(school) {
         [school.lat, school.lng],
         { icon: redIcon }
     );
-    pin.bindPopup(createPopup(school));
+    pin.on("click", () => showSchoolCard(school));
     return pin;
 }
 
@@ -158,19 +147,49 @@ function loadSchoolsOnMap() {
 function selectSchool(schoolData) {
     selectedLayer.clearLayers();
     selectedSchoolCode = null;
-    let marker = schoolMarkers.get(schoolData.codigo);
-    if (!marker) {
-        marker = addMarker(schoolData);
+    if (schoolData.lat != null && schoolData.lng != null) {
+        let marker = schoolMarkers.get(schoolData.codigo);
+        if (!marker) {
+            marker = addMarker(schoolData);
+        }
+        const pin = createPin(schoolData);
+        selectedLayer.addLayer(pin);
     }
-    const pin = createPin(schoolData);
-    selectedLayer.addLayer(pin);
-    pin.openPopup();
+    showSchoolCard(schoolData);
     selectedSchoolCode = schoolData.codigo;
 }
 
 function searchSchools(term) {
     return fetch(`/api/busca/${term}`)
         .then(response => response.json());
+}
+
+function showSchoolCard(school) {
+    const card = document.getElementById("schoolCard");
+    const body = document.getElementById("schoolCardBody");
+    const locationMessage = school.lat && school.lng
+        ? ""
+        : `
+            <div class="alert alert-warning py-2 mt-2 mb-2">
+                Esta escola não possui coordenadas geográficas cadastradas e, por isso, não pode ser exibida no mapa.
+            </div>
+        `;
+    body.innerHTML = `
+        <h6 class="fw-bold mb-1">${school.nome}</h6>
+        <p class="text-muted mb-2">
+            ${school.cidade}, ${school.estado}
+        </p>
+        ${locationMessage}
+        <a href="/escola/${school.codigo}" class="btn btn-primary btn-sm">
+            Ver ficha técnica
+        </a>
+    `;
+    card.classList.remove("d-none");
+}
+
+function hideSchoolCard() {
+    document.getElementById("schoolCard")
+        .classList.add("d-none");
 }
 
 function showSuggestionsBox() {
@@ -195,12 +214,17 @@ function createSuggestionButton(school) {
         <small class="text-muted">${school.cidade} - ${school.estado}</small>
     `;
     button.onclick = () => {
+        console.log(school);
         hideSuggestionsBox();
         searchInput.value = "";
-        map.once("moveend", () => {
-            setTimeout(() => selectSchool(school), 100);
-        });
-        map.flyTo([school.lat, school.lng], 16);
+        if (school.lat != null && school.lng != null) {
+            map.once("moveend", () => {
+                setTimeout(() => selectSchool(school), 100);
+            });
+            map.flyTo([school.lat, school.lng], 16);
+        } else {
+            selectSchool(school);
+        }
     };
     return button;
 }
@@ -244,7 +268,7 @@ window.addEventListener("load", () => {
     selectedLayer.clearLayers();
     schoolMarkers.clear();
     selectedSchoolCode = null;
-
+    hideSchoolCard();
 });
 
 searchInput.addEventListener("input", onSearchInput);
@@ -253,4 +277,10 @@ document.addEventListener('click', (e) => {
     if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
         hideSuggestionsBox();
     }
+});
+
+document.getElementById("closeSchoolCard").addEventListener("click", () => {
+    hideSchoolCard();
+    selectedLayer.clearLayers();
+    selectedSchoolCode = null;
 });

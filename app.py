@@ -41,7 +41,8 @@ def build_school_data(school_result, enrollment_result, teacher_result):
             'dependencia': dependency_map.get(school_result[5], f'Código {school_result[5]}'),
             'localizacao': location_map.get(school_result[6], f'Código {school_result[6]}'),
             'situacao': status_map.get(school_result[7], f'Código {school_result[7]}'),
-            'categoria_privada': private_category_map.get(school_result[8], None) if school_result[8] else None
+            'categoria_privada': private_category_map.get(school_result[8], None) if school_result[8] else None,
+            'ano_censo': school_result[98]
         },
             'atendimentos': { 
             'indigena': int(school_result[9] or 0),
@@ -214,7 +215,8 @@ def get_school_technical_sheet(school_code):
                 "QT_PROF_NUTRICIONISTA", "QT_PROF_PSICOLOGO", "QT_PROF_ALIMENTACAO",
                 "QT_PROF_PEDAGOGIA", "QT_PROF_SECRETARIO", "QT_PROF_SEGURANCA",
                 "QT_PROF_MONITORES", "QT_PROF_GESTAO", "QT_PROF_ASSIST_SOCIAL",
-                "QT_PROF_TRAD_LIBRAS", "QT_PROF_AGRICOLA", "QT_PROF_REVISOR_BRAILLE"
+                "QT_PROF_TRAD_LIBRAS", "QT_PROF_AGRICOLA", "QT_PROF_REVISOR_BRAILLE",
+                "NU_ANO_CENSO"
             FROM dim_escola
             WHERE "CO_ENTIDADE" = :codigo
         """)
@@ -352,7 +354,7 @@ def get_map_schools():
         }
 
         query = """
-            SELECT "CO_ENTIDADE", "NO_ENTIDADE", "LATITUDE", "LONGITUDE"
+            SELECT "CO_ENTIDADE", "NO_ENTIDADE", "NO_MUNICIPIO", "SG_UF", "LATITUDE", "LONGITUDE"
             FROM dim_escola e
             WHERE 1=1
                 AND "LATITUDE" IS NOT NULL
@@ -412,8 +414,10 @@ def get_map_schools():
                 schools.append({
                     "codigo": row[0],
                     "nome": row[1],
-                    "lat": float(row[2]),
-                    "lng": float(row[3])
+                    "cidade": row[2],
+                    "estado": row[3],
+                    "lat": float(row[4]),
+                    "lng": float(row[5])
                 })
 
             return jsonify(schools)
