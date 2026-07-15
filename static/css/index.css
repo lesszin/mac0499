@@ -48,3 +48,16 @@ body {
 .filter-header-cursor {
     cursor: pointer;
 }
+
+#schoolCard {
+    border: none;
+}
+
+#schoolCardBody h6 {
+    margin-bottom: 0.2rem;
+    padding-right: 40px;
+    overflow-wrap: break-word;
+}
+#schoolCardBody p {
+    margin-bottom: 0.75rem;
+}
