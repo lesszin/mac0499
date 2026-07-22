@@ -10,10 +10,7 @@ TABLE_NAME = 'fato_gestor'
 BATCH_SIZE = 100000
 
 CENSUS_FILES = {
-    2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Gestor_Escolar_2025.csv',
-    2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/microdados_ed_basica_2024.csv',
-    2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/microdados_ed_basica_2023.csv',
-    2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
+    2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Gestor_Escolar_2025.csv'
 }
 
 target_columns = [
