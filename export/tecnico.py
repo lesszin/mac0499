@@ -14,8 +14,7 @@ FACT_TABLE = 'fato_curso'
 CENSUS_FILES = {
     2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Curso_Tecnico_2025.csv',
     2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/suplemento_cursos_tecnicos_2024.csv',
-    2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/suplemento_cursos_tecnicos_2023.csv',
-    2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
+    2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/suplemento_cursos_tecnicos_2023.csv'
 }
 
 dim_columns = [

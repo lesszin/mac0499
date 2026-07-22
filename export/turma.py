@@ -13,7 +13,22 @@ CENSUS_FILES = {
     2025: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2025/dados/Tabela_Turma_2025.csv',
     2024: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2024/dados/microdados_ed_basica_2024.csv',
     2023: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2023/dados/microdados_ed_basica_2023.csv',
-    2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv'
+    2022: '/home/lucas/Área de trabalho/dados/microdados_censo_escolar_2022/dados/microdados_ed_basica_2022.csv',
+    2021: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2021/dados/microdados_ed_basica_2021.csv',
+    2020: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2020/dados/microdados_ed_basica_2020.csv',
+    2019: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2019/dados/microdados_ed_basica_2019.csv',
+    2018: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2018/dados/microdados_ed_basica_2018.csv',
+    2017: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2017/dados/microdados_ed_basica_2017.csv',
+    2016: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2016/dados/microdados_ed_basica_2016.csv',
+    2015: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2015/dados/microdados_ed_basica_2015.csv',
+    2014: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2014/dados/microdados_ed_basica_2014.csv',
+    2013: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2013/dados/microdados_ed_basica_2013.csv',
+    2012: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2012/dados/microdados_ed_basica_2012.csv',
+    2011: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2011/dados/microdados_ed_basica_2011.csv',
+    2010: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2010/dados/microdados_ed_basica_2010.csv',
+    2009: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2009/dados/microdados_ed_basica_2009.csv',
+    2008: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2008/dados/microdados_ed_basica_2008.csv',
+    2007: '/home/lucas/Área de trabalho/dados/microdados_ed_basica_2007/dados/microdados_ed_basica_2007.csv'
 }
 
 target_columns = [
