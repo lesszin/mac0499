@@ -52,24 +52,67 @@ function createGroupCard(title, rows, emptyMessage = null) {
     let html = `
         <div class="card shadow-sm border-0 rounded-3 mb-4">
             <div class="card-body p-4">
-                <h5 class="text-primary mb-3">${title}</h5>
+                <h5 class="text-primary mb-4">${title}</h5>
     `;
     if (rows.length === 0 && emptyMessage) {
         html += `<p class="text-muted mb-0">${emptyMessage}</p>`;
     } else {
-        rows.forEach((row, index) => {
-            const borderClass = index === rows.length - 1
-                ? ""
-                : "border-bottom";
-            html += `
-                <div class="row py-2 ${borderClass} mx-0" style="border-color: #e9ecef !important;">
-                    <div class="col-sm-5 fw-bold px-0">${row.label}</div>
-                    <div class="col-sm-7 px-0">${row.value}</div>
-                </div>
-            `;
-        });
+        const hasSubgroups = rows.length > 0 && rows[0].subgroup;
+        if (hasSubgroups) {
+            rows
+                .filter(group => group.rows && group.rows.length > 0)
+                .forEach(group => {
+                    html += `
+                        <div class="card border bg-light-subtle mb-3">
+                            <div class="card-header fw-semibold">
+                                ${group.subgroup}
+                            </div>
+                            <div class="card-body py-2">
+                    `;
+                    group.rows.forEach((row, index) => {
+                        const borderClass =
+                            index === group.rows.length - 1
+                                ? ""
+                                : "border-bottom";
+                        html += `
+                            <div class="row py-2 ${borderClass}">
+                                <div class="col-sm-5 fw-bold">
+                                    ${row.label}
+                                </div>
+                                <div class="col-sm-7">
+                                    ${row.value}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+        } else {
+            rows.forEach((row, index) => {
+                const borderClass =
+                    index === rows.length - 1
+                        ? ""
+                        : "border-bottom";
+                html += `
+                    <div class="row py-2 ${borderClass}">
+                        <div class="col-sm-5 fw-bold">
+                            ${row.label}
+                        </div>
+                        <div class="col-sm-7">
+                            ${row.value}
+                        </div>
+                    </div>
+                `;
+            });
+        }
     }
-    html += `</div></div>`;
+    html += `
+            </div>
+        </div>
+    `;
     return html;
 }
 
@@ -162,66 +205,129 @@ function createAttendanceSection(atendimentos) {
 }
 
 function createEnrollmentSection(matriculas) {
-    const rows = [];
+    const modalityRows = [];
+    const genderRows = [];
+    const raceRows = [];
     if (matriculas) {
         if (matriculas.basica > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número Total de Matrículas",
                 value: matriculas.basica
             });
         }
         if (matriculas.creche > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas da Educação Infantil - Creche",
                 value: matriculas.creche
             });
         }
         if (matriculas.pre_escola > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas da Educação Infantil - Pré-Escola",
                 value: matriculas.pre_escola
             });
         }
         if (matriculas.fund_ai > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas do Ensino Fundamental - Anos Iniciais",
                 value: matriculas.fund_ai
             });
         }
         if (matriculas.fund_af > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas do Ensino Fundamental - Anos Finais",
                 value: matriculas.fund_af
             });
         }
         if (matriculas.medio > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas do Ensino Médio",
                 value: matriculas.medio
             });
         }
         if (matriculas.profissional > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas da Educação Profissional",
                 value: matriculas.profissional
             });
         }
         if (matriculas.eja_fund > 0 || matriculas.eja_med > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas da Educação de Jovens e Adultos (EJA)",
                 value: (matriculas.eja_fund || 0) + (matriculas.eja_med || 0)
             });
         }
         if (matriculas.especial > 0) {
-            rows.push({
+            modalityRows.push({
                 label: "Número de Matrículas da Educação Especial",
                 value: matriculas.especial
+            });
+        }
+        if (matriculas.masculino > 0) {
+            genderRows.push({
+                label: "Número de Matrículas Masculino",
+                value: matriculas.masculino
+            });
+        }
+        if (matriculas.feminino > 0) {
+            genderRows.push({
+                label: "Número de Matrículas Feminino",
+                value: matriculas.feminino
+            });
+        }
+        if (matriculas.nao_declarado > 0) {
+            raceRows.push({
+                label: "Número de Matrículas Não declarado",
+                value: matriculas.nao_declarado
+            });
+        }
+        if (matriculas.branca > 0) {
+            raceRows.push({
+                label: "Número de Matrículas Branca",
+                value: matriculas.branca
+            });
+        }
+        if (matriculas.preta > 0) {
+            raceRows.push({
+                label: "Número de Matrículas Preta",
+                value: matriculas.preta
+            });
+        }
+        if (matriculas.parda > 0) {
+            raceRows.push({
+                label: "Número de Matrículas Parda",
+                value: matriculas.parda
+            });
+        }
+        if (matriculas.amarela > 0) {
+            raceRows.push({
+                label: "Número de Matrículas Amarela",
+                value: matriculas.amarela
+            });
+        }
+        if (matriculas.indigena > 0) {
+            raceRows.push({
+                label: "Número de Matrículas Indígena",
+                value: matriculas.indigena
             });
         }
     }
     return {
         title: "Matrículas",
-        rows,
+        rows: [
+            {
+                subgroup: "Modalidades",
+                rows: modalityRows,
+            },
+            {
+                subgroup: "Gênero",
+                rows: genderRows,
+            },
+            {
+                subgroup: "Raça/Cor",
+                rows: raceRows,
+            }
+        ],  
         emptyMessage: "Nenhum registro de matrícula encontrado."
     };
 }
@@ -562,58 +668,121 @@ function createMaterialsSection(materiais) {
 }
 
 function createTeachersSection(docentes) {
-    const rows = [];
+    const modalityRows = [];
+    const genderRows = [];
+    const raceRows = [];
     if (docentes.basica > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número total de Docentes da Educação Básica",
             value: docentes.basica
         });
     }
     if (docentes.creche > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes da Educação Infantil - Creche",
             value: docentes.creche
         });
     }
     if (docentes.pre_escola > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes da Educação Infantil - Pré-Escola",
             value: docentes.pre_escola
         });
     }
     if (docentes.fund_ai > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes do Ensino Fundamental - Anos Iniciais",
             value: docentes.fund_ai
         });
     }
     if (docentes.fund_af > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes do Ensino Fundamental - Anos Finais",
             value: docentes.fund_af
         });
     }
     if (docentes.medio > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes do Ensino Médio",
             value: docentes.medio
         });
     }
     if (docentes.profissional > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes da Educação Profissional",
             value: docentes.profissional
         });
     }
     if (docentes.eja > 0) {
-        rows.push({
+        modalityRows.push({
             label: "Número de Docentes da Educação de Jovens e Adultos (EJA)",
             value: docentes.eja
         });
     }
+    if (docentes.masculino > 0) {
+        genderRows.push({
+            label: "Número de Docentes Masculino",
+            value: docentes.masculino
+        });
+    }
+    if (docentes.feminino > 0) {
+        genderRows.push({
+            label: "Número de Docentes Feminino",
+            value: docentes.feminino
+        });
+    }
+    if (docentes.nao_declarado > 0) {
+        raceRows.push({
+            label: "Número de Docentes Não Declarado",
+            value: docentes.nao_declarado
+        });
+    }
+    if (docentes.branca > 0) {
+        raceRows.push({
+            label: "Número de Docentes Branca",
+            value: docentes.branca
+        });
+    }
+    if (docentes.preta > 0) {
+        raceRows.push({
+            label: "Número de Docentes Preta",
+            value: docentes.preta
+        });
+    }
+    if (docentes.parda > 0) {
+        raceRows.push({
+            label: "Número de Docentes Parda",
+            value: docentes.parda
+        });
+    }
+    if (docentes.amarela > 0) {
+        raceRows.push({
+            label: "Número de Docentes Amarela",
+            value: docentes.amarela
+        });
+    }
+    if (docentes.indigena > 0) {
+        raceRows.push({
+            label: "Número de Docentes Indígena",
+            value: docentes.indigena
+        });
+    }
     return {
-        title: "Professores/Docentes",
-        rows,
+        title: "Docentes",
+        rows: [
+            {
+                subgroup: "Modalidades",
+                rows: modalityRows
+            },
+            {
+                subgroup: "Gênero",
+                rows: genderRows
+            },
+            {
+                subgroup: "Raça/Cor",
+                rows: raceRows
+            }
+        ],
         emptyMessage: "Nenhum registro de docente encontrado."
     };
 }
@@ -699,17 +868,22 @@ function createProfessionalsSection(profissionais) {
 }
 
 function buildSections(data) {
+    const identification = createIdentificationSection(data.identificacao);
+    if (data.identificacao.situacao !== "Em Atividade") {
+        return [identification];
+    }
+
     return [
-        createIdentificationSection(data.identificacao),
+        identification,
         createAttendanceSection(data.atendimentos),
         createEnrollmentSection(data.matriculas),
+        createTeachersSection(data.docentes),
         createInfrastructureSection(data.infraestrutura),
         createDependenciesSection(data.dependencias),
         createAccessibilitySection(data.acessibilidade),
         createCommunitySection(data.comunidade),
         createTechnologySection(data.tecnologia),
         createMaterialsSection(data.materiais),
-        createTeachersSection(data.docentes),
         createProfessionalsSection(data.profissionais)
     ].filter(Boolean);
 }

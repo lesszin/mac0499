@@ -157,7 +157,15 @@ def build_school_data(school_result, enrollment_result, teacher_result):
             'fund_af': int(teacher_result[4] or 0),
             'medio': int(teacher_result[5] or 0),
             'profissional': int(teacher_result[6] or 0),
-            'eja': int(teacher_result[7] or 0)
+            'eja': int(teacher_result[7] or 0),
+            'masculino': int(teacher_result[8] or 0),
+            'feminino': int(teacher_result[9] or 0),
+            'nao_declarado': int(teacher_result[10] or 0),
+            'branca': int(teacher_result[11] or 0),
+            'preta': int(teacher_result[12] or 0),
+            'parda': int(teacher_result[13] or 0),
+            'amarela': int(teacher_result[14] or 0),
+            'indigena': int(teacher_result[15] or 0)
         } if teacher_result else None,
         'matriculas': None
     }
@@ -173,7 +181,15 @@ def build_school_data(school_result, enrollment_result, teacher_result):
             'profissional': int(enrollment_result[6] or 0),
             'eja_fund': int(enrollment_result[7] or 0),
             'eja_med': int(enrollment_result[8] or 0),
-            'especial': int(enrollment_result[9] or 0)
+            'especial': int(enrollment_result[9] or 0),
+            'masculino': int(enrollment_result[10] or 0),
+            'feminino': int(enrollment_result[11] or 0),
+            'nao_declarado': int(enrollment_result[12] or 0),
+            'branca': int(enrollment_result[13] or 0),
+            'preta': int(enrollment_result[14] or 0),
+            'parda': int(enrollment_result[15] or 0),
+            'amarela': int(enrollment_result[16] or 0),
+            'indigena': int(enrollment_result[17] or 0)
         }
     return school_data
 
@@ -230,7 +246,9 @@ def get_school_technical_sheet(school_code):
                 "QT_MAT_BAS", "QT_MAT_INF_CRE", "QT_MAT_INF_PRE", 
                 "QT_MAT_FUND_AI", "QT_MAT_FUND_AF", "QT_MAT_MED", 
                 "QT_MAT_PROF", "QT_MAT_EJA_FUND", "QT_MAT_EJA_MED",
-                "QT_MAT_ESP"
+                "QT_MAT_ESP", "QT_MAT_BAS_MASC", "QT_MAT_BAS_FEM",
+                "QT_MAT_BAS_ND", "QT_MAT_BAS_BRANCA", "QT_MAT_BAS_PRETA",
+                "QT_MAT_BAS_PARDA", "QT_MAT_BAS_AMARELA", "QT_MAT_BAS_INDIGENA"
             FROM fato_matricula
             WHERE "CO_ENTIDADE" = :codigo AND "NU_ANO_CENSO" = 2025
         """)
@@ -240,7 +258,10 @@ def get_school_technical_sheet(school_code):
             SELECT 
                 "QT_DOC_BAS", "QT_DOC_INF_CRE", "QT_DOC_INF_PRE", 
                 "QT_DOC_FUND_AI", "QT_DOC_FUND_AF", "QT_DOC_MED", 
-                "QT_DOC_PROF", "QT_DOC_EJA"
+                "QT_DOC_PROF", "QT_DOC_EJA", "QT_DOC_BAS_MASC",
+                "QT_DOC_BAS_FEM", "QT_DOC_BAS_ND", "QT_DOC_BAS_BRANCA",
+                "QT_DOC_BAS_PRETA", "QT_DOC_BAS_PARDA", "QT_DOC_BAS_AMARELA",
+                "QT_DOC_BAS_INDIGENA"
             FROM fato_docente
             WHERE "CO_ENTIDADE" = :codigo
             ORDER BY "NU_ANO_CENSO" DESC
