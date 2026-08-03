@@ -339,6 +339,58 @@ def generate_dashboard_link(school_code):
         print(f"Error generating dashboard link: {e}")
         return jsonify({"sucesso": False, "erro": str(e)}), 500
 
+@app.route('/api/ficha/<int:school_code>')
+def generate_sheet_charts(school_code):
+    try:
+        questions = {
+            "matriculas": {
+                "modalidade": 48,
+                "genero": 49,
+                "raca": 50
+            },
+            "docentes": {
+                "modalidade": 53,
+                "genero": 52,
+                "raca": 51
+            }
+        }
+        urls = {}
+        for categoria, perguntas in questions.items():
+            urls[categoria] = {}
+            for nome, question_id in perguntas.items():
+                payload = {
+                    "resource": {
+                        "question": question_id
+                    },
+                    "params": {
+                        "escola": school_code
+                    },
+                    "exp": round(
+                        (
+                            datetime.datetime.now(datetime.timezone.utc)
+                            + datetime.timedelta(minutes=30)
+                        ).timestamp()
+                    )
+                }
+                token = jwt.encode(
+                    payload,
+                    METABASE_SECRET_KEY,
+                    algorithm="HS256"
+                )
+                urls[categoria][nome] = (
+                    f"{METABASE_SITE_URL}/embed/question/{token}"
+                    "?bordered=false&titled=false"
+                )
+        return jsonify({
+            "sucesso": True,
+            "urls": urls
+        })
+    except Exception as e:
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
 @app.route('/api/escolas-mapa')
 def get_map_schools():
     try:
