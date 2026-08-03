@@ -45,6 +45,16 @@ function loadMetabaseDashboard() {
         });
 }
 
+async function loadSheetCharts() {
+    const response = await fetch(`/api/ficha/${SCHOOL_CODE}`);
+    const data = await response.json();
+    if (!data.sucesso) {
+        console.error(data.erro);
+        return null;
+    }
+    return data.urls;
+}
+
 function createGroupCard(title, rows, emptyMessage = null) {
     if (rows.length === 0 && !emptyMessage) {
         return "";
@@ -63,7 +73,7 @@ function createGroupCard(title, rows, emptyMessage = null) {
                 .filter(group => group.rows && group.rows.length > 0)
                 .forEach(group => {
                     html += `
-                        <div class="card border bg-light-subtle mb-3">
+                        <div class="card border bg-light-subtle rounded-3 overflow-hidden mb-3">
                             <div class="card-header fw-semibold">
                                 ${group.subgroup}
                             </div>
@@ -85,6 +95,20 @@ function createGroupCard(title, rows, emptyMessage = null) {
                             </div>
                         `;
                     });
+                    if (group.chart) {
+                        html += `
+                            <div class="mt-3 pt-3 border-top">
+                                <iframe
+                                    src="${group.chart}"
+                                    frameborder="0"
+                                    width="100%"
+                                    height="340"
+                                    allowtransparency="true"
+                                    loading="lazy">
+                                </iframe>
+                            </div>
+                        `;
+                    }
                     html += `
                             </div>
                         </div>
@@ -204,7 +228,7 @@ function createAttendanceSection(atendimentos) {
     };
 }
 
-function createEnrollmentSection(matriculas) {
+function createEnrollmentSection(matriculas, charts) {
     const modalityRows = [];
     const genderRows = [];
     const raceRows = [];
@@ -277,7 +301,7 @@ function createEnrollmentSection(matriculas) {
         }
         if (matriculas.nao_declarado > 0) {
             raceRows.push({
-                label: "Número de Matrículas Não declarado",
+                label: "Número de Matrículas Não Declarada",
                 value: matriculas.nao_declarado
             });
         }
@@ -318,14 +342,17 @@ function createEnrollmentSection(matriculas) {
             {
                 subgroup: "Modalidades",
                 rows: modalityRows,
+                chart: charts.modalidade
             },
             {
                 subgroup: "Gênero",
                 rows: genderRows,
+                chart: charts.genero
             },
             {
                 subgroup: "Raça/Cor",
                 rows: raceRows,
+                chart: charts.raca
             }
         ],  
         emptyMessage: "Nenhum registro de matrícula encontrado."
@@ -667,7 +694,7 @@ function createMaterialsSection(materiais) {
     };
 }
 
-function createTeachersSection(docentes) {
+function createTeachersSection(docentes, charts) {
     const modalityRows = [];
     const genderRows = [];
     const raceRows = [];
@@ -733,7 +760,7 @@ function createTeachersSection(docentes) {
     }
     if (docentes.nao_declarado > 0) {
         raceRows.push({
-            label: "Número de Docentes Não Declarado",
+            label: "Número de Docentes Não Declarada",
             value: docentes.nao_declarado
         });
     }
@@ -772,15 +799,18 @@ function createTeachersSection(docentes) {
         rows: [
             {
                 subgroup: "Modalidades",
-                rows: modalityRows
+                rows: modalityRows,
+                chart: charts.modalidade
             },
             {
                 subgroup: "Gênero",
-                rows: genderRows
+                rows: genderRows,
+                chart: charts.genero
             },
             {
                 subgroup: "Raça/Cor",
-                rows: raceRows
+                rows: raceRows,
+                chart: charts.raca
             }
         ],
         emptyMessage: "Nenhum registro de docente encontrado."
@@ -867,7 +897,7 @@ function createProfessionalsSection(profissionais) {
     };
 }
 
-function buildSections(data) {
+function buildSections(data, charts) {
     const identification = createIdentificationSection(data.identificacao);
     if (data.identificacao.situacao !== "Em Atividade") {
         return [identification];
@@ -876,8 +906,8 @@ function buildSections(data) {
     return [
         identification,
         createAttendanceSection(data.atendimentos),
-        createEnrollmentSection(data.matriculas),
-        createTeachersSection(data.docentes),
+        createEnrollmentSection(data.matriculas, charts.matriculas),
+        createTeachersSection(data.docentes, charts.docentes),
         createInfrastructureSection(data.infraestrutura),
         createDependenciesSection(data.dependencias),
         createAccessibilitySection(data.acessibilidade),
@@ -901,30 +931,34 @@ function renderSections(dataDiv, sections) {
         .join("");
 }
 
-function loadSchoolSheet() {
+async function loadSchoolSheet() {
     const dataDiv = document.getElementById('dataSheet');
     const nameText = document.getElementById('schoolName');
     const addressText = document.getElementById('schoolAddress');
-    fetch(`/api/escola/${SCHOOL_CODE}/ficha`)
-        .then(response => {
-            if (!response.ok) throw new Error("Network response was not ok");
-            return response.json();
-        })
-        .then(data => {
-            if (data.erro) {
-                nameText.innerText = "Escola não encontrada";
-                addressText.innerText = "Erro ao carregar os dados.";
-                dataDiv.innerHTML = `<div class="alert alert-danger">${data.erro}</div>`;
-                return;
-            }
-            updateSchoolHeader(data);
-            const sections = buildSections(data);
-            renderSections(dataDiv, sections);
-        })
-        .catch(error => {
-            console.error(error);
-            dataDiv.innerHTML = `<div class="alert alert-danger">Erro de conexão ao carregar a ficha técnica.</div>`;
-        });
+    try {
+        const [schoolResponse, charts] = await Promise.all([
+            fetch(`/api/escola/${SCHOOL_CODE}/ficha`),
+            loadSheetCharts()
+        ]);
+        if (!schoolResponse.ok)
+            throw new Error("Network response was not ok");
+        const data = await schoolResponse.json();
+        if (data.erro) {
+            nameText.innerText = "Escola não encontrada";
+            addressText.innerText = "Erro ao carregar os dados.";
+            dataDiv.innerHTML = `<div class="alert alert-danger">${data.erro}</div>`;
+            return;
+        }
+        updateSchoolHeader(data);
+        const sections = buildSections(data, charts);
+        renderSections(dataDiv, sections);
+    } catch (error) {
+        console.error(error);
+        dataDiv.innerHTML =
+            `<div class="alert alert-danger">
+                Erro de conexão ao carregar a ficha técnica.
+            </div>`;
+    }
 }
 
 loadSchoolSheet();
