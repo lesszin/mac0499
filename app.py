@@ -14,9 +14,8 @@ app = Flask(__name__)
 CORS(app) 
 
 METABASE_SITE_URL = "http://localhost:3000"
-DASHBOARD_ID = 2
-
 METABASE_SECRET_KEY = os.getenv("METABASE_SECRET_KEY")
+
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
@@ -319,26 +318,6 @@ def search_schools(text_query):
         print(f"Error in search route: {e}")
         return jsonify({"erro": str(e)}), 500
 
-@app.route('/api/painel/<int:school_code>')
-def generate_dashboard_link(school_code):
-    try:
-        payload = {
-            "resource": {"dashboard": 2},
-            "params": {
-                "number": school_code 
-            },
-            "exp": round((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)).timestamp())
-        }
-        
-        token = jwt.encode(payload, METABASE_SECRET_KEY, algorithm="HS256")
-        iframe_url = f"{METABASE_SITE_URL}/embed/dashboard/{token}#bordered=true&titled=true"
-        
-        return jsonify({"sucesso": True, "url": iframe_url})
-
-    except Exception as e:
-        print(f"Error generating dashboard link: {e}")
-        return jsonify({"sucesso": False, "erro": str(e)}), 500
-
 @app.route('/api/ficha/<int:school_code>')
 def generate_sheet_charts(school_code):
     try:
@@ -352,6 +331,74 @@ def generate_sheet_charts(school_code):
                 "modalidade": 53,
                 "genero": 52,
                 "raca": 51
+            }
+        }
+        urls = {}
+        for categoria, perguntas in questions.items():
+            urls[categoria] = {}
+            for nome, question_id in perguntas.items():
+                payload = {
+                    "resource": {
+                        "question": question_id
+                    },
+                    "params": {
+                        "escola": school_code
+                    },
+                    "exp": round(
+                        (
+                            datetime.datetime.now(datetime.timezone.utc)
+                            + datetime.timedelta(minutes=30)
+                        ).timestamp()
+                    )
+                }
+                token = jwt.encode(
+                    payload,
+                    METABASE_SECRET_KEY,
+                    algorithm="HS256"
+                )
+                urls[categoria][nome] = (
+                    f"{METABASE_SITE_URL}/embed/question/{token}"
+                    "?bordered=false&titled=false"
+                )
+        return jsonify({
+            "sucesso": True,
+            "urls": urls
+        })
+    except Exception as e:
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/evolucao/<int:school_code>')
+def generate_evolution_charts(school_code):
+    try:
+        questions = {
+            "matriculas": {
+                "total": 54,
+                "variacao":55,
+                "evolucao_modalidade": 56,
+                "participacao_modalidade": 57,
+                "crescimento_modalidade": 58,
+                "evolucao_genero": 59,
+                "participacao_genero": 61,
+                "evolucao_raca": 60,
+                "participacao_raca": 62,
+                "crescimento_raca": 63
+            },
+            "docentes": {
+                "total": 64,
+                "variacao": 66,
+                "modalidade": 68,
+                "participacao": 70,
+                "crescimento": 72
+            },
+            "turmas": {
+                "total": 65,
+                "variacao": 67,
+                "modalidade": 69,
+                "participacao": 71,
+                "crescimento": 73
             }
         }
         urls = {}

@@ -1,4 +1,79 @@
-let dashboardLoaded = false;
+let evolutionCharts = null;
+let selectedCategory = null;
+let selectedSubcategory = null;
+const categoryOrder = [
+    "matriculas",
+    "docentes",
+    "turmas"
+];
+const subcategoryGroups = {
+    matriculas: [
+        {
+            title: "Indicadores Gerais",
+            items: [
+                "total",
+                "variacao"
+            ]
+        },
+        {
+            title: "Modalidade",
+            items: [
+                "evolucao_modalidade",
+                "participacao_modalidade",
+                "crescimento_modalidade"
+            ]
+        },
+        {
+            title: "Gênero",
+            items: [
+                "evolucao_genero",
+                "participacao_genero"
+            ]
+        },
+        {
+            title: "Raça/Cor",
+            items: [
+                "evolucao_raca",
+                "participacao_raca",
+                "crescimento_raca"
+            ]
+        }
+    ],
+    docentes: [
+        {
+            title: "Indicadores Gerais",
+            items: [
+                "total",
+                "variacao"
+            ]
+        },
+        {
+            title: "Modalidade",
+            items: [
+                "modalidade",
+                "participacao",
+                "crescimento"
+            ]
+        }
+    ],
+    turmas: [
+        {
+            title: "Indicadores Gerais",
+            items: [
+                "total",
+                "variacao"
+            ]
+        },
+        {
+            title: "Modalidade",
+            items: [
+                "modalidade",
+                "participacao",
+                "crescimento"
+            ]
+        }
+    ]
+};
 
 function switchTab(tabName) {
     document.getElementById('contentSheet').style.display = 'none';
@@ -14,35 +89,8 @@ function switchTab(tabName) {
         document.getElementById('contentEvolution').style.display = 'block';
         document.getElementById('btnEvolution').classList.add('active');
         
-        if (!dashboardLoaded) {
-            loadMetabaseDashboard();
-        }
+        initializeEvolution();
     }
-}
-
-function loadMetabaseDashboard() {
-    const loader = document.getElementById('evolutionLoader');
-    const iframe = document.getElementById('metabasePlayer');
-
-    fetch(`/api/painel/${SCHOOL_CODE}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.sucesso && data.url) {
-                console.log("URL DO METABASE:", data.url);
-                
-                loader.classList.add('d-none');
-                iframe.classList.remove('d-none');
-                iframe.src = data.url;
-                
-                dashboardLoaded = true;
-            } else {
-                loader.innerHTML = `<div class="alert alert-danger">Erro ao gerar token do painel: ${data.erro}</div>`;
-            }
-        })
-        .catch(error => {
-            console.error(error);
-            loader.innerHTML = `<div class="alert alert-danger">Erro de conexão com o servidor de gráficos.</div>`;
-        });
 }
 
 async function loadSheetCharts() {
@@ -53,6 +101,170 @@ async function loadSheetCharts() {
         return null;
     }
     return data.urls;
+}
+
+async function loadEvolutionCharts() {
+    const response = await fetch(`/api/evolucao/${SCHOOL_CODE}`);
+    const data = await response.json();
+    if (!data.sucesso) {
+        console.error(data.erro);
+        return null;
+    }
+    return data.urls;
+}
+
+async function initializeEvolution() {
+    if (evolutionCharts !== null) {
+        return;
+    }
+    const charts = await loadEvolutionCharts();
+    if (!charts) {
+        return;
+    }
+    evolutionCharts = charts;
+    renderMainButtons();
+}
+
+function renderMainButtons() {
+    console.log(evolutionCharts);
+}
+
+function renderMainButtons() {
+    const container = document.getElementById("mainCategoryButtons");
+    container.innerHTML = "";
+    categoryOrder.forEach(category => {
+        if (!evolutionCharts[category]) {
+            return;
+        }
+        const button = document.createElement("button");
+        button.className = "btn btn-outline-primary";
+        button.textContent = formatCategoryName(category);
+        button.onclick = () => {
+            selectedCategory = category;
+            selectedSubcategory = null;
+            renderMainButtons();
+            renderSubButtons();
+            clearChart();
+        };
+        if (selectedCategory === category) {
+            button.classList.remove("btn-outline-primary");
+            button.classList.add("btn-primary");
+        }
+        container.appendChild(button);
+    });
+}
+
+function renderSubButtons() {
+    const container = document.getElementById("subCategoryButtons");
+    container.innerHTML = "";
+    if (!selectedCategory) {
+        return;
+    }
+    subcategoryGroups[selectedCategory].forEach(group => {
+        const groupContainer = document.createElement("div");
+        groupContainer.className = "card border bg-light-subtle mb-3";
+        const header = document.createElement("div");
+        header.className = "card-header fw-semibold";
+        header.textContent = group.title;
+        groupContainer.appendChild(header);
+        const buttonRow = document.createElement("div");
+        buttonRow.className = "d-flex gap-2 flex-wrap";
+        group.items.forEach(subcategory => {
+            if (!evolutionCharts[selectedCategory][subcategory]) {
+                return;
+            }
+            const button = document.createElement("button");
+            button.className = "btn btn-outline-secondary btn-sm";
+            button.textContent = formatSubcategoryName(subcategory);
+            button.onclick = () => {
+                selectedSubcategory = subcategory;
+                renderSubButtons();
+                showChart();
+            };
+            if (selectedSubcategory === subcategory) {
+                button.classList.remove("btn-outline-secondary");
+                button.classList.add("btn-secondary");
+            }
+            buttonRow.appendChild(button);
+        });
+        const body = document.createElement("div");
+        body.className = "card-body";
+        body.appendChild(buttonRow);
+        groupContainer.appendChild(body);
+        container.appendChild(groupContainer);
+    });
+}
+
+function formatCategoryName(category) {
+    const names = {
+        matriculas: "Matrículas",
+        docentes: "Docentes",
+        turmas: "Turmas"
+    };
+    return names[category] || category;
+}
+
+function formatSubcategoryName(subcategory) {
+    const names = {
+        total: "Total",
+        variacao: "Variação Anual",
+        evolucao_modalidade: "Evolução por Modalidade",
+        participacao_modalidade: "Participação por Modalidade",
+        crescimento_modalidade: "Crescimento por Modalidade",
+        evolucao_genero: "Evolução por Gênero",
+        participacao_genero: "Participação por Gênero",
+        evolucao_raca: "Evolução por Raça/Cor",
+        participacao_raca: "Participação por Raça/Cor",
+        crescimento_raca: "Crescimento por Raça/Cor",
+        modalidade: "Modalidade",
+        participacao: "Participação",
+        crescimento: "Crescimento"
+    };
+    return names[subcategory] || subcategory;
+}
+
+function showChart() {
+    const placeholder = document.getElementById("chartPlaceholder");
+    const loader = document.getElementById("evolutionLoader");
+    const iframe = document.getElementById("metabasePlayer");
+    const url =
+        evolutionCharts[selectedCategory][selectedSubcategory];
+    placeholder.classList.add("d-none");
+    iframe.classList.add("d-none");
+    loader.classList.remove("d-none");
+    iframe.onload = null;
+    iframe.onload = () => {
+        loader.classList.add("d-none");
+        iframe.classList.remove("d-none");
+    };
+    iframe.src = url;
+}
+
+function clearChart() {
+    const placeholder = document.getElementById("chartPlaceholder");
+    const loader = document.getElementById("evolutionLoader");
+    const iframe = document.getElementById("metabasePlayer");
+    iframe.src = "";
+    iframe.classList.add("d-none");
+    loader.classList.add("d-none");
+    const title = placeholder.querySelector("h5");
+    const text = placeholder.querySelector("p");
+    placeholder.classList.remove("d-none");
+    if (!selectedCategory) {
+        title.textContent = "Evolução da Escola";
+        text.textContent =
+            "Selecione um tipo de indicador para começar.";
+    }
+    else {
+        const names = {
+            matriculas: "Matrículas",
+            docentes: "Docentes",
+            turmas: "Turmas"
+        };
+        title.textContent = names[selectedCategory];
+        text.textContent =
+            `Agora escolha um indicador de ${names[selectedCategory]}.`;
+    }
 }
 
 function createGroupCard(title, rows, emptyMessage = null) {

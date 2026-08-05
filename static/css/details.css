@@ -35,5 +35,9 @@ body {
 }
 
 #metabasePlayer {
-    border: 0;
+    opacity: 0;
+}
+
+#subCategoryButtons button{
+    min-width:160px;
 }
