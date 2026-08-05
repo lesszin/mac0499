@@ -50,9 +50,9 @@ const subcategoryGroups = {
         {
             title: "Modalidade",
             items: [
-                "modalidade",
-                "participacao",
-                "crescimento"
+                "evolucao_modalidade",
+                "participacao_modalidade",
+                "crescimento_modalidade"
             ]
         }
     ],
@@ -67,9 +67,9 @@ const subcategoryGroups = {
         {
             title: "Modalidade",
             items: [
-                "modalidade",
-                "participacao",
-                "crescimento"
+                "evolucao_modalidade",
+                "participacao_modalidade",
+                "crescimento_modalidade"
             ]
         }
     ]
@@ -101,6 +101,16 @@ async function loadSheetCharts() {
         return null;
     }
     return data.urls;
+}
+
+async function loadChartSummary(category, subcategory) {
+    const response = await fetch(
+        `/api/evolucao/resumo/${SCHOOL_CODE}/${category}/${subcategory}`
+    );
+    if (!response.ok) {
+        return null;
+    }
+    return await response.json();
 }
 
 async function loadEvolutionCharts() {
@@ -142,6 +152,7 @@ function renderMainButtons() {
         button.onclick = () => {
             selectedCategory = category;
             selectedSubcategory = null;
+            resetEvolutionView();
             renderMainButtons();
             renderSubButtons();
             clearChart();
@@ -215,15 +226,12 @@ function formatSubcategoryName(subcategory) {
         participacao_genero: "Participação por Gênero",
         evolucao_raca: "Evolução por Raça/Cor",
         participacao_raca: "Participação por Raça/Cor",
-        crescimento_raca: "Crescimento por Raça/Cor",
-        modalidade: "Modalidade",
-        participacao: "Participação",
-        crescimento: "Crescimento"
+        crescimento_raca: "Crescimento por Raça/Cor"
     };
     return names[subcategory] || subcategory;
 }
 
-function showChart() {
+async function showChart() {
     const placeholder = document.getElementById("chartPlaceholder");
     const loader = document.getElementById("evolutionLoader");
     const iframe = document.getElementById("metabasePlayer");
@@ -237,6 +245,8 @@ function showChart() {
         loader.classList.add("d-none");
         iframe.classList.remove("d-none");
     };
+    const summary = await loadChartSummary(selectedCategory,selectedSubcategory);
+    renderChartSummary(summary);
     iframe.src = url;
 }
 
@@ -265,6 +275,79 @@ function clearChart() {
         text.textContent =
             `Agora escolha um indicador de ${names[selectedCategory]}.`;
     }
+}
+
+function renderChartSummary(summary) {
+    const container =
+        document.getElementById("chartSummary");
+    if (!summary) {
+        container.classList.add("d-none");
+        return;
+    }
+    container.classList.remove("d-none");
+    container.innerHTML = `
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <small class="text-muted">Crescimento</small>
+                        <h4 class="mb-0">
+                            ${summary.crescimento.percentual}%
+                        </h4>
+                        <small>
+                            ${summary.crescimento.absoluto > 0 ? "+" : ""}
+                            ${summary.crescimento.absoluto}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <small class="text-muted">Pico histórico</small>
+                        <h4 class="mb-0">
+                            ${summary.maximo.valor}
+                        </h4>
+                        <small>
+                            ${summary.maximo.ano}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <small class="text-muted">Maior alta</small>
+                        <h4 class="mb-0 text-success">
+                            ${summary.maior_alta.valor > 0 ? "+" : ""}
+                            ${summary.maior_alta.valor}
+                        </h4>
+                        <small>${summary.maior_alta.de} → ${summary.maior_alta.para}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <small class="text-muted">Maior queda</small>
+                        <h4 class="mb-0 text-danger">
+                            ${summary.maior_queda.valor}
+                        </h4>
+                        <small>${summary.maior_queda.de} → ${summary.maior_queda.para}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function resetEvolutionView() {
+    document.getElementById("chartSummary")
+        .classList.add("d-none");
+    document.getElementById("metabasePlayer")
+        .classList.add("d-none");
+    document.getElementById("chartPlaceholder")
+        .classList.remove("d-none");
 }
 
 function createGroupCard(title, rows, emptyMessage = null) {

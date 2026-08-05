@@ -274,6 +274,136 @@ def get_school_technical_sheet(school_code):
             teacher_result
         )
 
+def calculate_time_series_summary(data):
+    if len(data) < 2:
+        return None
+    inicio = data[0]
+    fim = data[-1]
+    crescimento = fim["valor"] - inicio["valor"]
+    if inicio["valor"] == 0:
+        crescimento_percentual = None
+    else:
+        crescimento_percentual = round(
+            crescimento / inicio["valor"] * 100,
+            1
+        )
+    maior_alta = None
+    maior_queda = None
+    anos_crescimento = 0
+    anos_queda = 0
+    anos_estavel = 0
+    maximo = inicio
+    minimo = inicio
+    for i in range(1, len(data)):
+        anterior = data[i - 1]
+        atual = data[i]
+        diferenca = atual["valor"] - anterior["valor"]
+        if diferenca > 0:
+            anos_crescimento += 1
+        elif diferenca < 0:
+            anos_queda += 1
+        else:
+            anos_estavel += 1
+        if maior_alta is None or diferenca > maior_alta["valor"]:
+            maior_alta = {
+                "de": anterior["ano"],
+                "para": atual["ano"],
+                "valor": diferenca
+            }
+        if maior_queda is None or diferenca < maior_queda["valor"]:
+            maior_queda = {
+                "de": anterior["ano"],
+                "para": atual["ano"],
+                "valor": diferenca
+            }
+        if atual["valor"] > maximo["valor"]:
+            maximo = atual
+        if atual["valor"] < minimo["valor"]:
+            minimo = atual
+    return {
+        "inicio": inicio,
+        "fim": fim,
+        "crescimento": {
+            "absoluto": crescimento,
+            "percentual": crescimento_percentual
+        },
+        "maior_alta": maior_alta,
+        "maior_queda": maior_queda,
+        "anos": {
+            "crescimento": anos_crescimento,
+            "queda": anos_queda,
+            "estavel": anos_estavel
+        },
+        "maximo": maximo,
+        "minimo": minimo
+    }
+
+def get_evolution_summary(school_code, categoria, indicador):
+    queries = {
+        "matriculas": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    "QT_MAT_BAS" AS valor
+                FROM fato_matricula
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """)
+        },
+        "docentes": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    "QT_DOC_BAS" AS valor
+                FROM fato_docente
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO";
+            """)
+        },
+        "turmas": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    "QT_TUR_BAS" AS valor
+                FROM fato_turma
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO";
+            """)
+        }
+    }
+    if categoria not in queries:
+        return None
+    if indicador not in queries[categoria]:
+        return None
+    with engine.connect() as connection:
+        result = connection.execute(
+            queries[categoria][indicador],
+            {
+                "codigo": school_code
+            }
+        ).fetchall()
+    data = [
+        {
+            "ano": row.ano,
+            "valor": row.valor
+        }
+        for row in result
+    ]
+    return calculate_time_series_summary(data)
+
+@app.route("/api/evolucao/resumo/<int:school_code>/<categoria>/<indicador>")
+def evolution_summary(school_code,categoria,indicador):
+    summary = get_evolution_summary(
+        school_code,
+        categoria,
+        indicador
+    )
+    if summary is None:
+        return jsonify({
+            "erro": "Categoria ou indicador inválido."
+        }), 404
+    return jsonify(summary)
+
 @app.route('/')
 def render_index():
     return render_template('index.html')
@@ -389,16 +519,16 @@ def generate_evolution_charts(school_code):
             "docentes": {
                 "total": 64,
                 "variacao": 66,
-                "modalidade": 68,
-                "participacao": 70,
-                "crescimento": 72
+                "evolucao_modalidade": 68,
+                "participacao_modalidade": 70,
+                "crescimento_modalidade": 72
             },
             "turmas": {
                 "total": 65,
                 "variacao": 67,
-                "modalidade": 69,
-                "participacao": 71,
-                "crescimento": 73
+                "evolucao_modalidade": 69,
+                "participacao_modalidade": 71,
+                "crescimento_modalidade": 73
             }
         }
         urls = {}
