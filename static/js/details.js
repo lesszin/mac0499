@@ -1192,6 +1192,70 @@ function createProfessionalsSection(profissionais) {
     };
 }
 
+function createClassesSection(turmas, charts) {
+    const modalityRows = [];
+    if (!turmas) {
+        return {
+            title: "Turmas",
+            rows: [],
+            emptyMessage: "Nenhum registro de turma encontrado."
+        };
+    }
+    if (turmas.creche > 0) {
+        modalityRows.push({
+            label: "Número de Turmas da Educação Infantil - Creche",
+            value: turmas.creche
+        });
+    }
+    if (turmas.pre_escola > 0) {
+        modalityRows.push({
+            label: "Número de Turmas da Educação Infantil - Pré-Escola",
+            value: turmas.pre_escola
+        });
+    }
+    if (turmas.fund_ai > 0) {
+        modalityRows.push({
+            label: "Número de Turmas do Ensino Fundamental - Anos Iniciais",
+            value: turmas.fund_ai
+        });
+    }
+    if (turmas.fund_af > 0) {
+        modalityRows.push({
+            label: "Número de Turmas do Ensino Fundamental - Anos Finais",
+            value: turmas.fund_af
+        });
+    }
+    if (turmas.medio > 0) {
+        modalityRows.push({
+            label: "Número de Turmas do Ensino Médio",
+            value: turmas.medio
+        });
+    }
+    if (turmas.profissional > 0) {
+        modalityRows.push({
+            label: "Número de Turmas da Educação Profissional",
+            value: turmas.profissional
+        });
+    }
+    if (turmas.eja > 0) {
+        modalityRows.push({
+            label: "Número de Turmas da Educação de Jovens e Adultos (EJA)",
+            value: turmas.eja
+        });
+    }
+    return {
+        title: "Turmas",
+        rows: [
+            {
+                subgroup: "Modalidades",
+                rows: modalityRows,
+                chart: charts.modalidade
+            }
+        ],
+        emptyMessage: "Nenhum registro de turma encontrado."
+    };
+}
+
 function buildSections(data, charts) {
     const identification = createIdentificationSection(data.identificacao);
     if (data.identificacao.situacao !== "Em Atividade") {
@@ -1203,6 +1267,7 @@ function buildSections(data, charts) {
         createAttendanceSection(data.atendimentos),
         createEnrollmentSection(data.matriculas, charts.matriculas),
         createTeachersSection(data.docentes, charts.docentes),
+        createClassesSection(data.turmas, charts.turmas),
         createInfrastructureSection(data.infraestrutura),
         createDependenciesSection(data.dependencias),
         createAccessibilitySection(data.acessibilidade),
