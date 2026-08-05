@@ -24,7 +24,7 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 
 engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
-def build_school_data(school_result, enrollment_result, teacher_result):
+def build_school_data(school_result, enrollment_result, teacher_result, class_result):
     dependency_map = {1: 'Federal', 2: 'Estadual', 3: 'Municipal', 4: 'Privada'}
     location_map = {1: 'Urbana', 2: 'Rural'}
     status_map = {1: 'Em Atividade', 2: 'Paralisada', 3: 'Extinta', 4: 'Escola extinta em anos anteriores'}
@@ -190,6 +190,16 @@ def build_school_data(school_result, enrollment_result, teacher_result):
             'amarela': int(enrollment_result[16] or 0),
             'indigena': int(enrollment_result[17] or 0)
         }
+    if class_result:
+        school_data['turmas'] = {
+            'creche': int(class_result[0] or 0),
+            'pre_escola': int(class_result[1] or 0),
+            'fund_ai': int(class_result[2] or 0),
+            'fund_af': int(class_result[3] or 0),
+            'medio': int(class_result[4] or 0),
+            'profissional': int(class_result[5] or 0),
+            'eja': int(class_result[6] or 0)
+        }
     return school_data
 
 
@@ -249,7 +259,9 @@ def get_school_technical_sheet(school_code):
                 "QT_MAT_BAS_ND", "QT_MAT_BAS_BRANCA", "QT_MAT_BAS_PRETA",
                 "QT_MAT_BAS_PARDA", "QT_MAT_BAS_AMARELA", "QT_MAT_BAS_INDIGENA"
             FROM fato_matricula
-            WHERE "CO_ENTIDADE" = :codigo AND "NU_ANO_CENSO" = 2025
+            WHERE "CO_ENTIDADE" = :codigo
+            ORDER BY "NU_ANO_CENSO" DESC
+            LIMIT 1
         """)
         enrollment_result = connection.execute(enrollment_query, {"codigo": school_code}).fetchone()
 
@@ -268,10 +280,23 @@ def get_school_technical_sheet(school_code):
         """)
         teacher_result = connection.execute(teacher_query, {"codigo": school_code}).fetchone()
 
+        class_query = text("""
+            SELECT 
+                "QT_TUR_INF_CRE", "QT_TUR_INF_PRE", "QT_TUR_FUND_AI",
+                "QT_TUR_FUND_AF", "QT_TUR_MED", "QT_TUR_PROF",
+                "QT_TUR_EJA"
+            FROM fato_turma
+            WHERE "CO_ENTIDADE" = :codigo
+            ORDER BY "NU_ANO_CENSO" DESC
+            LIMIT 1
+        """)
+        class_result = connection.execute(class_query, {"codigo": school_code}).fetchone()
+
         return build_school_data(
             school_result,
             enrollment_result,
-            teacher_result
+            teacher_result,
+            class_result
         )
 
 def calculate_time_series_summary(data):
@@ -461,6 +486,9 @@ def generate_sheet_charts(school_code):
                 "modalidade": 53,
                 "genero": 52,
                 "raca": 51
+            },
+            "turmas": {
+                "modalidade": 74
             }
         }
         urls = {}
