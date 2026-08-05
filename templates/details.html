@@ -45,18 +45,37 @@
 
         <div id="contentEvolution" class="tab-hidden">
             <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-body p-3 text-center">
-                    <div id="evolutionLoader" class="py-5">
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <p class="text-muted mt-2">Carregando painel de evolução...</p>
+                <div class="card-header bg-white">
+                    <div id="mainCategoryButtons"
+                        class="d-flex justify-content-center gap-2 flex-wrap">
                     </div>
-                    <iframe id="metabasePlayer" class="w-100 d-none" height="600" allowtransparency></iframe>
+                    <div id="subCategoryButtons"
+                        class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="chartPlaceholder">
+                        <i class="bi bi-bar-chart-line fs-1 text-muted"></i>
+                        <h5 class="mt-3">
+                            Evolução da Escola
+                        </h5>
+                        <p class="text-muted mt-3">
+                            Selecione um indicador para visualizar sua evolução.
+                        </p>
+                    </div>
+                    <div id="evolutionLoader" class="d-none text-center py-5">
+                        ...
+                    </div>
+                    <iframe
+                        id="metabasePlayer"
+                        class="w-100 d-none"
+                        height="650"
+                        frameborder="0">
+                    </iframe>
                 </div>
             </div>
         </div>
-
     </div> 
-    
     <script>
         const SCHOOL_CODE = Number("{{ codigo }}");
     </script>
