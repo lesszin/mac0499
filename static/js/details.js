@@ -168,19 +168,7 @@ function showComparisonSuggestions(schools) {
 }
 
 function changeComparisonSchool() {
-    selectedComparisonSchool = null;
-    document
-        .getElementById("comparisonSelectedState")
-        .classList.add("d-none");
-    document
-        .getElementById("comparisonSearchState")
-        .classList.remove("d-none");
-    document
-        .getElementById("comparisonSearchInput")
-        .value = "";
-    document
-        .getElementById("comparisonSuggestions")
-        .classList.add("d-none");
+    resetComparisonView();
 }
 
 function onComparisonSearchInput() {
@@ -213,6 +201,7 @@ function renderComparisonMainButtons() {
         button.onclick = () => {
             selectedComparisonCategory = category;
             selectedComparisonSubcategory = null;
+            clearComparisonChart();
             renderComparisonMainButtons();
             renderComparisonSubButtons(category);
         };
@@ -237,11 +226,12 @@ function renderComparisonSubButtons(category) {
             formatSubcategoryName(subcategory);
         button.onclick = () => {
             selectedComparisonSubcategory = subcategory;
-            renderComparisonSubButtons(category);
-            console.log(
-                "Indicador selecionado para comparação:",
-                category,
-                subcategory
+            renderComparisonSubButtons(
+                selectedComparisonCategory
+            );
+            showComparisonChart(
+                selectedComparisonCategory,
+                selectedComparisonSubcategory
             );
         };
         if (selectedComparisonSubcategory === subcategory) {
@@ -384,6 +374,74 @@ function formatSubcategoryName(subcategory) {
         crescimento_raca: "Crescimento por Raça/Cor"
     };
     return names[subcategory] || subcategory;
+}
+
+function showComparisonChart(categoria, indicador) {
+    if (!selectedComparisonSchool) {
+        return;
+    }
+    const schoolCode = SCHOOL_CODE;
+    const comparisonCode = selectedComparisonSchool.codigo;
+    const iframe = document.getElementById("comparisonMetabasePlayer");
+    iframe.classList.add("d-none");
+    const url =
+        `/api/comparacao/grafico/${schoolCode}/${comparisonCode}/${categoria}/${indicador}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.sucesso) {
+                console.error(data.erro);
+                return;
+            }
+            iframe.src = data.url;
+            iframe.classList.remove("d-none");
+        })
+        .catch(error => {
+            console.error(
+                "Erro ao carregar gráfico de comparação:",
+                error
+            );
+        });
+}
+
+function resetComparisonView() {
+    selectedComparisonSchool = null;
+    selectedComparisonCategory = null;
+    selectedComparisonSubcategory = null;
+    const iframe = document.getElementById(
+        "comparisonMetabasePlayer"
+    );
+    iframe.src = "";
+    iframe.classList.add("d-none");
+    document.getElementById(
+        "comparisonMainCategoryButtons"
+    ).innerHTML = "";
+    document.getElementById(
+        "comparisonSubCategoryButtons"
+    ).innerHTML = "";
+    document.getElementById(
+        "comparisonSelectedState"
+    ).classList.add("d-none");
+    document.getElementById(
+        "comparisonSearchState"
+    ).classList.remove("d-none");
+    document.getElementById(
+        "comparisonSearchInput"
+    ).value = "";
+    document.getElementById(
+        "comparisonSuggestions"
+    ).innerHTML = "";
+    document.getElementById(
+        "comparisonSuggestions"
+    ).classList.add("d-none");
+}
+
+function clearComparisonChart() {
+    const iframe = document.getElementById(
+        "comparisonMetabasePlayer"
+    );
+    iframe.src = "";
+    iframe.classList.add("d-none");
 }
 
 async function showChart() {
