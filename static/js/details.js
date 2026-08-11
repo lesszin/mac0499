@@ -1,6 +1,9 @@
 let evolutionCharts = null;
 let selectedCategory = null;
 let selectedSubcategory = null;
+let selectedComparisonSchool = null;
+let selectedComparisonCategory = null;
+let selectedComparisonSubcategory = null;
 const categoryOrder = [
     "matriculas",
     "docentes",
@@ -74,13 +77,20 @@ const subcategoryGroups = {
         }
     ]
 };
+const comparisonIndicators = {
+    matriculas: ["total"],
+    docentes: ["total"],
+    turmas: ["total"]
+};
 
 function switchTab(tabName) {
     document.getElementById('contentSheet').style.display = 'none';
     document.getElementById('contentEvolution').style.display = 'none';
+    document.getElementById('contentComparison').style.display = 'none';
     
     document.getElementById('btnSheet').classList.remove('active');
     document.getElementById('btnEvolution').classList.remove('active');
+    document.getElementById('btnComparison').classList.remove('active');
 
     if (tabName === 'sheet') {
         document.getElementById('contentSheet').style.display = 'block';
@@ -90,7 +100,156 @@ function switchTab(tabName) {
         document.getElementById('btnEvolution').classList.add('active');
         
         initializeEvolution();
+    } else if (tabName === 'comparison') {
+        document.getElementById('contentComparison').style.display = 'block';
+        document.getElementById('btnComparison').classList.add('active');
     }
+}
+
+function searchComparisonSchools(term) {
+    return fetch(`/api/busca/${term}`)
+        .then(response => response.json());
+}
+
+function createComparisonSuggestion(school) {
+    const button = document.createElement("button");
+    button.className =
+        "list-group-item list-group-item-action text-start py-2";
+    button.innerHTML = `
+        <div class="fw-bold text-dark">
+            ${school.nome}
+        </div>
+        <small class="text-muted">
+            ${school.cidade} - ${school.estado}
+        </small>
+    `;
+    button.onclick = () => {
+        selectedComparisonSchool = school;
+        document
+            .getElementById("comparisonSearchState")
+            .classList.add("d-none");
+        document
+            .getElementById("comparisonSelectedState")
+            .classList.remove("d-none");
+        document.getElementById("comparisonSchoolName")
+            .textContent = school.nome;
+        document.getElementById("comparisonSchoolLocation")
+            .textContent =
+                `${school.cidade} - ${school.estado}`;
+        document
+            .getElementById("comparisonSuggestions")
+            .classList.add("d-none");
+        document
+            .getElementById("comparisonSearchInput")
+            .value = "";
+        renderComparisonMainButtons();
+    };
+    return button;
+}
+
+function showComparisonSuggestions(schools) {
+    const box = document.getElementById("comparisonSuggestions");
+    box.innerHTML = "";
+    if (schools.length === 0) {
+        box.innerHTML = `
+            <div class="list-group-item text-muted">
+                Nenhuma escola encontrada
+            </div>
+        `;
+        box.classList.remove("d-none");
+        return;
+    }
+    schools.forEach(school => {
+        box.appendChild(
+            createComparisonSuggestion(school)
+        );
+    });
+    box.classList.remove("d-none");
+}
+
+function changeComparisonSchool() {
+    selectedComparisonSchool = null;
+    document
+        .getElementById("comparisonSelectedState")
+        .classList.add("d-none");
+    document
+        .getElementById("comparisonSearchState")
+        .classList.remove("d-none");
+    document
+        .getElementById("comparisonSearchInput")
+        .value = "";
+    document
+        .getElementById("comparisonSuggestions")
+        .classList.add("d-none");
+}
+
+function onComparisonSearchInput() {
+    const input =
+        document.getElementById("comparisonSearchInput");
+    const term = input.value.trim();
+    if (term.length < 3) {
+        document
+            .getElementById("comparisonSuggestions")
+            .classList.add("d-none");
+        return;
+    }
+    searchComparisonSchools(term)
+        .then(showComparisonSuggestions)
+        .catch(console.error);
+}
+
+function renderComparisonMainButtons() {
+    const container = document.getElementById(
+        "comparisonMainCategoryButtons"
+    );
+    container.innerHTML = "";
+    categoryOrder.forEach(category => {
+        if (!comparisonIndicators[category]) {
+            return;
+        }
+        const button = document.createElement("button");
+        button.className = "btn btn-outline-primary";
+        button.textContent = formatCategoryName(category);
+        button.onclick = () => {
+            selectedComparisonCategory = category;
+            selectedComparisonSubcategory = null;
+            renderComparisonMainButtons();
+            renderComparisonSubButtons(category);
+        };
+        if (selectedComparisonCategory === category) {
+            button.classList.remove("btn-outline-primary");
+            button.classList.add("btn-primary");
+        }
+        container.appendChild(button);
+    });
+}
+
+function renderComparisonSubButtons(category) {
+    const container = document.getElementById(
+        "comparisonSubCategoryButtons"
+    );
+    container.innerHTML = "";
+    comparisonIndicators[category].forEach(subcategory => {
+        const button = document.createElement("button");
+        button.className =
+            "btn btn-outline-secondary btn-sm";
+        button.textContent =
+            formatSubcategoryName(subcategory);
+        button.onclick = () => {
+            selectedComparisonSubcategory = subcategory;
+            renderComparisonSubButtons(category);
+            console.log(
+                "Indicador selecionado para comparação:",
+                category,
+                subcategory
+            );
+        };
+        if (selectedComparisonSubcategory === subcategory) {
+            button.classList.remove("btn-outline-secondary");
+            button.classList.add("btn-secondary");
+        }
+        container.appendChild(button);
+    });
 }
 
 async function loadSheetCharts() {
@@ -133,10 +292,6 @@ async function initializeEvolution() {
     }
     evolutionCharts = charts;
     renderMainButtons();
-}
-
-function renderMainButtons() {
-    console.log(evolutionCharts);
 }
 
 function renderMainButtons() {
@@ -1322,3 +1477,11 @@ async function loadSchoolSheet() {
 }
 
 loadSchoolSheet();
+
+document
+    .getElementById("comparisonSearchInput")
+    .addEventListener("input", onComparisonSearchInput);
+
+document
+    .getElementById("changeComparisonSchool")
+    .addEventListener("click", changeComparisonSchool);

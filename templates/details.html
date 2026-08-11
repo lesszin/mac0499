@@ -33,6 +33,9 @@
             <li class="nav-item">
                 <a class="nav-link" id="btnEvolution" onclick="switchTab('evolution')">Evolução</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link"id="btnComparison" onclick="switchTab('comparison')">Comparação</a>
+            </li>
         </ul>
 
         <div id="contentSheet">
@@ -73,6 +76,67 @@
                         height="650"
                         frameborder="0">
                     </iframe>
+                </div>
+            </div>
+        </div>
+
+        <div id="contentComparison" class="tab-hidden">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body">
+                    <div id="comparisonContent">
+                        <div id="comparisonSearchState">
+                            <h5 class="mb-2">Comparar com outra escola</h5>
+                            <p class="text-muted mb-3">
+                                Selecione uma unidade de ensino para comparar sua evolução.
+                            </p>
+                            <div class="position-relative">
+                                <input
+                                    type="text"
+                                    id="comparisonSearchInput"
+                                    class="form-control"
+                                    placeholder="Digite o nome da escola..."
+                                    autocomplete="off">
+                                <div
+                                    id="comparisonSuggestions"
+                                    class="list-group position-absolute w-100 shadow-sm d-none"
+                                    style="z-index: 1000;">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="comparisonSelectedState" class="d-none">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <small class="text-muted">
+                                        Escola selecionada para comparação
+                                    </small>
+                                    <h5 id="comparisonSchoolName" class="fw-bold mb-1"></h5>
+                                    <p id="comparisonSchoolLocation"
+                                    class="text-muted mb-0">
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    id="changeComparisonSchool"
+                                    class="btn btn-outline-secondary btn-sm">
+                                    Trocar escola
+                                </button>
+                            </div>
+                            <hr class="my-4">
+                            <div id="comparisonIndicators">
+                                <p class="text-muted mb-3">
+                                    O que deseja comparar?
+                                </p>
+                                <div
+                                    id="comparisonMainCategoryButtons"
+                                    class="d-flex justify-content-center gap-2 flex-wrap">
+                                </div>
+                                <div
+                                    id="comparisonSubCategoryButtons"
+                                    class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
