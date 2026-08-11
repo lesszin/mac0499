@@ -416,8 +416,89 @@ def get_evolution_summary(school_code, categoria, indicador):
     ]
     return calculate_time_series_summary(data)
 
+def get_comparison_data(school_code, comparison_school_code, categoria,indicador):
+    queries = {
+        "matriculas": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    "QT_MAT_BAS" AS valor
+                FROM fato_matricula
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """)
+        },
+        "docentes": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    "QT_DOC_BAS" AS valor
+                FROM fato_docente
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """)
+        },
+        "turmas": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    "QT_TUR_BAS" AS valor
+                FROM fato_turma
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """)
+        }
+    }
+    if categoria not in queries:
+        return None
+
+    if indicador not in queries[categoria]:
+        return None
+    query = queries[categoria][indicador]
+    with engine.connect() as connection:
+        result_main = connection.execute(
+            query,
+            {"codigo": school_code}
+        ).fetchall()
+        result_comparison = connection.execute(
+            query,
+            {"codigo": comparison_school_code}
+        ).fetchall()
+    main_data = [
+        {
+            "ano": row.ano,
+            "valor": row.valor
+        }
+        for row in result_main
+    ]
+    comparison_data = [
+        {
+            "ano": row.ano,
+            "valor": row.valor
+        }
+        for row in result_comparison
+    ]
+    return {
+        "escola_principal": main_data,
+        "escola_comparada": comparison_data
+    }
+
+@app.route("/api/comparacao/<int:school_code>/<int:comparison_school_code>/<categoria>/<indicador>")
+def comparison_data(school_code, comparison_school_code, categoria, indicador):
+    data = get_comparison_data(
+        school_code,
+        comparison_school_code,
+        categoria,
+        indicador
+    )
+    if data is None:
+        return jsonify({
+            "erro": "Categoria ou indicador inválido."
+        }), 404
+    return jsonify(data)
+
 @app.route("/api/evolucao/resumo/<int:school_code>/<categoria>/<indicador>")
-def evolution_summary(school_code,categoria,indicador):
+def evolution_summary(school_code, categoria, indicador):
     summary = get_evolution_summary(
         school_code,
         categoria,
@@ -589,6 +670,65 @@ def generate_evolution_charts(school_code):
         return jsonify({
             "sucesso": True,
             "urls": urls
+        })
+    except Exception as e:
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/comparacao/grafico/<int:school_code>/<int:comparison_code>/<string:categoria>/<string:indicador>')
+def generate_comparison_chart(school_code, comparison_code, categoria, indicador):
+    try:
+        questions = { 
+            "matriculas": { 
+                "total": 75 
+            }, 
+            "docentes": { 
+                "total": 76 
+            }, 
+            "turmas": { 
+                "total": 77 
+            } 
+        }
+        if categoria not in questions:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Categoria inválida."
+            }), 400
+        if indicador not in questions[categoria]:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Indicador inválido."
+            }), 400
+        question_id = questions[categoria][indicador]
+        payload = {
+            "resource": {
+                "question": question_id
+            },
+            "params": {
+                "escola": school_code,
+                "escola_comparacao": comparison_code
+            },
+            "exp": round(
+                (
+                    datetime.datetime.now(datetime.timezone.utc)
+                    + datetime.timedelta(minutes=30)
+                ).timestamp()
+            )
+        }
+        token = jwt.encode(
+            payload,
+            METABASE_SECRET_KEY,
+            algorithm="HS256"
+        )
+        url = (
+            f"{METABASE_SITE_URL}/embed/question/{token}"
+            "?bordered=false&titled=false"
+        )
+        return jsonify({
+            "sucesso": True,
+            "url": url
         })
     except Exception as e:
         return jsonify({
