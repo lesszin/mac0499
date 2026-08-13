@@ -16,7 +16,6 @@
         <a href="/" class="btn btn-outline-secondary btn-sm mb-4">
             <i class="bi bi-arrow-left"></i> Voltar para o Mapa
         </a>
-
         <div class="card shadow-sm border-0 mb-4 rounded-3">
             <div class="card-body p-4">
                 <h3 id="schoolName" class="text-primary mb-2 fw-bold">Carregando</h3>
@@ -25,7 +24,6 @@
                 </p>
             </div>
         </div>
-
         <ul class="nav nav-tabs mb-4 border-bottom-0">
             <li class="nav-item">
                 <a class="nav-link active" id="btnSheet" onclick="switchTab('sheet')">Ficha</a>
@@ -37,7 +35,6 @@
                 <a class="nav-link"id="btnComparison" onclick="switchTab('comparison')">Comparação</a>
             </li>
         </ul>
-
         <div id="contentSheet">
             <div id="dataSheet">
                 <div class="text-center py-5">
@@ -45,19 +42,10 @@
                 </div>
             </div>
         </div>
-
         <div id="contentEvolution" class="tab-hidden">
             <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-header bg-white">
-                    <div id="mainCategoryButtons"
-                        class="d-flex justify-content-center gap-2 flex-wrap">
-                    </div>
-                    <div id="subCategoryButtons"
-                        class="d-flex justify-content-center gap-2 flex-wrap mt-3">
-                    </div>
-                </div>
                 <div class="card-body">
-                    <div id="chartPlaceholder">
+                    <div id="chartPlaceholder" class="px-3">
                         <i class="bi bi-bar-chart-line fs-1 text-muted"></i>
                         <h5 class="mt-3">
                             Evolução da Escola
@@ -66,10 +54,24 @@
                             Selecione um indicador para visualizar sua evolução.
                         </p>
                     </div>
-                    <div id="evolutionLoader" class="d-none text-center py-5">
+                    <div
+                        id="mainCategoryButtons"
+                        class="d-flex justify-content-center gap-2 flex-wrap">
+                    </div>
+                    <div
+                        id="subCategoryButtons"
+                        class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+                    </div>
+                    <hr
+                        id="evolutionResultSeparator"
+                        class="my-4 d-none">
+                    <div id="evolutionLoader"
+                        class="d-none text-center py-5">
                         ...
                     </div>
-                    <div id="chartSummary" class="d-none mb-4"></div>
+                    <div id="chartSummary"
+                        class="d-none mb-4">
+                    </div>
                     <iframe
                         id="metabasePlayer"
                         class="w-100 d-none"
@@ -79,7 +81,6 @@
                 </div>
             </div>
         </div>
-
         <div id="contentComparison" class="tab-hidden">
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body">
@@ -123,9 +124,15 @@
                             </div>
                             <hr class="my-4">
                             <div id="comparisonIndicators">
-                                <p class="text-muted mb-3">
-                                    O que deseja comparar?
-                                </p>
+                                <div id="comparisonIndicatorMessage" class="mb-4">
+                                    <i class="bi bi-arrow-left-right fs-1 text-muted"></i>
+                                    <h5 class="mt-3">
+                                        O que deseja comparar?
+                                    </h5>
+                                    <p class="text-muted mt-3 mb-0">
+                                        Selecione um indicador para comparar.
+                                    </p>
+                                </div>
                                 <div
                                     id="comparisonMainCategoryButtons"
                                     class="d-flex justify-content-center gap-2 flex-wrap">
@@ -135,6 +142,8 @@
                                     class="d-flex justify-content-center gap-2 flex-wrap mt-3">
                                 </div>
                             </div>
+                            <hr id="comparisonResultSeparator" class="my-4 d-none">
+                            <div id="comparisonSummary" class="d-none mb-4"></div>
                             <iframe
                                 id="comparisonMetabasePlayer"
                                 class="w-100 d-none mt-4"
