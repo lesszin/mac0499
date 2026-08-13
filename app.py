@@ -416,13 +416,75 @@ def get_evolution_summary(school_code, categoria, indicador):
     ]
     return calculate_time_series_summary(data)
 
-def get_comparison_data(school_code, comparison_school_code, categoria,indicador):
+def get_comparison_data(school_code, comparison_school_code, categoria, indicador, filtro=None):
     queries = {
         "matriculas": {
             "total": text("""
                 SELECT
                     "NU_ANO_CENSO" AS ano,
                     "QT_MAT_BAS" AS valor
+                FROM fato_matricula
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """),
+            "modalidade": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    CASE
+                        WHEN :filtro = 'Educação Infantil - Creche'
+                            THEN "QT_MAT_INF_CRE"
+                        WHEN :filtro = 'Educação Infantil - Pré-Escola'
+                            THEN "QT_MAT_INF_PRE"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Iniciais'
+                            THEN "QT_MAT_FUND_AI"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Finais'
+                            THEN "QT_MAT_FUND_AF"
+                        WHEN :filtro = 'Ensino Médio'
+                            THEN "QT_MAT_MED"
+                        WHEN :filtro = 'Educação Profissional'
+                            THEN "QT_MAT_PROF"
+                        WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
+                            THEN "QT_MAT_EJA"
+                        WHEN :filtro = 'Educação Especial'
+                            THEN "QT_MAT_ESP"
+                        ELSE 0
+                    END AS valor
+                FROM fato_matricula
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """),
+            "genero": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    CASE
+                        WHEN :filtro = 'Masculino'
+                            THEN "QT_MAT_BAS_MASC"
+                        WHEN :filtro = 'Feminino'
+                            THEN "QT_MAT_BAS_FEM"
+                        ELSE 0
+                    END AS valor
+                FROM fato_matricula
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """),
+            "raca": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    CASE
+                        WHEN :filtro = 'Não Declarada'
+                            THEN "QT_MAT_BAS_ND"
+                        WHEN :filtro = 'Branca'
+                            THEN "QT_MAT_BAS_BRANCA"
+                        WHEN :filtro = 'Preta'
+                            THEN "QT_MAT_BAS_PRETA"
+                        WHEN :filtro = 'Parda'
+                            THEN "QT_MAT_BAS_PARDA"
+                        WHEN :filtro = 'Amarela'
+                            THEN "QT_MAT_BAS_AMARELA"
+                        WHEN :filtro = 'Indígena'
+                            THEN "QT_MAT_BAS_INDIGENA"
+                        ELSE 0
+                    END AS valor
                 FROM fato_matricula
                 WHERE "CO_ENTIDADE" = :codigo
                 ORDER BY "NU_ANO_CENSO"
@@ -436,6 +498,30 @@ def get_comparison_data(school_code, comparison_school_code, categoria,indicador
                 FROM fato_docente
                 WHERE "CO_ENTIDADE" = :codigo
                 ORDER BY "NU_ANO_CENSO"
+            """),
+            "modalidade": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    CASE
+                        WHEN :filtro = 'Educação Infantil - Creche'
+                            THEN "QT_DOC_INF_CRE"
+                        WHEN :filtro = 'Educação Infantil - Pré-Escola'
+                            THEN "QT_DOC_INF_PRE"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Iniciais'
+                            THEN "QT_DOC_FUND_AI"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Finais'
+                            THEN "QT_DOC_FUND_AF"
+                        WHEN :filtro = 'Ensino Médio'
+                            THEN "QT_DOC_MED"
+                        WHEN :filtro = 'Educação Profissional'
+                            THEN "QT_DOC_PROF"
+                        WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
+                            THEN "QT_DOC_EJA"
+                        ELSE 0
+                    END AS valor
+                FROM fato_docente
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
             """)
         },
         "turmas": {
@@ -446,23 +532,54 @@ def get_comparison_data(school_code, comparison_school_code, categoria,indicador
                 FROM fato_turma
                 WHERE "CO_ENTIDADE" = :codigo
                 ORDER BY "NU_ANO_CENSO"
+            """),
+            "modalidade": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    CASE
+                        WHEN :filtro = 'Educação Infantil - Creche'
+                            THEN "QT_TUR_INF_CRE"
+                        WHEN :filtro = 'Educação Infantil - Pré-Escola'
+                            THEN "QT_TUR_INF_PRE"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Iniciais'
+                            THEN "QT_TUR_FUND_AI"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Finais'
+                            THEN "QT_TUR_FUND_AF"
+                        WHEN :filtro = 'Ensino Médio'
+                            THEN "QT_TUR_MED"
+                        WHEN :filtro = 'Educação Profissional'
+                            THEN "QT_TUR_PROF"
+                        WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
+                            THEN "QT_TUR_EJA"
+                        ELSE 0
+                    END AS valor
+                FROM fato_turma
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
             """)
         }
     }
     if categoria not in queries:
         return None
-
     if indicador not in queries[categoria]:
         return None
     query = queries[categoria][indicador]
+    params_main = {
+        "codigo": school_code,
+        "filtro": filtro
+    }
+    params_comparison = {
+        "codigo": comparison_school_code,
+        "filtro": filtro
+    }
     with engine.connect() as connection:
         result_main = connection.execute(
             query,
-            {"codigo": school_code}
+            params_main
         ).fetchall()
         result_comparison = connection.execute(
             query,
-            {"codigo": comparison_school_code}
+            params_comparison
         ).fetchall()
     main_data = [
         {
@@ -478,18 +595,44 @@ def get_comparison_data(school_code, comparison_school_code, categoria,indicador
         }
         for row in result_comparison
     ]
+    main_by_year = {
+        item["ano"]: item["valor"]
+        for item in main_data
+    }
+    comparison_by_year = {
+        item["ano"]: item["valor"]
+        for item in comparison_data
+    }
+    common_years = sorted(
+        set(main_by_year) & set(comparison_by_year)
+    )
+    comparison = None
+    if common_years:
+        ano = common_years[-1]
+        valor_principal = main_by_year[ano]
+        valor_comparado = comparison_by_year[ano]
+        diferenca = valor_principal - valor_comparado
+        comparison = {
+            "ano": ano,
+            "valor_principal": valor_principal,
+            "valor_comparado": valor_comparado,
+            "diferenca": diferenca
+        }
     return {
         "escola_principal": main_data,
-        "escola_comparada": comparison_data
+        "escola_comparada": comparison_data,
+        "comparacao": comparison
     }
 
 @app.route("/api/comparacao/<int:school_code>/<int:comparison_school_code>/<categoria>/<indicador>")
 def comparison_data(school_code, comparison_school_code, categoria, indicador):
+    filtro = request.args.get("filtro")
     data = get_comparison_data(
         school_code,
         comparison_school_code,
         categoria,
-        indicador
+        indicador,
+        filtro
     )
     if data is None:
         return jsonify({
@@ -680,15 +823,21 @@ def generate_evolution_charts(school_code):
 @app.route('/api/comparacao/grafico/<int:school_code>/<int:comparison_code>/<string:categoria>/<string:indicador>')
 def generate_comparison_chart(school_code, comparison_code, categoria, indicador):
     try:
+        filtro = request.args.get("filtro")
         questions = { 
             "matriculas": { 
-                "total": 75 
+                "total": 75,
+                "modalidade": 78,
+                "genero": 81,
+                "raca": 82
             }, 
             "docentes": { 
-                "total": 76 
+                "total": 76,
+                "modalidade": 79
             }, 
             "turmas": { 
-                "total": 77 
+                "total": 77,
+                "modalidade": 80 
             } 
         }
         if categoria not in questions:
@@ -702,14 +851,56 @@ def generate_comparison_chart(school_code, comparison_code, categoria, indicador
                 "erro": "Indicador inválido."
             }), 400
         question_id = questions[categoria][indicador]
+        filter_options = {
+            "modalidade": [
+                "Educação Infantil - Creche",
+                "Educação Infantil - Pré-Escola",
+                "Ensino Fundamental - Anos Iniciais",
+                "Ensino Fundamental - Anos Finais",
+                "Ensino Médio",
+                "Educação Profissional",
+                "Educação de Jovens e Adultos (EJA)",
+                "Educação Especial"
+            ],
+            "genero": [
+                "Masculino",
+                "Feminino"
+            ],
+            "raca": [
+                "Não Declarada",
+                "Branca",
+                "Preta",
+                "Parda",
+                "Amarela",
+                "Indígena"
+            ]
+        }
+        if indicador in filter_options:
+            if not filtro:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "É necessário informar um filtro para este indicador."
+                }), 400
+            if filtro not in filter_options[indicador]:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Filtro inválido."
+                }), 400
+        params = {
+            "escola": school_code,
+            "escola_comparacao": comparison_code
+        }
+        if indicador == "modalidade":
+            params["modalidade"] = filtro
+        elif indicador == "genero":
+            params["genero"] = filtro
+        elif indicador == "raca":
+            params["raca"] = filtro
         payload = {
             "resource": {
                 "question": question_id
             },
-            "params": {
-                "escola": school_code,
-                "escola_comparacao": comparison_code
-            },
+            "params": params,
             "exp": round(
                 (
                     datetime.datetime.now(datetime.timezone.utc)
