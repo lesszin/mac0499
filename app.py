@@ -2,7 +2,6 @@ from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import jwt
 import time
-import psycopg2
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
@@ -660,36 +659,64 @@ def render_index():
 @app.route('/api/busca/<string:text_query>')
 def search_schools(text_query):
     try:
-        connection = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
-        cursor = connection.cursor()
         words = text_query.split()
-        search_clauses = ' AND '.join(['"NO_ENTIDADE" ILIKE %s'] * len(words))
-        query = f"""
-            SELECT "CO_ENTIDADE", "NO_ENTIDADE", "NO_MUNICIPIO", "SG_UF", "LATITUDE", "LONGITUDE"
-            FROM dim_escola 
+
+        search_clauses = " AND ".join(
+            ['"NO_ENTIDADE" ILIKE :word_{}'.format(i)
+             for i in range(len(words))]
+        )
+
+        query = text(f"""
+            SELECT
+                "CO_ENTIDADE",
+                "NO_ENTIDADE",
+                "NO_MUNICIPIO",
+                "SG_UF",
+                "LATITUDE",
+                "LONGITUDE"
+            FROM dim_escola
             WHERE {search_clauses}
             LIMIT 100
-        """
-        parameters = tuple(f"%{word}%" for word in words)
-        cursor.execute(query, parameters)
-        results = cursor.fetchall()
-        schools = []
-        for row in results:
-            schools.append({
-                "codigo": row[0], 
+        """)
+
+        params = {
+            f"word_{i}": f"%{word}%"
+            for i, word in enumerate(words)
+        }
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                query,
+                params
+            ).fetchall()
+
+        schools = [
+            {
+                "codigo": row[0],
                 "nome": row[1],
                 "cidade": row[2],
                 "estado": row[3],
-                "lat": float(row[4]) if row[4] is not None else None,
-                "lng": float(row[5]) if row[5] is not None else None
-            })
-        cursor.close()
-        connection.close()
+                "lat": (
+                    float(row[4])
+                    if row[4] is not None
+                    else None
+                ),
+                "lng": (
+                    float(row[5])
+                    if row[5] is not None
+                    else None
+                )
+            }
+            for row in results
+        ]
+
         return jsonify(schools)
 
     except Exception as e:
         print(f"Error in search route: {e}")
-        return jsonify({"erro": str(e)}), 500
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
 @app.route('/api/ficha/<int:school_code>')
 def generate_sheet_charts(school_code):

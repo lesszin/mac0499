@@ -558,16 +558,26 @@ function updatePrivateCategoryDependency() {
 map.on('moveend', loadSchoolsOnMap);
 
 allMapFilters.forEach(filter => {
-    filter.addEventListener("change", loadSchoolsOnMap);
+    if (filter.classList.contains("private-category-filter")) {
+        return;
+    }
+
+    filter.addEventListener(
+        "change",
+        loadSchoolsOnMap
+    );
 });
 
 document
     .querySelectorAll(".private-category-filter")
     .forEach(filter => {
-        filter.addEventListener("change", () => {
-            updatePrivateCategoryDependency();
-            loadSchoolsOnMap();
-        });
+        filter.addEventListener(
+            "change",
+            () => {
+                updatePrivateCategoryDependency();
+                loadSchoolsOnMap();
+            }
+        );
     });
 
 window.addEventListener("load", () => {
