@@ -662,22 +662,17 @@ def search_schools(text_query):
     try:
         connection = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
         cursor = connection.cursor()
-        
         words = text_query.split()
         search_clauses = ' AND '.join(['"NO_ENTIDADE" ILIKE %s'] * len(words))
-        
         query = f"""
             SELECT "CO_ENTIDADE", "NO_ENTIDADE", "NO_MUNICIPIO", "SG_UF", "LATITUDE", "LONGITUDE"
             FROM dim_escola 
             WHERE {search_clauses}
             LIMIT 100
         """
-        
         parameters = tuple(f"%{word}%" for word in words)
-        
         cursor.execute(query, parameters)
         results = cursor.fetchall()
-        
         schools = []
         for row in results:
             schools.append({
@@ -688,11 +683,10 @@ def search_schools(text_query):
                 "lat": float(row[4]) if row[4] is not None else None,
                 "lng": float(row[5]) if row[5] is not None else None
             })
-        
         cursor.close()
         connection.close()
         return jsonify(schools)
-        
+
     except Exception as e:
         print(f"Error in search route: {e}")
         return jsonify({"erro": str(e)}), 500
@@ -930,26 +924,85 @@ def generate_comparison_chart(school_code, comparison_code, categoria, indicador
 @app.route('/api/escolas-mapa')
 def get_map_schools():
     try:
-        modalities_str = request.args.get('modalidades', '')
+        dependencia_map = {
+            "federal": 1,
+            "estadual": 2,
+            "municipal": 3,
+            "privada": 4
+        }
+        categoria_privada_map = {
+            "particular": 1,
+            "comunitaria": 2,
+            "confessional": 3,
+            "filantropica": 4
+        }
+        localizacao_map = {
+            "urbano": 1,
+            "rural": 2
+        }
 
-        if not modalities_str:
-            return jsonify([])
+        modalities_str = request.args.get('modalidades', '')
+        dependencias_str = request.args.get('dependencias', '')
+        categorias_str = request.args.get('categorias_privadas', '')
+        localizacoes_str = request.args.get('localizacoes', '')
 
         lat_min = request.args.get('lat_min')
         lat_max = request.args.get('lat_max')
         lng_min = request.args.get('lng_min')
         lng_max = request.args.get('lng_max')
 
-        has_bounds = all(v is not None for v in [lat_min, lat_max, lng_min, lng_max])
+        modalities = (
+            modalities_str.split(",")
+            if modalities_str
+            else []
+        )
+
+        dependencias_raw = (
+            dependencias_str.split(",")
+            if dependencias_str
+            else []
+        )
+
+        categorias_raw = (
+            categorias_str.split(",")
+            if categorias_str
+            else []
+        )
+
+        localizacoes_raw = (
+            localizacoes_str.split(",")
+            if localizacoes_str
+            else []
+        )
+
+        dependencias = [
+            dependencia_map[value]
+            for value in dependencias_raw
+            if value in dependencia_map
+        ]
+
+        categorias = [
+            categoria_privada_map[value]
+            for value in categorias_raw
+            if value in categoria_privada_map
+        ]
+
+        localizacoes = [
+            localizacao_map[value]
+            for value in localizacoes_raw
+            if value in localizacao_map
+        ]
+
+        has_bounds = all(
+            v is not None
+            for v in [lat_min, lat_max, lng_min, lng_max]
+        )
 
         if has_bounds:
             lat_min = float(lat_min)
             lat_max = float(lat_max)
             lng_min = float(lng_min)
             lng_max = float(lng_max)
-
-        modalities_str = request.args.get('modalidades', '')
-        modalities = modalities_str.split(',') if modalities_str else []
 
         filter_map = {
             'creche': 't."QT_TUR_INF_CRE" > 0',
@@ -963,12 +1016,19 @@ def get_map_schools():
         }
 
         query = """
-            SELECT "CO_ENTIDADE", "NO_ENTIDADE", "NO_MUNICIPIO", "SG_UF", "LATITUDE", "LONGITUDE"
+            SELECT
+                "CO_ENTIDADE",
+                "NO_ENTIDADE",
+                "NO_MUNICIPIO",
+                "SG_UF",
+                "LATITUDE",
+                "LONGITUDE"
             FROM dim_escola e
-            WHERE 1=1
-                AND "LATITUDE" IS NOT NULL
-                AND "LONGITUDE" IS NOT NULL
+            WHERE "LATITUDE" IS NOT NULL
+              AND "LONGITUDE" IS NOT NULL
         """
+
+        params = {}
 
         if has_bounds:
             query += """
@@ -976,60 +1036,106 @@ def get_map_schools():
                 AND "LONGITUDE" BETWEEN :lng_min AND :lng_max
             """
 
-        class_filters = [filter_map[mod] for mod in modalities if mod in filter_map]
-        
+            params.update({
+                "lat_min": lat_min,
+                "lat_max": lat_max,
+                "lng_min": lng_min,
+                "lng_max": lng_max
+            })
+
+        class_filters = [
+            filter_map[mod]
+            for mod in modalities
+            if mod in filter_map
+        ]
+
         if class_filters:
             class_clauses = " OR ".join(class_filters)
-            
+
             query += f"""
-              AND EXISTS (
-                  SELECT 1 FROM fato_turma t 
-                  WHERE t."CO_ENTIDADE" = e."CO_ENTIDADE" 
-                    AND t."NU_ANO_CENSO" = 2025 
-                    AND {class_clauses}
-              )
+                AND EXISTS (
+                    SELECT 1
+                    FROM fato_turma t
+                    WHERE t."CO_ENTIDADE" = e."CO_ENTIDADE"
+                      AND t."NU_ANO_CENSO" = 2025
+                      AND ({class_clauses})
+                )
             """
 
-        if 'tecnico' in modalities:
+        if "tecnico" in modalities:
             query += """
-              AND EXISTS (
-                  SELECT 1 FROM fato_curso c 
-                  WHERE c."CO_ENTIDADE" = e."CO_ENTIDADE" 
-                    AND c."NU_ANO_CENSO" = 2025
-              )
+                AND EXISTS (
+                    SELECT 1
+                    FROM fato_curso c
+                    WHERE c."CO_ENTIDADE" = e."CO_ENTIDADE"
+                      AND c."NU_ANO_CENSO" = 2025
+                )
+            """
+
+        if dependencias:
+            placeholders = []
+
+            for i, dependencia in enumerate(dependencias):
+                key = f"dependencia_{i}"
+                placeholders.append(f":{key}")
+                params[key] = dependencia
+
+            query += f"""
+                AND e."TP_DEPENDENCIA" IN (
+                    {", ".join(placeholders)}
+                )
+            """
+
+        if categorias:
+            placeholders = []
+
+            for i, categoria in enumerate(categorias):
+                key = f"categoria_privada_{i}"
+                placeholders.append(f":{key}")
+                params[key] = categoria
+
+            query += f"""
+                AND e."TP_CATEGORIA_ESCOLA_PRIVADA" IN (
+                    {", ".join(placeholders)}
+                )
+            """
+
+        if localizacoes:
+            placeholders = []
+
+            for i, localizacao in enumerate(localizacoes):
+                key = f"localizacao_{i}"
+                placeholders.append(f":{key}")
+                params[key] = localizacao
+
+            query += f"""
+                AND e."TP_LOCALIZACAO" IN (
+                    {", ".join(placeholders)}
+                )
             """
 
         if has_bounds:
             query += " LIMIT 5000"
 
         with engine.connect() as connection:
-            params = {}
-
-            if has_bounds:
-                params = {
-                    "lat_min": lat_min,
-                    "lat_max": lat_max,
-                    "lng_min": lng_min,
-                    "lng_max": lng_max
-                }
-
             results = connection.execute(
                 text(query),
                 params
             ).fetchall()
 
-            schools = []
-            for row in results:
-                schools.append({
-                    "codigo": row[0],
-                    "nome": row[1],
-                    "cidade": row[2],
-                    "estado": row[3],
-                    "lat": float(row[4]),
-                    "lng": float(row[5])
-                })
+        schools = [
+            {
+                "codigo": row[0],
+                "nome": row[1],
+                "cidade": row[2],
+                "estado": row[3],
+                "lat": float(row[4]),
+                "lng": float(row[5])
+            }
+            for row in results
+        ]
 
-            return jsonify(schools)
+        return jsonify(schools)
 
     except Exception as e:
         print(f"Error in map schools route: {e}")
@@ -1052,6 +1158,46 @@ def get_school_sheet(school_code):
 @app.route('/escola/<int:school_code>')
 def render_details(school_code):
     return render_template('details.html', codigo=school_code)
+
+@app.route('/api/escola-localizacao/<int:school_code>')
+def get_school_location(school_code):
+    try:
+        query = text("""
+            SELECT
+                "CO_ENTIDADE",
+                "NO_ENTIDADE",
+                "NO_MUNICIPIO",
+                "SG_UF",
+                "LATITUDE",
+                "LONGITUDE"
+            FROM dim_escola
+            WHERE "CO_ENTIDADE" = :codigo
+        """)
+
+        with engine.connect() as connection:
+            row = connection.execute(
+                query,
+                {"codigo": school_code}
+            ).fetchone()
+
+        if row is None:
+            return jsonify({
+                "erro": "Escola não encontrada."
+            }), 404
+
+        return jsonify({
+            "codigo": row[0],
+            "nome": row[1],
+            "cidade": row[2],
+            "estado": row[3],
+            "lat": float(row[4]) if row[4] is not None else None,
+            "lng": float(row[5]) if row[5] is not None else None
+        })
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
 if __name__ == '__main__':
     print("Flask server running at http://localhost:5000")

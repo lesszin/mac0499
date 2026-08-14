@@ -19,81 +19,354 @@
     <div class="main-wrapper">
         
         <div id="mapContainer"></div>
-
+        <button
+            id="locateButton"
+            class="location-button"
+            type="button"
+            title="Minha localização"
+            aria-label="Minha localização">
+            <span class="location-dot"></span>
+        </button>
+        <button
+            id="comparisonBackButton"
+            class="comparison-back-button d-none"
+            type="button"
+            title="Voltar para comparação"
+            aria-label="Voltar para comparação">
+            <i class="bi bi-arrow-left"></i>
+        </button>
         <div class="search-panel">
             <div class="card shadow border-0">
-                <div class="card-body p-2">
+                <div id="schoolSearchBox" class="card-body p-2">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-0 text-primary">
                             <i class="bi bi-search"></i>
                         </span>
-                        <input type="text" id="schoolInput" class="form-control border-0 shadow-none" placeholder="Digite o nome da escola" autocomplete="off">
+                        <input
+                            type="text"
+                            id="schoolInput"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Digite o nome da escola"
+                            autocomplete="off">
                     </div>
-                    <div id="searchSuggestions" class="list-group position-absolute w-100 shadow d-none bg-white"></div>
-                    <div id="schoolCard" class="card shadow mt-2 d-none">
-                        <div class="card-body position-relative">
-                            <button
-                                id="closeSchoolCard"
-                                class="btn-close position-absolute top-0 end-0 m-2"
-                                aria-label="Fechar">
-                            </button>
-                            <div id="schoolCardBody"></div>
-                        </div>
+                    <div
+                        id="searchSuggestions"
+                        class="list-group position-absolute w-100 shadow d-none bg-white">
+                    </div>
+                </div>
+                <div id="schoolCard" class="card shadow mt-2 d-none">
+                    <div class="card-body position-relative">
+                        <button
+                            id="closeSchoolCard"
+                            class="btn-close position-absolute top-0 end-0 m-2"
+                            aria-label="Fechar">
+                        </button>
+                        <div id="schoolCardBody"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow border-0 bg-white filters-panel">
-            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-2 filter-header-cursor" data-bs-toggle="collapse" data-bs-target="#filtersBody" aria-expanded="true">
-                <span class="fw-bold text-primary mb-0">Educação</span>
-                <i class="bi bi-chevron-down text-primary small"></i>
+       <div class="card shadow border-0 bg-white filters-panel">
+            <div
+                class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-2 filter-header-cursor"
+                data-bs-toggle="collapse"
+                data-bs-target="#filtersBody"
+                aria-expanded="true"
+            >
+                <span class="fw-bold text-primary mb-0">
+                    Camadas
+                </span>
+                <i class="bi bi-chevron-down text-primary small collapse-arrow"></i>
             </div>
-            
-            <div id="filtersBody" class="collapse show">
+            <div id="filtersBody" class="collapse">
                 <div class="card-body pt-0 pb-3">
-                    <div class="d-flex flex-column gap-1">
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="creche" id="chk-daycare">
-                            <label class="form-check-label text-dark" for="chk-daycare">Creche</label>
+                    <div class="mb-2">
+                        <div
+                            class="d-flex justify-content-between align-items-center py-2 filter-subheader"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#educationFilters"
+                            aria-expanded="false"
+                        >
+                            <span class="fw-semibold text-dark">
+                                Educação
+                            </span>
+                            <i class="bi bi-chevron-down text-primary small collapse-arrow"></i>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="pre_escola" id="chk-preschool">
-                            <label class="form-check-label text-dark" for="chk-preschool">Pré-escola</label>
+                        <div id="educationFilters" class="collapse">
+                            <div class="d-flex flex-column gap-1 mt-1">
+
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="creche"
+                                        id="chk-daycare">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-daycare">
+                                        Creche
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="pre_escola"
+                                        id="chk-preschool">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-preschool">
+                                        Pré-escola
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="fund_ai"
+                                        id="chk-elem-early">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-elem-early">
+                                        Ensino Fundamental Iniciais
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="fund_af"
+                                        id="chk-elem-late">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-elem-late">
+                                        Ensino Fundamental Finais
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="medio"
+                                        id="chk-high">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-high">
+                                        Ensino Médio
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="medio_int"
+                                        id="chk-high-int">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-high-int">
+                                        Ensino Médio Integrado
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="tecnico"
+                                        id="chk-tech">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-tech">
+                                        Ensino Profissionalizante
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="eja_fund"
+                                        id="chk-eja-elem">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-eja-elem">
+                                        Ensino EJA Fund.
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input modality-filter"
+                                        type="checkbox"
+                                        value="eja_med"
+                                        id="chk-eja-high">
+                                    <label
+                                        class="form-check-label text-dark"
+                                        for="chk-eja-high">
+                                        Ensino EJA Médio
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="fund_ai" id="chk-elem-early">
-                            <label class="form-check-label text-dark" for="chk-elem-early">Ensino Fundamental Iniciais</label>
+                    </div>
+                    <div>
+                        <div
+                            class="d-flex justify-content-between align-items-center py-2 filter-subheader"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#administrativeFilters"
+                            aria-expanded="false"
+                        >
+                            <span class="fw-semibold text-dark">
+                                Administrativa
+                            </span>
+
+                            <i class="bi bi-chevron-down text-primary small collapse-arrow"></i>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="fund_af" id="chk-elem-late">
-                            <label class="form-check-label text-dark" for="chk-elem-late">Ensino Fundamental Finais</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="medio" id="chk-high">
-                            <label class="form-check-label text-dark" for="chk-high">Ensino Médio</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="medio_int" id="chk-high-int">
-                            <label class="form-check-label text-dark" for="chk-high-int">Ensino Medio Integrado</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="tecnico" id="chk-tech">
-                            <label class="form-check-label text-dark" for="chk-tech">Ensino Profissionalizante</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="eja_fund" id="chk-eja-elem">
-                            <label class="form-check-label text-dark" for="chk-eja-elem">Ensino EJA Fund.</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input modality-filter" type="checkbox" value="eja_med" id="chk-eja-high">
-                            <label class="form-check-label text-dark" for="chk-eja-high">Ensino EJA Médio</label>
+                        <div id="administrativeFilters" class="collapse">
+                            <div class="mt-1 mb-3">
+                                <small class="fw-semibold text-muted">
+                                    Dependência Administrativa
+                                </small>
+                                <div class="d-flex flex-column gap-1 mt-1">
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input administrative-filter"
+                                            type="checkbox"
+                                            value="federal"
+                                            id="chk-admin-federal">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-admin-federal">
+                                            Federal
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input administrative-filter"
+                                            type="checkbox"
+                                            value="estadual"
+                                            id="chk-admin-estadual">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-admin-estadual">
+                                            Estadual
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input administrative-filter"
+                                            type="checkbox"
+                                            value="municipal"
+                                            id="chk-admin-municipal">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-admin-municipal">
+                                            Municipal
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input administrative-filter"
+                                            type="checkbox"
+                                            value="privada"
+                                            id="chk-admin-privada">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-admin-privada">
+                                            Privada
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-1 mb-3">
+                                <small class="fw-semibold text-muted">
+                                    Categoria de Escola Privada
+                                </small>
+                                <div class="d-flex flex-column gap-1 mt-1">
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input private-category-filter"
+                                            type="checkbox"
+                                            value="particular"
+                                            id="chk-private-particular">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-private-particular">
+                                            Particular
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input private-category-filter"
+                                            type="checkbox"
+                                            value="comunitaria"
+                                            id="chk-private-comunitaria">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-private-comunitaria">
+                                            Comunitária
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input private-category-filter"
+                                            type="checkbox"
+                                            value="confessional"
+                                            id="chk-private-confessional">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-private-confessional">
+                                            Confessional
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input private-category-filter"
+                                            type="checkbox"
+                                            value="filantropica"
+                                            id="chk-private-filantropica">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-private-filantropica">
+                                            Filantrópica
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-1">
+                                <small class="fw-semibold text-muted">
+                                    Localização
+                                </small>
+                                <div class="d-flex flex-column gap-1 mt-1">
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input location-filter"
+                                            type="checkbox"
+                                            value="urbano"
+                                            id="chk-location-urbano">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-location-urbano">
+                                            Urbano
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input location-filter"
+                                            type="checkbox"
+                                            value="rural"
+                                            id="chk-location-rural">
+                                        <label
+                                            class="form-check-label text-dark"
+                                            for="chk-location-rural">
+                                            Rural
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
