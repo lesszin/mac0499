@@ -164,8 +164,11 @@
         </div>
     </div> 
     <script>
-        const SCHOOL_CODE = Number("{{ codigo }}");
+        window.SCHOOL_CODE = Number("{{ codigo }}");
     </script>
-    <script src="/static/js/details.js?v=1"></script>
+    <script
+        type="module"
+        src="/static/js/details.js?v=2">
+    </script>
 </body>
 </html>
