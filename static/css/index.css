@@ -61,3 +61,92 @@ body {
 #schoolCardBody p {
     margin-bottom: 0.75rem;
 }
+
+.location-button {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+
+    width: 42px;
+    height: 42px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    z-index: 1000;
+}
+
+.location-button:hover {
+    background: #f8f9fa;
+}
+
+.location-button:active {
+    transform: scale(0.95);
+}
+
+.location-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #6f42c1;
+}
+
+.user-location-marker {
+    background: transparent;
+    border: none;
+}
+
+.user-location-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #6f42c1;
+    border: 3px solid #ffffff;
+    box-shadow:
+        0 0 0 2px rgba(111, 66, 193, 0.25);
+}
+
+#filtersBody {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+}
+
+.comparison-back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+
+    width: 42px;
+    height: 42px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #fff;
+    color: #495057;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    z-index: 1000;
+}
+
+.comparison-back-button:hover {
+    background: #f8f9fa;
+}
+
+.comparison-back-button:active {
+    transform: scale(0.95);
+}

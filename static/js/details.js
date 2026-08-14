@@ -308,7 +308,6 @@ function renderComparisonSubButtons(category) {
                 button.classList.remove(
                     "btn-outline-secondary"
                 );
-
                 button.classList.add("btn-secondary");
             }
             button.onclick = () => {
@@ -336,7 +335,6 @@ function renderComparisonSubButtons(category) {
                         selectedComparisonCategory,
                         selectedComparisonSubcategory
                     );
-
                     return;
                 }
                 const select =
@@ -350,8 +348,10 @@ function renderComparisonSubButtons(category) {
                 placeholder.textContent = "Selecione...";
                 placeholder.selected = true;
                 select.appendChild(placeholder);
-                comparisonFilterOptions[indicator]
-                    .forEach(optionValue => {
+                getComparisonFilterOptions(
+                    selectedComparisonCategory,
+                    indicator
+                ).forEach(optionValue => {
                         const option =
                             document.createElement("option");
                         option.value = optionValue;
@@ -388,6 +388,19 @@ function renderComparisonSubButtons(category) {
         groupContainer.appendChild(body);
         container.appendChild(groupContainer);
     });
+}
+
+function getComparisonFilterOptions(category, indicator) {
+    const options = comparisonFilterOptions[indicator] || [];
+    if (
+        indicator === "modalidade" &&
+        (category === "docentes" || category === "turmas")
+    ) {
+        return options.filter(
+            modalidade => modalidade !== "Educação Especial"
+        );
+    }
+    return options;
 }
 
 function formatComparisonIndicatorName(indicator) {
@@ -1826,6 +1839,7 @@ async function loadSchoolSheet() {
             return;
         }
         updateSchoolHeader(data);
+        loadSavedComparisonSchool();
         const sections = buildSections(data, charts);
         renderSections(dataDiv, sections);
     } catch (error) {
@@ -1834,6 +1848,49 @@ async function loadSchoolSheet() {
             `<div class="alert alert-danger">
                 Erro de conexão ao carregar a ficha técnica.
             </div>`;
+    }
+}
+
+function loadSavedComparisonSchool() {
+    const savedSchool =
+        sessionStorage.getItem("comparisonSelectedSchool");
+    if (!savedSchool) {
+        return;
+    }
+    try {
+        selectedComparisonSchool = JSON.parse(savedSchool);
+        document
+            .getElementById("comparisonSearchState")
+            .classList.add("d-none");
+        document
+            .getElementById("comparisonSelectedState")
+            .classList.remove("d-none");
+        document.getElementById(
+            "comparisonSchoolName"
+        ).textContent = selectedComparisonSchool.nome;
+        document.getElementById(
+            "comparisonSchoolLocation"
+        ).textContent =
+            `${selectedComparisonSchool.cidade} - ${selectedComparisonSchool.estado}`;
+        document
+            .getElementById("comparisonSuggestions")
+            .classList.add("d-none");
+        document.getElementById(
+            "comparisonSearchInput"
+        ).value = "";
+        renderComparisonMainButtons();
+        switchTab("comparison");
+        sessionStorage.removeItem(
+            "comparisonSelectedSchool"
+        );
+    } catch (error) {
+        console.error(
+            "Erro ao recuperar escola de comparação:",
+            error
+        );
+        sessionStorage.removeItem(
+            "comparisonSelectedSchool"
+        );
     }
 }
 
@@ -1846,3 +1903,24 @@ document
 document
     .getElementById("changeComparisonSchool")
     .addEventListener("click", changeComparisonSchool);
+
+document
+    .getElementById("chooseComparisonOnMap")
+    .addEventListener("click", () => {
+        sessionStorage.setItem(
+            "comparisonMapMode",
+            "true"
+        );
+
+        sessionStorage.setItem(
+            "comparisonPrincipalSchoolCode",
+            SCHOOL_CODE
+        );
+
+        sessionStorage.setItem(
+            "comparisonReturnUrl",
+            window.location.href
+        );
+
+        window.location.href = "/";
+    });
