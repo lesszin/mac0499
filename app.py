@@ -156,6 +156,7 @@ def build_school_data(school_result, enrollment_result, teacher_result, class_re
             'medio': int(teacher_result[5] or 0),
             'profissional': int(teacher_result[6] or 0),
             'eja': int(teacher_result[7] or 0),
+            'especial': int(teacher_result[16] or 0),
             'masculino': int(teacher_result[8] or 0),
             'feminino': int(teacher_result[9] or 0),
             'nao_declarado': int(teacher_result[10] or 0),
@@ -197,7 +198,8 @@ def build_school_data(school_result, enrollment_result, teacher_result, class_re
             'fund_af': int(class_result[3] or 0),
             'medio': int(class_result[4] or 0),
             'profissional': int(class_result[5] or 0),
-            'eja': int(class_result[6] or 0)
+            'eja': int(class_result[6] or 0),
+            'especial': int(class_result[7] or 0)
         }
     return school_data
 
@@ -271,7 +273,7 @@ def get_school_technical_sheet(school_code):
                 "QT_DOC_PROF", "QT_DOC_EJA", "QT_DOC_BAS_MASC",
                 "QT_DOC_BAS_FEM", "QT_DOC_BAS_ND", "QT_DOC_BAS_BRANCA",
                 "QT_DOC_BAS_PRETA", "QT_DOC_BAS_PARDA", "QT_DOC_BAS_AMARELA",
-                "QT_DOC_BAS_INDIGENA"
+                "QT_DOC_BAS_INDIGENA", "QT_DOC_ESP"
             FROM fato_docente
             WHERE "CO_ENTIDADE" = :codigo
             ORDER BY "NU_ANO_CENSO" DESC
@@ -283,7 +285,7 @@ def get_school_technical_sheet(school_code):
             SELECT 
                 "QT_TUR_INF_CRE", "QT_TUR_INF_PRE", "QT_TUR_FUND_AI",
                 "QT_TUR_FUND_AF", "QT_TUR_MED", "QT_TUR_PROF",
-                "QT_TUR_EJA"
+                "QT_TUR_EJA", "QT_TUR_ESP"
             FROM fato_turma
             WHERE "CO_ENTIDADE" = :codigo
             ORDER BY "NU_ANO_CENSO" DESC
@@ -516,6 +518,8 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
                             THEN "QT_DOC_PROF"
                         WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
                             THEN "QT_DOC_EJA"
+                        WHEN :filtro = 'Educação Especial'
+                            THEN "QT_DOC_ESP"
                         ELSE 0
                     END AS valor
                 FROM fato_docente
@@ -550,6 +554,8 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
                             THEN "QT_TUR_PROF"
                         WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
                             THEN "QT_TUR_EJA"
+                        WHEN :filtro = 'Educação Especial'
+                            THEN "QT_TUR_ESP"
                         ELSE 0
                     END AS valor
                 FROM fato_turma
