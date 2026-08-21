@@ -300,6 +300,119 @@ def get_school_technical_sheet(school_code):
             class_result
         )
 
+def get_school_structure_snapshot(school_code, year=None):
+    with engine.connect() as connection:
+
+        if year is None:
+            year_query = text("""
+                SELECT MAX("NU_ANO_CENSO")
+                FROM fato_estrutura
+                WHERE "CO_ENTIDADE" = :codigo
+            """)
+
+            year = connection.execute(
+                year_query,
+                {"codigo": school_code}
+            ).scalar()
+
+        if year is None:
+            return None
+
+        structure_query = text("""
+            SELECT
+                "NU_ANO_CENSO",
+
+                "IN_AREA_PLANTIO",
+                "IN_AREA_VERDE",
+                "IN_AUDITORIO",
+                "IN_BIBLIOTECA",
+                "IN_LABORATORIO_CIENCIAS",
+                "IN_LABORATORIO_INFORMATICA",
+                "IN_QUADRA_ESPORTES_COBERTA",
+                "IN_QUADRA_ESPORTES_DESCOBERTA",
+                "IN_SALA_ATELIE_ARTES",
+                "IN_SALA_MUSICA_CORAL",
+                "IN_SALA_ESTUDIO_DANCA",
+                "IN_SALA_MULTIUSO",
+                "IN_SALA_ESTUDIO_GRAVACAO",
+                "IN_SALA_PROFESSOR",
+                "IN_SALA_ATENDIMENTO_ESPECIAL",
+                "IN_REFEITORIO",
+
+                "IN_BANHEIRO_PNE",
+                "IN_ACESSIBILIDADE_CORRIMAO",
+                "IN_ACESSIBILIDADE_ELEVADOR",
+                "IN_ACESSIBILIDADE_PISOS_TATEIS",
+                "IN_ACESSIBILIDADE_VAO_LIVRE",
+                "IN_ACESSIBILIDADE_RAMPAS",
+                "IN_ACESSIBILIDADE_SINAL_SONORO",
+                "IN_ACESSIBILIDADE_SINAL_TATIL",
+                "IN_ACESSIBILIDADE_SINAL_VISUAL"
+
+            FROM fato_estrutura
+            WHERE "CO_ENTIDADE" = :codigo
+              AND "NU_ANO_CENSO" = :ano
+        """)
+
+        row = connection.execute(
+            structure_query,
+            {
+                "codigo": school_code,
+                "ano": year
+            }
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        years_query = text("""
+            SELECT DISTINCT "NU_ANO_CENSO"
+            FROM fato_estrutura
+            WHERE "CO_ENTIDADE" = :codigo
+            ORDER BY "NU_ANO_CENSO"
+        """)
+
+        years = connection.execute(
+            years_query,
+            {"codigo": school_code}
+        ).scalars().all()
+
+    return {
+        "ano": row[0],
+        "anos_disponiveis": years,
+
+        "dependencias": {
+            "plantio": int(row[1]) if row[1] is not None else None,
+            "verde": int(row[2]) if row[2] is not None else None,
+            "auditorio": int(row[3]) if row[3] is not None else None,
+            "biblioteca": int(row[4]) if row[4] is not None else None,
+            "lab_ciencias": int(row[5]) if row[5] is not None else None,
+            "lab_informatica": int(row[6]) if row[6] is not None else None,
+            "quadra_coberta": int(row[7]) if row[7] is not None else None,
+            "quadra_descoberta": int(row[8]) if row[8] is not None else None,
+            "artes": int(row[9]) if row[9] is not None else None,
+            "musica": int(row[10]) if row[10] is not None else None,
+            "danca": int(row[11]) if row[11] is not None else None,
+            "multiuso": int(row[12]) if row[12] is not None else None,
+            "gravacao": int(row[13]) if row[13] is not None else None,
+            "professores": int(row[14]) if row[14] is not None else None,
+            "aee": int(row[15]) if row[15] is not None else None,
+            "refeitorio": int(row[16]) if row[16] is not None else None
+        },
+
+        "acessibilidade": {
+            "banheiro_pne": int(row[17]) if row[17] is not None else None,
+            "corrimao": int(row[18]) if row[18] is not None else None,
+            "elevador": int(row[19]) if row[19] is not None else None,
+            "pisos_tateis": int(row[20]) if row[20] is not None else None,
+            "vao_livre": int(row[21]) if row[21] is not None else None,
+            "rampas": int(row[22]) if row[22] is not None else None,
+            "sinal_sonoro": int(row[23]) if row[23] is not None else None,
+            "sinal_tatil": int(row[24]) if row[24] is not None else None,
+            "sinal_visual": int(row[25]) if row[25] is not None else None
+        }
+    }
+
 def calculate_time_series_summary(data):
     if len(data) < 2:
         return None
@@ -808,6 +921,12 @@ def generate_evolution_charts(school_code):
                 "evolucao_modalidade": 69,
                 "participacao_modalidade": 71,
                 "crescimento_modalidade": 73
+            },
+            "dependencias": {
+                "total": 84
+            },
+            "acessibilidade": {
+                "total": 83
             }
         }
         urls = {}
@@ -844,6 +963,43 @@ def generate_evolution_charts(school_code):
     except Exception as e:
         return jsonify({
             "sucesso": False,
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/evolucao/estrutura/<int:school_code>')
+def evolution_structure(school_code):
+    try:
+        year_param = request.args.get("ano")
+
+        if year_param:
+            try:
+                year = int(year_param)
+            except ValueError:
+                return jsonify({
+                    "erro": "Ano inválido."
+                }), 400
+        else:
+            year = None
+
+        data = get_school_structure_snapshot(
+            school_code,
+            year
+        )
+
+        if data is None:
+            return jsonify({
+                "erro": "Nenhum dado de estrutura encontrado para esta escola."
+            }), 404
+
+        return jsonify(data)
+
+    except Exception as e:
+        print(
+            f"Error fetching structure evolution "
+            f"for {school_code}: {e}"
+        )
+
+        return jsonify({
             "erro": str(e)
         }), 500
 
