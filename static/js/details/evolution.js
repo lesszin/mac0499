@@ -4,7 +4,9 @@ let selectedSubcategory = null;
 const evolutionCategoryOrder = [
     "matriculas",
     "docentes",
-    "turmas"
+    "turmas",
+    "dependencias",
+    "acessibilidade"
 ];
 const subcategoryGroups = {
     matriculas: [
@@ -75,6 +77,119 @@ const subcategoryGroups = {
             ]
         }
     ]
+};
+const structureSnapshotConfig = {
+    acessibilidade: {
+        title: "Recursos de Acessibilidade",
+        fields: [
+            {
+                key: "banheiro_pne",
+                label: "Banheiro acessível, adequado ao uso de pessoas com deficiência ou mobilidade reduzida"
+            },
+            {
+                key: "corrimao",
+                label: "Corrimão e guarda corpos"
+            },
+            {
+                key: "elevador",
+                label: "Elevador"
+            },
+            {
+                key: "pisos_tateis",
+                label: "Pisos táteis"
+            },
+            {
+                key: "vao_livre",
+                label: "Portas com vão livre de, no mínimo, 80 cm"
+            },
+            {
+                key: "rampas",
+                label: "Rampas"
+            },
+            {
+                key: "sinal_sonoro",
+                label: "Sinalização sonora"
+            },
+            {
+                key: "sinal_tatil",
+                label: "Sinalização tátil (piso/paredes)"
+            },
+            {
+                key: "sinal_visual",
+                label: "Sinalização visual (piso/paredes)"
+            }
+        ]
+    },
+
+    dependencias: {
+        title: "Dependências",
+        fields: [
+            {
+                key: "plantio",
+                label: "Área de horta, plantio e/ou produção agrícola"
+            },
+            {
+                key: "verde",
+                label: "Área de vegetação ou gramado"
+            },
+            {
+                key: "auditorio",
+                label: "Auditório"
+            },
+            {
+                key: "biblioteca",
+                label: "Biblioteca"
+            },
+            {
+                key: "lab_ciencias",
+                label: "Laboratório de ciências"
+            },
+            {
+                key: "lab_informatica",
+                label: "Laboratório de informática"
+            },
+            {
+                key: "quadra_coberta",
+                label: "Quadra de esportes coberta"
+            },
+            {
+                key: "quadra_descoberta",
+                label: "Quadra de esportes descoberta"
+            },
+            {
+                key: "artes",
+                label: "Sala/ateliê de artes"
+            },
+            {
+                key: "musica",
+                label: "Sala de música/coral"
+            },
+            {
+                key: "danca",
+                label: "Sala/estúdio de dança"
+            },
+            {
+                key: "multiuso",
+                label: "Sala multiuso (música, dança e artes)"
+            },
+            {
+                key: "gravacao",
+                label: "Estúdio de gravação e edição"
+            },
+            {
+                key: "professores",
+                label: "Sala de professores"
+            },
+            {
+                key: "aee",
+                label: "Sala de Recursos Multifuncionais para Atendimento Educacional Especializado (AEE)"
+            },
+            {
+                key: "refeitorio",
+                label: "Refeitório"
+            }
+        ]
+    }
 };
 
 async function loadChartSummary(
@@ -151,8 +266,17 @@ function renderMainButtons() {
 
             resetEvolutionView();
             renderMainButtons();
-            renderSubButtons();
             clearChart();
+            renderSubButtons();
+
+            if (
+                category === "acessibilidade" ||
+                category === "dependencias"
+            ) {
+                selectedSubcategory = "total";
+                showChart();
+                return;
+            }
         };
 
         if (
@@ -180,6 +304,10 @@ function renderSubButtons() {
     container.innerHTML = "";
 
     if (!selectedCategory) {
+        return;
+    }
+
+    if (!subcategoryGroups[selectedCategory]) {
         return;
     }
 
@@ -275,7 +403,9 @@ function formatCategoryName(category) {
     const names = {
         matriculas: "Matrículas",
         docentes: "Docentes",
-        turmas: "Turmas"
+        turmas: "Turmas",
+        dependencias: "Dependências",
+        acessibilidade: "Acessibilidade"
     };
 
     return names[category] || category;
@@ -308,6 +438,7 @@ function formatSubcategoryName(subcategory) {
 }
 
 async function showChart() {
+    clearStructureSnapshot();
     document
         .getElementById(
             "evolutionResultSeparator"
@@ -349,6 +480,44 @@ async function showChart() {
     renderChartSummary(summary);
 
     iframe.src = url;
+
+    if (
+        selectedCategory === "acessibilidade" ||
+        selectedCategory === "dependencias"
+    ) {
+        try {
+            const currentSnapshot =
+                await loadStructureSnapshot();
+
+            const currentYear =
+                Number(currentSnapshot.ano);
+
+            const comparisonYear =
+                currentSnapshot.anos_disponiveis
+                    .map(Number)
+                    .filter(year => year < currentYear)
+                    .sort((a, b) => b - a)[0];
+
+            const comparisonSnapshot =
+                comparisonYear !== undefined
+                    ? await loadStructureSnapshot(
+                        comparisonYear
+                    )
+                    : currentSnapshot;
+
+            renderStructureSnapshot(
+                selectedCategory,
+                currentSnapshot,
+                comparisonSnapshot
+            );
+
+        } catch (error) {
+            console.error(
+                "Erro ao carregar recorte histórico:",
+                error
+            );
+        }
+    }
 }
 
 function clearChart() {
@@ -396,7 +565,9 @@ function clearChart() {
         const names = {
             matriculas: "Matrículas",
             docentes: "Docentes",
-            turmas: "Turmas"
+            turmas: "Turmas",
+            dependencias: "Dependências",
+            acessibilidade: "Acessibilidade"
         };
 
         title.textContent =
@@ -539,6 +710,248 @@ function resetEvolutionView() {
             "chartPlaceholder"
         )
         .classList.remove("d-none");
+}
+
+function getStructureBooleanIcon(value) {
+    return value === 1
+        ? `<i class="bi bi-check-circle-fill text-success fs-5"></i>`
+        : `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
+}
+
+async function loadStructureSnapshot(year = null) {
+    let url =
+        `/api/evolucao/estrutura/${window.SCHOOL_CODE}`;
+
+    if (year !== null) {
+        url += `?ano=${encodeURIComponent(year)}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(
+            "Erro ao carregar o histórico da estrutura."
+        );
+    }
+
+    return await response.json();
+}
+
+function renderStructureSnapshot(
+    category,
+    firstData,
+    secondData
+) {
+    const container =
+        document.getElementById(
+            "structureSnapshot"
+        );
+
+    const config =
+        structureSnapshotConfig[category];
+
+    if (
+        !container ||
+        !config ||
+        !firstData ||
+        !secondData
+    ) {
+        return;
+    }
+
+    const firstValues =
+        firstData[category] || {};
+
+    const secondValues =
+        secondData[category] || {};
+
+    const years =
+        firstData.anos_disponiveis
+            .map(Number)
+            .sort((a, b) => b - a);
+
+    const firstYear =
+        Number(firstData.ano);
+
+    const secondYear =
+        Number(secondData.ano);
+
+    const rows =
+        config.fields
+            .map(field => {
+                const firstValue =
+                    firstValues[field.key];
+
+                const secondValue =
+                    secondValues[field.key];
+
+                return `
+                    <div class="row py-2 border-bottom align-items-center">
+
+                        <div class="col-sm-6 fw-bold">
+                            ${field.label}
+                        </div>
+
+                        <div class="col-sm-3 text-center">
+                            ${getStructureBooleanIcon(
+                                firstValue
+                            )}
+                        </div>
+
+                        <div class="col-sm-3 text-center">
+                            ${getStructureBooleanIcon(
+                                secondValue
+                            )}
+                        </div>
+
+                    </div>
+                `;
+            })
+            .join("");
+
+    const firstOptions =
+        years
+            .map(year => `
+                <option
+                    value="${year}"
+                    ${year === firstYear ? "selected" : ""}
+                    ${year === secondYear ? "disabled" : ""}>
+                    ${year}
+                </option>
+            `)
+            .join("");
+
+    const secondOptions =
+        years
+            .map(year => `
+                <option
+                    value="${year}"
+                    ${year === secondYear ? "selected" : ""}
+                    ${year === firstYear ? "disabled" : ""}>
+                    ${year}
+                </option>
+            `)
+            .join("");
+
+    container.innerHTML = `
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+
+                    <h5 class="text-primary mb-0">
+                        ${config.title}
+                    </h5>
+
+                </div>
+
+                <div class="row py-2 border-bottom align-items-center">
+
+                    <div class="col-sm-6 fw-bold">
+                        Recurso
+                    </div>
+
+                    <div class="col-sm-3 text-center">
+
+                        <select
+                            id="structureYearSelect1"
+                            class="form-select form-select-sm">
+                            ${firstOptions}
+                        </select>
+
+                    </div>
+
+                    <div class="col-sm-3 text-center">
+
+                        <select
+                            id="structureYearSelect2"
+                            class="form-select form-select-sm">
+                            ${secondOptions}
+                        </select>
+
+                    </div>
+
+                </div>
+
+                ${rows}
+
+            </div>
+        </div>
+    `;
+
+    const firstSelect =
+        document.getElementById(
+            "structureYearSelect1"
+        );
+
+    const secondSelect =
+        document.getElementById(
+            "structureYearSelect2"
+        );
+
+    firstSelect.addEventListener(
+        "change",
+        async () => {
+            try {
+                const newFirstData =
+                    await loadStructureSnapshot(
+                        firstSelect.value
+                    );
+
+                renderStructureSnapshot(
+                    category,
+                    newFirstData,
+                    secondData
+                );
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar o primeiro ano:",
+                    error
+                );
+            }
+        }
+    );
+
+    secondSelect.addEventListener(
+        "change",
+        async () => {
+            try {
+                const newSecondData =
+                    await loadStructureSnapshot(
+                        secondSelect.value
+                    );
+
+                renderStructureSnapshot(
+                    category,
+                    firstData,
+                    newSecondData
+                );
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar o segundo ano:",
+                    error
+                );
+            }
+        }
+    );
+
+    container.classList.remove("d-none");
+}
+
+function clearStructureSnapshot() {
+    const container =
+        document.getElementById(
+            "structureSnapshot"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+    container.classList.add("d-none");
 }
 
 window.initializeEvolution =
