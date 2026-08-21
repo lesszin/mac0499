@@ -927,6 +927,13 @@ function createTeachersSection(
         });
     }
 
+    if (docentes.especial > 0) {
+        modalityRows.push({
+            label: "Número de Docentes da Educação Especial",
+            value: docentes.especial
+        });
+    }
+
     if (docentes.masculino > 0) {
         genderRows.push({
             label: "Número de Docentes Masculino",
@@ -1150,6 +1157,13 @@ function createClassesSection(
         modalityRows.push({
             label: "Número de Turmas da Educação de Jovens e Adultos (EJA)",
             value: turmas.eja
+        });
+    }
+
+    if (turmas.especial > 0) {
+        modalityRows.push({
+            label: "Número de Turmas da Educação Especial",
+            value: turmas.especial
         });
     }
 

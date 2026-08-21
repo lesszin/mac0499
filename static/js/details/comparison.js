@@ -420,27 +420,8 @@ function renderComparisonSubButtons(category) {
     });
 }
 
-function getComparisonFilterOptions(
-    category,
-    indicator
-) {
-    const options =
-        comparisonFilterOptions[indicator] || [];
-
-    if (
-        indicator === "modalidade" &&
-        (
-            category === "docentes" ||
-            category === "turmas"
-        )
-    ) {
-        return options.filter(
-            modalidade =>
-                modalidade !== "Educação Especial"
-        );
-    }
-
-    return options;
+function getComparisonFilterOptions(category, indicator) {
+    return comparisonFilterOptions[indicator] || [];
 }
 
 function formatComparisonIndicatorName(indicator) {
