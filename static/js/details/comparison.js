@@ -5,7 +5,9 @@ let selectedComparisonFilter = null;
 const comparisonCategoryOrder = [
     "matriculas",
     "docentes",
-    "turmas"
+    "turmas",
+    "dependencias",
+    "acessibilidade"
 ];
 const comparisonIndicators = {
     matriculas: [
@@ -75,6 +77,120 @@ const comparisonFilterOptions = {
         "Amarela",
         "Indígena"
     ]
+};
+
+const comparisonStructureSnapshotConfig = {
+    acessibilidade: {
+        title: "Recursos de Acessibilidade",
+        fields: [
+            {
+                key: "banheiro_pne",
+                label: "Banheiro acessível, adequado ao uso de pessoas com deficiência ou mobilidade reduzida"
+            },
+            {
+                key: "corrimao",
+                label: "Corrimão e guarda corpos"
+            },
+            {
+                key: "elevador",
+                label: "Elevador"
+            },
+            {
+                key: "pisos_tateis",
+                label: "Pisos táteis"
+            },
+            {
+                key: "vao_livre",
+                label: "Portas com vão livre de, no mínimo, 80 cm"
+            },
+            {
+                key: "rampas",
+                label: "Rampas"
+            },
+            {
+                key: "sinal_sonoro",
+                label: "Sinalização sonora"
+            },
+            {
+                key: "sinal_tatil",
+                label: "Sinalização tátil (piso/paredes)"
+            },
+            {
+                key: "sinal_visual",
+                label: "Sinalização visual (piso/paredes)"
+            }
+        ]
+    },
+
+    dependencias: {
+        title: "Dependências",
+        fields: [
+            {
+                key: "plantio",
+                label: "Área de horta, plantio e/ou produção agrícola"
+            },
+            {
+                key: "verde",
+                label: "Área de vegetação ou gramado"
+            },
+            {
+                key: "auditorio",
+                label: "Auditório"
+            },
+            {
+                key: "biblioteca",
+                label: "Biblioteca"
+            },
+            {
+                key: "lab_ciencias",
+                label: "Laboratório de ciências"
+            },
+            {
+                key: "lab_informatica",
+                label: "Laboratório de informática"
+            },
+            {
+                key: "quadra_coberta",
+                label: "Quadra de esportes coberta"
+            },
+            {
+                key: "quadra_descoberta",
+                label: "Quadra de esportes descoberta"
+            },
+            {
+                key: "artes",
+                label: "Sala/ateliê de artes"
+            },
+            {
+                key: "musica",
+                label: "Sala de música/coral"
+            },
+            {
+                key: "danca",
+                label: "Sala/estúdio de dança"
+            },
+            {
+                key: "multiuso",
+                label: "Sala multiuso (música, dança e artes)"
+            },
+            {
+                key: "gravacao",
+                label: "Estúdio de gravação e edição"
+            },
+            {
+                key: "professores",
+                label: "Sala de professores"
+            },
+            {
+                key: "aee",
+                label: "Sala de Recursos Multifuncionais para Atendimento Educacional Especializado (AEE)"
+            },
+            {
+                key: "refeitorio",
+                label: "Refeitório"
+            }
+        ]
+    }
 };
 
 function searchComparisonSchools(term) {
@@ -187,7 +303,9 @@ function formatComparisonCategoryName(category) {
     const names = {
         matriculas: "Matrículas",
         docentes: "Docentes",
-        turmas: "Turmas"
+        turmas: "Turmas",
+        dependencias: "Dependências",
+        acessibilidade: "Acessibilidade"
     };
 
     return names[category] || category;
@@ -201,7 +319,14 @@ function renderComparisonMainButtons() {
     container.innerHTML = "";
 
     comparisonCategoryOrder.forEach(category => {
-        if (!comparisonIndicators[category]) {
+        const isDirectCategory =
+            category === "dependencias" ||
+            category === "acessibilidade";
+
+        if (
+            !comparisonIndicators[category] &&
+            !isDirectCategory
+        ) {
             return;
         }
 
@@ -220,10 +345,27 @@ function renderComparisonMainButtons() {
 
             clearComparisonChart();
             clearComparisonSummary();
+            clearComparisonStructureSnapshot();
+            clearComparisonSubButtons();
 
             updateComparisonIndicatorMessage();
-
             renderComparisonMainButtons();
+
+            const isDirectCategory =
+                category === "dependencias" ||
+                category === "acessibilidade";
+
+            if (isDirectCategory) {
+                selectedComparisonSubcategory = "total";
+
+                showComparisonChart(
+                    selectedComparisonCategory,
+                    selectedComparisonSubcategory
+                );
+
+                return;
+            }
+
             renderComparisonSubButtons(category);
         };
 
@@ -440,6 +582,8 @@ function showComparisonChart(
     indicador,
     filtro = null
 ) {
+    clearComparisonStructureSnapshot();
+
     if (!selectedComparisonSchool) {
         return;
     }
@@ -499,6 +643,26 @@ function showComparisonChart(
 
             iframe.src = data.url;
             iframe.classList.remove("d-none");
+
+            if (
+                categoria === "acessibilidade" ||
+                categoria === "dependencias"
+            ) {
+                loadComparisonStructureSnapshot()
+                    .then(data => {
+                        renderComparisonStructureSnapshot(
+                            categoria,
+                            data.escola_principal,
+                            data.escola_comparada
+                        );
+                    })
+                    .catch(error => {
+                        console.error(
+                            "Erro ao carregar recorte da estrutura:",
+                            error
+                        );
+                    });
+            }
         })
         .catch(error => {
             console.error(
@@ -691,7 +855,10 @@ function updateComparisonIndicatorMessage() {
     const names = {
         matriculas: "Matrículas",
         docentes: "Docentes",
-        turmas: "Turmas"
+        turmas: "Turmas",
+        dependencias: "Dependências",
+        acessibilidade: "Acessibilidade"
+
     };
 
     if (!selectedComparisonCategory) {
@@ -834,6 +1001,309 @@ function initializeComparison() {
     }
 
     loadSavedComparisonSchool();
+}
+
+function getComparisonStructureBooleanIcon(value) {
+    return value === 1
+        ? `<i class="bi bi-check-circle-fill text-success fs-5"></i>`
+        : `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
+}
+
+function clearComparisonStructureSnapshot() {
+    const container =
+        document.getElementById(
+            "comparisonStructureSnapshot"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+    container.classList.add("d-none");
+}
+
+function loadComparisonStructureSnapshot(
+    yearPrincipal = null,
+    yearComparada = null
+) {
+    const schoolCode =
+        window.SCHOOL_CODE;
+
+    const comparisonCode =
+        selectedComparisonSchool.codigo;
+
+    const params =
+        new URLSearchParams();
+
+    if (yearPrincipal !== null) {
+        params.set(
+            "ano_principal",
+            yearPrincipal
+        );
+    }
+
+    if (yearComparada !== null) {
+        params.set(
+            "ano_comparacao",
+            yearComparada
+        );
+    }
+
+    const query =
+        params.toString();
+
+    const url =
+        `/api/comparacao/estrutura/` +
+        `${schoolCode}/${comparisonCode}` +
+        (query ? `?${query}` : "");
+
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(
+                    "Erro ao carregar estrutura da comparação."
+                );
+            }
+
+            return response.json();
+        });
+}
+
+function renderComparisonStructureSnapshot(
+    category,
+    mainData,
+    comparisonData
+) {
+    const container =
+        document.getElementById(
+            "comparisonStructureSnapshot"
+        );
+
+    if (
+        !container ||
+        !mainData ||
+        !comparisonData
+    ) {
+        return;
+    }
+
+    const config =
+        comparisonStructureSnapshotConfig[category];
+
+    if (!config) {
+        return;
+    }
+
+    const mainValues =
+        mainData[category] || {};
+
+    const comparisonValues =
+        comparisonData[category] || {};
+
+    const mainYears =
+        mainData.anos_disponiveis
+            .map(Number)
+            .sort((a, b) => b - a);
+
+    const comparisonYears =
+        comparisonData.anos_disponiveis
+            .map(Number)
+            .sort((a, b) => b - a);
+
+    const mainYear =
+        Number(mainData.ano);
+
+    const comparisonYear =
+        Number(comparisonData.ano);
+
+    const mainSchoolName =
+        document.getElementById(
+            "schoolName"
+        ).textContent;
+
+    const comparisonSchoolName =
+        selectedComparisonSchool.nome;
+
+    const rows =
+        config.fields
+            .map(field => {
+                const mainValue =
+                    mainValues[field.key];
+
+                const comparisonValue =
+                    comparisonValues[field.key];
+
+                return `
+                    <div class="row py-2 border-bottom align-items-center">
+
+                        <div class="col-sm-6 fw-bold">
+                            ${field.label}
+                        </div>
+
+                        <div class="col-sm-3 text-center">
+                            ${getComparisonStructureBooleanIcon(
+                                mainValue
+                            )}
+                        </div>
+
+                        <div class="col-sm-3 text-center">
+                            ${getComparisonStructureBooleanIcon(
+                                comparisonValue
+                            )}
+                        </div>
+
+                    </div>
+                `;
+            })
+            .join("");
+
+    const mainOptions =
+        mainYears
+            .map(year => `
+                <option
+                    value="${year}"
+                    ${year === mainYear ? "selected" : ""}>
+                    ${year}
+                </option>
+            `)
+            .join("");
+
+    const comparisonOptions =
+        comparisonYears
+            .map(year => `
+                <option
+                    value="${year}"
+                    ${year === comparisonYear ? "selected" : ""}>
+                    ${year}
+                </option>
+            `)
+            .join("");
+
+    container.innerHTML = `
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+
+                <h5 class="text-primary mb-4">
+                    ${config.title}
+                </h5>
+
+                <div class="row py-2 border-bottom align-items-center">
+
+                    <div class="col-sm-6 fw-bold">
+                        Recurso
+                    </div>
+
+                    <div class="col-sm-3 text-center">
+
+                        <div class="small text-muted mb-1">
+                            ${mainSchoolName}
+                        </div>
+
+                        <select
+                            id="comparisonStructureYear1"
+                            class="form-select form-select-sm">
+                            ${mainOptions}
+                        </select>
+
+                    </div>
+
+                    <div class="col-sm-3 text-center">
+
+                        <div class="small text-muted mb-1">
+                            ${comparisonSchoolName}
+                        </div>
+
+                        <select
+                            id="comparisonStructureYear2"
+                            class="form-select form-select-sm">
+                            ${comparisonOptions}
+                        </select>
+
+                    </div>
+
+                </div>
+
+                ${rows}
+
+            </div>
+        </div>
+    `;
+
+    const mainSelect =
+        document.getElementById(
+            "comparisonStructureYear1"
+        );
+
+    const comparisonSelect =
+        document.getElementById(
+            "comparisonStructureYear2"
+        );
+
+    mainSelect.addEventListener(
+        "change",
+        async () => {
+            try {
+                const data =
+                    await loadComparisonStructureSnapshot(
+                        mainSelect.value,
+                        comparisonSelect.value
+                    );
+
+                renderComparisonStructureSnapshot(
+                    category,
+                    data.escola_principal,
+                    data.escola_comparada
+                );
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar estrutura da escola principal:",
+                    error
+                );
+            }
+        }
+    );
+
+    comparisonSelect.addEventListener(
+        "change",
+        async () => {
+            try {
+                const data =
+                    await loadComparisonStructureSnapshot(
+                        mainSelect.value,
+                        comparisonSelect.value
+                    );
+
+                renderComparisonStructureSnapshot(
+                    category,
+                    data.escola_principal,
+                    data.escola_comparada
+                );
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar estrutura da escola comparada:",
+                    error
+                );
+            }
+        }
+    );
+
+    container.classList.remove("d-none");
+}
+
+function clearComparisonSubButtons() {
+    const container =
+        document.getElementById(
+            "comparisonSubCategoryButtons"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
 }
 
 window.initializeComparison =

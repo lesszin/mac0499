@@ -675,6 +675,53 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
                 WHERE "CO_ENTIDADE" = :codigo
                 ORDER BY "NU_ANO_CENSO"
             """)
+        },
+        "dependencias": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    (
+                        COALESCE("IN_AREA_PLANTIO", 0) +
+                        COALESCE("IN_AREA_VERDE", 0) +
+                        COALESCE("IN_AUDITORIO", 0) +
+                        COALESCE("IN_BIBLIOTECA", 0) +
+                        COALESCE("IN_LABORATORIO_CIENCIAS", 0) +
+                        COALESCE("IN_LABORATORIO_INFORMATICA", 0) +
+                        COALESCE("IN_QUADRA_ESPORTES_COBERTA", 0) +
+                        COALESCE("IN_QUADRA_ESPORTES_DESCOBERTA", 0) +
+                        COALESCE("IN_SALA_ATELIE_ARTES", 0) +
+                        COALESCE("IN_SALA_MUSICA_CORAL", 0) +
+                        COALESCE("IN_SALA_ESTUDIO_DANCA", 0) +
+                        COALESCE("IN_SALA_MULTIUSO", 0) +
+                        COALESCE("IN_SALA_ESTUDIO_GRAVACAO", 0) +
+                        COALESCE("IN_SALA_PROFESSOR", 0) +
+                        COALESCE("IN_SALA_ATENDIMENTO_ESPECIAL", 0) +
+                        COALESCE("IN_REFEITORIO", 0)
+                    ) AS valor
+                FROM fato_estrutura
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """)
+        },
+        "acessibilidade": {
+            "total": text("""
+                SELECT
+                    "NU_ANO_CENSO" AS ano,
+                    (
+                        COALESCE("IN_BANHEIRO_PNE", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_CORRIMAO", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_ELEVADOR", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_PISOS_TATEIS", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_VAO_LIVRE", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_RAMPAS", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_SINAL_SONORO", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_SINAL_TATIL", 0) +
+                        COALESCE("IN_ACESSIBILIDADE_SINAL_VISUAL", 0)
+                    ) AS valor
+                FROM fato_estrutura
+                WHERE "CO_ENTIDADE" = :codigo
+                ORDER BY "NU_ANO_CENSO"
+            """)
         }
     }
     if categoria not in queries:
@@ -1002,6 +1049,80 @@ def evolution_structure(school_code):
         return jsonify({
             "erro": str(e)
         }), 500
+    
+@app.route('/api/comparacao/estrutura/<int:school_code>/<int:comparison_code>')
+def comparison_structure(school_code,comparison_code):
+    try:
+        year_main_param = request.args.get(
+            "ano_principal"
+        )
+
+        year_comparison_param = request.args.get(
+            "ano_comparacao"
+        )
+
+        if year_main_param:
+            try:
+                year_main = int(
+                    year_main_param
+                )
+            except ValueError:
+                return jsonify({
+                    "erro": "Ano da escola principal inválido."
+                }), 400
+        else:
+            year_main = None
+
+        if year_comparison_param:
+            try:
+                year_comparison = int(
+                    year_comparison_param
+                )
+            except ValueError:
+                return jsonify({
+                    "erro": "Ano da escola comparada inválido."
+                }), 400
+        else:
+            year_comparison = None
+
+        main_data = get_school_structure_snapshot(
+            school_code,
+            year_main
+        )
+
+        comparison_data = get_school_structure_snapshot(
+            comparison_code,
+            year_comparison
+        )
+
+        if main_data is None:
+            return jsonify({
+                "erro":
+                    "Nenhum dado de estrutura encontrado "
+                    "para a escola principal."
+            }), 404
+
+        if comparison_data is None:
+            return jsonify({
+                "erro":
+                    "Nenhum dado de estrutura encontrado "
+                    "para a escola comparada."
+            }), 404
+
+        return jsonify({
+            "escola_principal": main_data,
+            "escola_comparada": comparison_data
+        })
+
+    except Exception as e:
+        print(
+            "Erro ao carregar estrutura da comparação:",
+            e
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
 @app.route('/api/comparacao/grafico/<int:school_code>/<int:comparison_code>/<string:categoria>/<string:indicador>')
 def generate_comparison_chart(school_code, comparison_code, categoria, indicador):
@@ -1021,6 +1142,12 @@ def generate_comparison_chart(school_code, comparison_code, categoria, indicador
             "turmas": { 
                 "total": 77,
                 "modalidade": 80 
+            },
+            "dependencias": {
+                "total": 86
+            },
+            "acessibilidade": {
+                "total": 85
             } 
         }
         if categoria not in questions:
