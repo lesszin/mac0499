@@ -789,6 +789,41 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
         "comparacao": comparison
     }
 
+@app.route('/api/analise-espacial/escolas')
+def get_spatial_analysis_schools():
+    try:
+        query = text("""
+            SELECT
+                "LATITUDE",
+                "LONGITUDE"
+            FROM dim_escola
+            WHERE "TP_SITUACAO_FUNCIONAMENTO" = 1
+              AND "LATITUDE" IS NOT NULL
+              AND "LONGITUDE" IS NOT NULL
+        """)
+
+        with engine.connect() as connection:
+            results = connection.execute(query).fetchall()
+
+        schools = [
+            {
+                "lat": float(row[0]),
+                "lng": float(row[1])
+            }
+            for row in results
+        ]
+
+        return jsonify(schools)
+
+    except Exception as e:
+        print(
+            f"Error fetching schools for spatial analysis: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
 @app.route("/api/comparacao/<int:school_code>/<int:comparison_school_code>/<categoria>/<indicador>")
 def comparison_data(school_code, comparison_school_code, categoria, indicador):
     filtro = request.args.get("filtro")

@@ -4,6 +4,8 @@ let comparisonCandidateMarker = null;
 let comparisonMapMode =
     sessionStorage.getItem("comparisonMapMode") === "true";
 let comparisonPrincipalSchool = null;
+let spatialAnalysisLayer = null;
+let spatialAnalysisMode = false;
 const storedPrincipalSchool =
     sessionStorage.getItem("comparisonPrincipalSchool");
 if (storedPrincipalSchool) {
@@ -13,12 +15,14 @@ if (storedPrincipalSchool) {
 const map = L.map('mapContainer', { zoomControl: false }).setView([-23.55052, -46.633308], 13);
 L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20
-}).addTo(map);
-
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }
+).addTo(map);
 const schoolLayer = L.layerGroup().addTo(map);
 const selectedLayer = L.layerGroup().addTo(map);
 const schoolMarkers = new Map();
@@ -73,6 +77,237 @@ const greenIcon = L.divIcon({
     iconSize: [28, 40],
     iconAnchor: [14, 40]
 });
+
+async function loadSpatialAnalysis() {
+    try {
+        const response =
+            await fetch("/api/analise-espacial/escolas");
+
+        if (!response.ok) {
+            throw new Error(
+                "Erro ao carregar escolas para análise espacial."
+            );
+        }
+
+        const schools =
+            await response.json();
+
+        const points =
+            schools.map(school => [
+                school.lat,
+                school.lng,
+                1
+            ]);
+
+        if (spatialAnalysisLayer) {
+            map.removeLayer(
+                spatialAnalysisLayer
+            );
+        }
+
+        spatialAnalysisLayer =
+            L.heatLayer(points, {
+                radius: 20,
+                blur: 15,
+                maxZoom: 8
+            }).addTo(map);
+
+        console.log(
+            "Análise espacial carregada:",
+            schools.length,
+            "escolas"
+        );
+
+    } catch (error) {
+        console.error(
+            "Erro ao carregar análise espacial:",
+            error
+        );
+    }
+}
+
+function enterSpatialAnalysisMode() {
+    if (spatialAnalysisMode) {
+        return;
+    }
+
+    spatialAnalysisMode = true;
+
+    const searchPanel =
+        document.querySelector(
+            ".search-panel"
+        );
+
+    const filtersPanel =
+        document.querySelector(
+            ".filters-panel"
+        );
+
+    const searchBox =
+        document.getElementById(
+            "schoolSearchBox"
+        );
+
+    const schoolCard =
+        document.getElementById(
+            "schoolCard"
+        );
+
+    const analysisEntry =
+        document.getElementById(
+            "spatialAnalysisEntry"
+        );
+
+    const backButton =
+        document.getElementById(
+            "spatialAnalysisBackButton"
+        );
+
+    const mapContainer =
+        document.getElementById(
+            "mapContainer"
+        );
+
+    clearSuggestions();
+    hideSchoolCard();
+
+    if (searchPanel) {
+        searchPanel.classList.add(
+            "spatial-analysis-active"
+        );
+    }
+
+    if (filtersPanel) {
+        filtersPanel.classList.add(
+            "d-none"
+        );
+    }
+
+    if (searchBox) {
+        searchBox.classList.add(
+            "d-none"
+        );
+    }
+
+    if (schoolCard) {
+        schoolCard.classList.add(
+            "d-none"
+        );
+    }
+
+    if (analysisEntry) {
+        analysisEntry.classList.add(
+            "d-none"
+        );
+    }
+
+    if (backButton) {
+        backButton.classList.remove(
+            "d-none"
+        );
+    }
+
+    if (mapContainer) {
+        mapContainer.classList.add(
+            "spatial-analysis-mode"
+        );
+    }
+
+    schoolLayer.clearLayers();
+    selectedLayer.clearLayers();
+    schoolMarkers.clear();
+
+    selectedSchoolCode = null;
+
+    loadSpatialAnalysis();
+}
+
+function exitSpatialAnalysisMode() {
+    if (!spatialAnalysisMode) {
+        return;
+    }
+
+    spatialAnalysisMode = false;
+
+    const searchBox =
+        document.getElementById(
+            "schoolSearchBox"
+        );
+
+    const schoolCard =
+        document.getElementById(
+            "schoolCard"
+        );
+
+    const analysisEntry =
+        document.getElementById(
+            "spatialAnalysisEntry"
+        );
+
+    const filtersPanel =
+        document.querySelector(
+            ".filters-panel"
+        );
+
+    const backButton =
+        document.getElementById(
+            "spatialAnalysisBackButton"
+        );
+
+    const mapContainer =
+        document.getElementById(
+            "mapContainer"
+        );
+
+    if (spatialAnalysisLayer) {
+        map.removeLayer(
+            spatialAnalysisLayer
+        );
+
+        spatialAnalysisLayer = null;
+    }
+
+    if (mapContainer) {
+        mapContainer.classList.remove(
+            "spatial-analysis-mode"
+        );
+    }
+
+    if (searchBox) {
+        searchBox.classList.remove(
+            "d-none"
+        );
+    }
+
+    if (analysisEntry) {
+        analysisEntry.classList.remove(
+            "d-none"
+        );
+    }
+
+    if (filtersPanel) {
+        filtersPanel.classList.remove(
+            "d-none"
+        );
+    }
+
+    if (backButton) {
+        backButton.classList.add(
+            "d-none"
+        );
+    }
+
+    hideSchoolCard();
+    clearSuggestions();
+
+    selectedLayer.clearLayers();
+    schoolLayer.clearLayers();
+    schoolMarkers.clear();
+
+    selectedSchoolCode = null;
+
+    loadSchoolsOnMap();
+}
 
 function calculateDistanceKm(lat1, lng1, lat2, lng2) {
     const R = 6371;
@@ -732,3 +967,17 @@ document
         window.location.href =
             returnUrl || "/";
     });
+
+document
+    .getElementById("spatialAnalysisEntry")
+    .addEventListener(
+        "click",
+        enterSpatialAnalysisMode
+    );
+
+document
+    .getElementById("spatialAnalysisBackButton")
+    .addEventListener(
+        "click",
+        exitSpatialAnalysisMode
+    );

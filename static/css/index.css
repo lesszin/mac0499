@@ -24,7 +24,7 @@ body {
     top: 15px;
     left: 20px;
     z-index: 1000;
-    width: 360px;
+    width: 600px;
     max-width: 90vw;
 }
 
@@ -58,6 +58,7 @@ body {
     padding-right: 40px;
     overflow-wrap: break-word;
 }
+
 #schoolCardBody p {
     margin-bottom: 0.75rem;
 }
@@ -149,4 +150,8 @@ body {
 
 .comparison-back-button:active {
     transform: scale(0.95);
+}
+
+#mapContainer.spatial-analysis-mode .leaflet-tile {
+    filter: grayscale(100%) brightness(1.08) contrast(0.85);
 }
