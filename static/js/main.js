@@ -80,8 +80,40 @@ const greenIcon = L.divIcon({
 
 async function loadSpatialAnalysis() {
     try {
+        const dependencyFilter =
+            document.getElementById(
+                "spatialDependencyFilter"
+            );
+
+        const dependency =
+            dependencyFilter
+                ? dependencyFilter.value
+                : "";
+
+        if (!dependency) {
+            if (spatialAnalysisLayer) {
+                map.removeLayer(
+                    spatialAnalysisLayer
+                );
+
+                spatialAnalysisLayer = null;
+            }
+
+            return;
+        }
+
+        let url =
+            "/api/analise-espacial/escolas";
+
+        if (dependency !== "todas") {
+            url +=
+                `?dependencia=${encodeURIComponent(
+                    dependency
+                )}`;
+        }
+
         const response =
-            await fetch("/api/analise-espacial/escolas");
+            await fetch(url);
 
         if (!response.ok) {
             throw new Error(
@@ -106,16 +138,21 @@ async function loadSpatialAnalysis() {
         }
 
         spatialAnalysisLayer =
-            L.heatLayer(points, {
-                radius: 20,
-                blur: 15,
-                maxZoom: 8
-            }).addTo(map);
+            L.heatLayer(
+                points,
+                {
+                    radius: 20,
+                    blur: 15,
+                    maxZoom: 8
+                }
+            ).addTo(map);
 
         console.log(
             "Análise espacial carregada:",
             schools.length,
-            "escolas"
+            "escolas",
+            "dependência:",
+            dependency
         );
 
     } catch (error) {
@@ -133,14 +170,14 @@ function enterSpatialAnalysisMode() {
 
     spatialAnalysisMode = true;
 
-    const searchPanel =
-        document.querySelector(
-            ".search-panel"
-        );
-
     const filtersPanel =
         document.querySelector(
             ".filters-panel"
+        );
+
+    const spatialOptionsPanel =
+        document.getElementById(
+            "spatialOptionsPanel"
         );
 
     const searchBox =
@@ -171,14 +208,14 @@ function enterSpatialAnalysisMode() {
     clearSuggestions();
     hideSchoolCard();
 
-    if (searchPanel) {
-        searchPanel.classList.add(
-            "spatial-analysis-active"
+    if (filtersPanel) {
+        filtersPanel.classList.add(
+            "d-none"
         );
     }
 
-    if (filtersPanel) {
-        filtersPanel.classList.add(
+    if (spatialOptionsPanel) {
+        spatialOptionsPanel.classList.remove(
             "d-none"
         );
     }
@@ -219,7 +256,33 @@ function enterSpatialAnalysisMode() {
 
     selectedSchoolCode = null;
 
-    loadSpatialAnalysis();
+    if (spatialAnalysisLayer) {
+        map.removeLayer(
+            spatialAnalysisLayer
+        );
+
+        spatialAnalysisLayer = null;
+    }
+
+    const heatmapOptions =
+        document.getElementById(
+            "heatmapOptions"
+        );
+
+    if (heatmapOptions) {
+        heatmapOptions.classList.remove(
+            "show"
+        );
+    }
+
+    const dependencyFilter =
+        document.getElementById(
+            "spatialDependencyFilter"
+        );
+
+    if (dependencyFilter) {
+        dependencyFilter.value = "";
+    }
 }
 
 function exitSpatialAnalysisMode() {
@@ -229,24 +292,24 @@ function exitSpatialAnalysisMode() {
 
     spatialAnalysisMode = false;
 
+    const filtersPanel =
+        document.querySelector(
+            ".filters-panel"
+        );
+
+    const spatialOptionsPanel =
+        document.getElementById(
+            "spatialOptionsPanel"
+        );
+
     const searchBox =
         document.getElementById(
             "schoolSearchBox"
         );
 
-    const schoolCard =
-        document.getElementById(
-            "schoolCard"
-        );
-
     const analysisEntry =
         document.getElementById(
             "spatialAnalysisEntry"
-        );
-
-    const filtersPanel =
-        document.querySelector(
-            ".filters-panel"
         );
 
     const backButton =
@@ -273,6 +336,18 @@ function exitSpatialAnalysisMode() {
         );
     }
 
+    if (spatialOptionsPanel) {
+        spatialOptionsPanel.classList.add(
+            "d-none"
+        );
+    }
+
+    if (filtersPanel) {
+        filtersPanel.classList.remove(
+            "d-none"
+        );
+    }
+
     if (searchBox) {
         searchBox.classList.remove(
             "d-none"
@@ -285,17 +360,16 @@ function exitSpatialAnalysisMode() {
         );
     }
 
-    if (filtersPanel) {
-        filtersPanel.classList.remove(
-            "d-none"
-        );
-    }
-
     if (backButton) {
         backButton.classList.add(
             "d-none"
         );
     }
+
+    // Retorna os filtros do mapa ao estado inicial.
+    allMapFilters.forEach(filter => {
+        filter.checked = false;
+    });
 
     hideSchoolCard();
     clearSuggestions();
@@ -305,8 +379,6 @@ function exitSpatialAnalysisMode() {
     schoolMarkers.clear();
 
     selectedSchoolCode = null;
-
-    loadSchoolsOnMap();
 }
 
 function calculateDistanceKm(lat1, lng1, lat2, lng2) {
@@ -980,4 +1052,13 @@ document
     .addEventListener(
         "click",
         exitSpatialAnalysisMode
+    );
+
+document
+    .getElementById(
+        "spatialDependencyFilter"
+    )
+    .addEventListener(
+        "change",
+        loadSpatialAnalysis
     );

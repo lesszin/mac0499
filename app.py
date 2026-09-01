@@ -792,7 +792,19 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
 @app.route('/api/analise-espacial/escolas')
 def get_spatial_analysis_schools():
     try:
-        query = text("""
+        dependencia_map = {
+            "federal": 1,
+            "estadual": 2,
+            "municipal": 3,
+            "privada": 4
+        }
+
+        dependencia = request.args.get(
+            "dependencia",
+            "todas"
+        ).lower()
+
+        query = """
             SELECT
                 "LATITUDE",
                 "LONGITUDE"
@@ -800,10 +812,29 @@ def get_spatial_analysis_schools():
             WHERE "TP_SITUACAO_FUNCIONAMENTO" = 1
               AND "LATITUDE" IS NOT NULL
               AND "LONGITUDE" IS NOT NULL
-        """)
+        """
+
+        params = {}
+
+        if dependencia != "todas":
+            if dependencia not in dependencia_map:
+                return jsonify({
+                    "erro": "Dependência administrativa inválida."
+                }), 400
+
+            query += """
+                AND "TP_DEPENDENCIA" = :dependencia
+            """
+
+            params["dependencia"] = (
+                dependencia_map[dependencia]
+            )
 
         with engine.connect() as connection:
-            results = connection.execute(query).fetchall()
+            results = connection.execute(
+                text(query),
+                params
+            ).fetchall()
 
         schools = [
             {

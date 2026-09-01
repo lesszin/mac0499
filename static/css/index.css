@@ -67,20 +67,15 @@ body {
     position: absolute;
     right: 20px;
     bottom: 20px;
-
     width: 42px;
     height: 42px;
-
     border: none;
     border-radius: 50%;
-
     background: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     cursor: pointer;
     z-index: 1000;
 }
@@ -124,22 +119,16 @@ body {
     position: absolute;
     top: 20px;
     left: 20px;
-
     width: 42px;
     height: 42px;
-
     border: none;
     border-radius: 50%;
-
     background: #fff;
     color: #495057;
-
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     cursor: pointer;
     z-index: 1000;
 }
@@ -154,4 +143,13 @@ body {
 
 #mapContainer.spatial-analysis-mode .leaflet-tile {
     filter: grayscale(100%) brightness(1.08) contrast(0.85);
+}
+
+.spatial-options-panel {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    z-index: 1000;
+    width: 240px;
+    font-size: 0.85rem;
 }
