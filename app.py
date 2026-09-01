@@ -799,16 +799,53 @@ def get_spatial_analysis_schools():
             "privada": 4
         }
 
+        modalidade_map = {
+            "creche": 't."QT_TUR_INF_CRE" > 0',
+            "pre_escola": 't."QT_TUR_INF_PRE" > 0',
+            "fund_ai": 't."QT_TUR_FUND_AI" > 0',
+            "fund_af": 't."QT_TUR_FUND_AF" > 0',
+            "medio": 't."QT_TUR_MED" > 0',
+            "medio_int": 't."QT_TUR_PROF" > 0',
+            "eja_fund": 't."QT_TUR_EJA_FUND" > 0',
+            "eja_med": 't."QT_TUR_EJA_MED" > 0',
+            "tecnico": "tecnico"
+        }
+
         dependencia = request.args.get(
             "dependencia",
-            "todas"
+            ""
         ).lower()
+
+        modalidade = request.args.get(
+            "modalidade",
+            ""
+        ).lower()
+
+        if dependencia and dependencia != "todas":
+            if dependencia not in dependencia_map:
+                return jsonify({
+                    "erro": "Dependência administrativa inválida."
+                }), 400
+
+        if modalidade and modalidade != "todas":
+            if modalidade not in modalidade_map:
+                return jsonify({
+                    "erro": "Modalidade inválida."
+                }), 400
+
+        if (
+            dependencia not in ("", "todas")
+            and modalidade not in ("", "todas")
+        ):
+            return jsonify({
+                "erro": "Selecione apenas um tipo de filtro."
+            }), 400
 
         query = """
             SELECT
                 "LATITUDE",
                 "LONGITUDE"
-            FROM dim_escola
+            FROM dim_escola e
             WHERE "TP_SITUACAO_FUNCIONAMENTO" = 1
               AND "LATITUDE" IS NOT NULL
               AND "LONGITUDE" IS NOT NULL
@@ -816,12 +853,7 @@ def get_spatial_analysis_schools():
 
         params = {}
 
-        if dependencia != "todas":
-            if dependencia not in dependencia_map:
-                return jsonify({
-                    "erro": "Dependência administrativa inválida."
-                }), 400
-
+        if dependencia and dependencia != "todas":
             query += """
                 AND "TP_DEPENDENCIA" = :dependencia
             """
@@ -829,6 +861,27 @@ def get_spatial_analysis_schools():
             params["dependencia"] = (
                 dependencia_map[dependencia]
             )
+
+        if modalidade and modalidade != "todas":
+            if modalidade == "tecnico":
+                query += """
+                    AND EXISTS (
+                        SELECT 1
+                        FROM fato_curso c
+                        WHERE c."CO_ENTIDADE" = e."CO_ENTIDADE"
+                          AND c."NU_ANO_CENSO" = 2025
+                    )
+                """
+            else:
+                query += f"""
+                    AND EXISTS (
+                        SELECT 1
+                        FROM fato_turma t
+                        WHERE t."CO_ENTIDADE" = e."CO_ENTIDADE"
+                          AND t."NU_ANO_CENSO" = 2025
+                          AND {modalidade_map[modalidade]}
+                    )
+                """
 
         with engine.connect() as connection:
             results = connection.execute(

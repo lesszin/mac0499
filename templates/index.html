@@ -415,31 +415,36 @@
                         </div>
                         <div id="heatmapOptions" class="collapse">
                             <div class="mt-1">
-                                <small class="fw-semibold text-muted">
-                                    Dependência Administrativa
-                                </small>
-                                <select
-                                    id="spatialDependencyFilter"
-                                    class="form-select form-select-sm mt-1">
-                                    <option value="" selected disabled>
-                                        Selecione...
-                                    </option>
-                                    <option value="todas">
-                                        Todas
-                                    </option>
-                                    <option value="municipal">
-                                        Municipal
-                                    </option>
-                                    <option value="estadual">
-                                        Estadual
-                                    </option>
-                                    <option value="federal">
-                                        Federal
-                                    </option>
-                                    <option value="privada">
-                                        Privada
-                                    </option>
-                                </select>
+                                <div class="mb-3">
+                                    <small class="fw-semibold text-muted">Modalidade</small>
+                                    <select id="spatialModalityFilter"
+                                            class="form-select form-select-sm mt-1">
+                                        <option value="" selected disabled>Selecione...</option>
+                                        <option value="creche">Creche</option>
+                                        <option value="pre_escola">Pré-Escola</option>
+                                        <option value="fund_ai">Ensino Fundamental Iniciais</option>
+                                        <option value="fund_af">Ensino Fundamental Finais</option>
+                                        <option value="medio">Ensino Médio</option>
+                                        <option value="medio_int">Ensino Médio Integrado</option>
+                                        <option value="tecnico">Ensino Profissionalizante</option>
+                                        <option value="eja_fund">Ensino EJA Fund.</option>
+                                        <option value="eja_med">Ensino EJA Médio</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <small class="fw-semibold text-muted">
+                                        Dependência Administrativa
+                                    </small>
+                                    <select id="spatialDependencyFilter"
+                                            class="form-select form-select-sm mt-1">
+                                        <option value="" selected disabled>Selecione...</option>
+                                        <option value="todas">Todas</option>
+                                        <option value="municipal">Municipal</option>
+                                        <option value="estadual">Estadual</option>
+                                        <option value="federal">Federal</option>
+                                        <option value="privada">Privada</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
