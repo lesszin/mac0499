@@ -107,46 +107,81 @@ const spatialProportionalModalityFilter =
         "spatialProportionalModalityFilter"
     );
 
-if (spatialProportionalModalityFilter) {
-    spatialProportionalModalityFilter.addEventListener(
+const spatialProportionalGenderFilter =
+    document.getElementById(
+        "spatialProportionalGenderFilter"
+    );
+
+const spatialProportionalRaceFilter =
+    document.getElementById(
+        "spatialProportionalRaceFilter"
+    );
+
+const proportionalFilters = [
+    spatialProportionalModalityFilter,
+    spatialProportionalGenderFilter,
+    spatialProportionalRaceFilter
+];
+
+
+function handleProportionalFilterChange(
+    selectedFilter
+) {
+    const spatialModalityFilter =
+        document.getElementById(
+            "spatialModalityFilter"
+        );
+
+    const spatialDependencyFilter =
+        document.getElementById(
+            "spatialDependencyFilter"
+        );
+
+    if (spatialAnalysisLayer) {
+        map.removeLayer(
+            spatialAnalysisLayer
+        );
+
+        spatialAnalysisLayer = null;
+    }
+
+    if (spatialModalityFilter) {
+        spatialModalityFilter.value = "";
+    }
+
+    if (spatialDependencyFilter) {
+        spatialDependencyFilter.value = "";
+    }
+
+    proportionalFilters.forEach(filter => {
+        if (
+            filter &&
+            filter !== selectedFilter
+        ) {
+            filter.value = "";
+        }
+    });
+
+    loadProportionalSymbolMap();
+}
+
+
+proportionalFilters.forEach(filter => {
+
+    if (!filter) {
+        return;
+    }
+
+    filter.addEventListener(
         "change",
         () => {
-
-            const heatmapOptions =
-                document.getElementById(
-                    "heatmapOptions"
-                );
-
-            const spatialModalityFilter =
-                document.getElementById(
-                    "spatialModalityFilter"
-                );
-
-            const spatialDependencyFilter =
-                document.getElementById(
-                    "spatialDependencyFilter"
-                );
-
-            if (spatialAnalysisLayer) {
-                map.removeLayer(
-                    spatialAnalysisLayer
-                );
-
-                spatialAnalysisLayer = null;
-            }
-
-            if (spatialModalityFilter) {
-                spatialModalityFilter.value = "";
-            }
-
-            if (spatialDependencyFilter) {
-                spatialDependencyFilter.value = "";
-            }
-
-            loadProportionalSymbolMap();
+            handleProportionalFilterChange(
+                filter
+            );
         }
     );
-}
+
+});
 
 async function loadSpatialAnalysis() {
     try {
@@ -521,9 +556,27 @@ function exitSpatialAnalysisMode() {
         document.getElementById(
             "spatialProportionalModalityFilter"
         );
+    
+    const proportionalGenderFilter =
+        document.getElementById(
+            "spatialProportionalGenderFilter"
+        );
+
+    const proportionalRaceFilter =
+        document.getElementById(
+            "spatialProportionalRaceFilter"
+        );
 
     if (proportionalModalityFilter) {
         proportionalModalityFilter.value = "";
+    }
+
+    if (proportionalGenderFilter) {
+        proportionalGenderFilter.value = "";
+    }
+
+    if (proportionalRaceFilter) {
+        proportionalRaceFilter.value = "";
     }
 }
 
@@ -534,11 +587,46 @@ async function loadProportionalSymbolMap() {
                 "spatialProportionalModalityFilter"
             );
 
-        const modality = modalityFilter
-            ? modalityFilter.value
-            : "";
+        const genderFilter =
+            document.getElementById(
+                "spatialProportionalGenderFilter"
+            );
 
-        if (!modality) {
+        const raceFilter =
+            document.getElementById(
+                "spatialProportionalRaceFilter"
+            );
+
+        const modality =
+            modalityFilter
+                ? modalityFilter.value
+                : "";
+
+        const gender =
+            genderFilter
+                ? genderFilter.value
+                : "";
+
+        const race =
+            raceFilter
+                ? raceFilter.value
+                : "";
+
+        let tipo = "";
+        let indicador = "";
+
+        if (modality) {
+            tipo = "modalidade";
+            indicador = modality;
+        } else if (gender) {
+            tipo = "genero";
+            indicador = gender;
+        } else if (race) {
+            tipo = "raca_cor";
+            indicador = race;
+        }
+
+        if (!tipo || !indicador) {
             if (proportionalSymbolLayer) {
                 map.removeLayer(
                     proportionalSymbolLayer
@@ -552,11 +640,17 @@ async function loadProportionalSymbolMap() {
 
         const bounds = map.getBounds();
 
-        const params = new URLSearchParams();
+        const params =
+            new URLSearchParams();
 
         params.set(
-            "modalidade",
-            modality
+            "tipo",
+            tipo
+        );
+
+        params.set(
+            "indicador",
+            indicador
         );
 
         params.set(
@@ -604,7 +698,7 @@ async function loadProportionalSymbolMap() {
 
         if (schools.length === 0) {
             console.log(
-                "Nenhuma escola encontrada para a modalidade selecionada."
+                "Nenhuma escola encontrada para o indicador selecionado."
             );
 
             return;
@@ -673,7 +767,7 @@ async function loadProportionalSymbolMap() {
         );
 
         console.log(
-            `Mapa proporcional: ${schools.length} escolas, valor máximo: ${maxValue}`
+            `Mapa proporcional: tipo=${tipo}, indicador=${indicador}, escolas=${schools.length}, valor máximo=${maxValue}`
         );
 
     } catch (error) {
@@ -1187,10 +1281,31 @@ map.on('moveend', () => {
             "spatialProportionalModalityFilter"
         );
 
-    if (
-        proportionalModalityFilter &&
-        proportionalModalityFilter.value
-    ) {
+    const proportionalGenderFilter =
+        document.getElementById(
+            "spatialProportionalGenderFilter"
+        );
+
+    const proportionalRaceFilter =
+        document.getElementById(
+            "spatialProportionalRaceFilter"
+        );
+
+    const proportionalFilterSelected =
+        (
+            proportionalModalityFilter &&
+            proportionalModalityFilter.value
+        ) ||
+        (
+            proportionalGenderFilter &&
+            proportionalGenderFilter.value
+        ) ||
+        (
+            proportionalRaceFilter &&
+            proportionalRaceFilter.value
+        );
+
+    if (proportionalFilterSelected) {
         loadProportionalSymbolMap();
         return;
     }
@@ -1236,6 +1351,16 @@ window.addEventListener("load", () => {
         document.getElementById(
             "spatialModalityFilter"
         );
+    
+    const proportionalGenderFilter =
+        document.getElementById(
+            "spatialProportionalGenderFilter"
+        );
+
+    const proportionalRaceFilter =
+        document.getElementById(
+            "spatialProportionalRaceFilter"
+        );
 
     const spatialDependencyFilter =
         document.getElementById(
@@ -1247,8 +1372,16 @@ window.addEventListener("load", () => {
             "spatialProportionalModalityFilter"
         );
 
-    if (spatialModalityFilter) {
-        spatialModalityFilter.value = "";
+    if (proportionalModalityFilter) {
+        proportionalModalityFilter.value = "";
+    }
+
+    if (proportionalGenderFilter) {
+        proportionalGenderFilter.value = "";
+    }
+
+    if (proportionalRaceFilter) {
+        proportionalRaceFilter.value = "";
     }
 
     if (spatialDependencyFilter) {
