@@ -1416,4 +1416,19 @@ async function loadSchoolSheet() {
     }
 }
 
+const backToMapButton =
+    document.getElementById("backToMapButton");
+
+if (backToMapButton) {
+    backToMapButton.addEventListener(
+        "click",
+        () => {
+            sessionStorage.setItem(
+                "returnToSchoolMap",
+                SCHOOL_CODE
+            );
+        }
+    );
+}
+
 loadSchoolSheet();

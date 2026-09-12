@@ -1837,6 +1837,74 @@ function showSchoolCard(school, comparisonMode = false) {
     }
 }
 
+async function restoreSchoolFromSheet() {
+    const schoolCode =
+        sessionStorage.getItem(
+            "returnToSchoolMap"
+        );
+
+    if (!schoolCode) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `/api/escola-localizacao/${schoolCode}`
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `Erro ao carregar escola: ${response.status}`
+            );
+        }
+
+        const school =
+            await response.json();
+
+        if (school.erro) {
+            throw new Error(school.erro);
+        }
+
+        if (
+            school.lat == null ||
+            school.lng == null
+        ) {
+            return;
+        }
+
+        selectedSchoolCode =
+            school.codigo;
+
+        const marker =
+            createPin(school);
+
+        selectedLayer.clearLayers();
+        selectedLayer.addLayer(marker);
+
+        searchInput.value =
+            school.nome || "";
+
+        showSuggestions([school]);
+
+        map.flyTo(
+            [school.lat, school.lng],
+            16
+        );
+
+    } catch (error) {
+        console.error(
+            "Erro ao restaurar escola no mapa:",
+            error
+        );
+
+    } finally {
+        sessionStorage.removeItem(
+            "returnToSchoolMap"
+        );
+    }
+}
+
 function selectComparisonSchoolFromMap(school) {
     sessionStorage.setItem(
         "comparisonSelectedSchool",
@@ -2249,6 +2317,7 @@ window.addEventListener("load", () => {
 
     loadAdministrativeCountries();
     updateAdministrativeConfirmButton();
+    restoreSchoolFromSheet();
 });
 
 setupClearSchoolInput();
