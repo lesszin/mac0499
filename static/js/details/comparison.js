@@ -193,6 +193,30 @@ const comparisonStructureSnapshotConfig = {
     }
 };
 
+function calculateDistanceKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+
+    const dLat =
+        (lat2 - lat1) * Math.PI / 180;
+
+    const dLng =
+        (lng2 - lng1) * Math.PI / 180;
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+
+    const c =
+        2 * Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+
+    return R * c;
+}
+
 function searchComparisonSchools(term) {
     return fetch(`/api/busca/${term}`)
         .then(response => response.json());
@@ -204,14 +228,54 @@ function createComparisonSuggestion(school) {
     button.className =
         "list-group-item list-group-item-action text-start py-2";
 
+    let distanceHtml = "";
+
+    const savedLocation =
+        sessionStorage.getItem("userLocation");
+
+    if (
+        savedLocation &&
+        school.lat != null &&
+        school.lng != null
+    ) {
+        try {
+            const userLocation =
+                JSON.parse(savedLocation);
+
+            const distance =
+                calculateDistanceKm(
+                    userLocation.lat,
+                    userLocation.lng,
+                    school.lat,
+                    school.lng
+                );
+
+            distanceHtml = `
+                <span class="text-muted">
+                    ${distance.toFixed(1).replace(".", ",")} km
+                </span>
+            `;
+
+        } catch (error) {
+            console.error(
+                "Erro ao calcular distância da escola:",
+                error
+            );
+        }
+    }
+
     button.innerHTML = `
         <div class="fw-bold text-dark">
             ${school.nome}
         </div>
 
-        <small class="text-muted">
-            ${school.cidade} - ${school.estado}
-        </small>
+        <div class="d-flex justify-content-between">
+            <small class="text-muted">
+                ${school.cidade} - ${school.estado}
+            </small>
+
+            ${distanceHtml}
+        </div>
     `;
 
     button.onclick = () => {
@@ -381,6 +445,38 @@ function renderComparisonMainButtons() {
 
         container.appendChild(button);
     });
+}
+
+function setupClearComparisonSearchInput() {
+    const input = document.getElementById("comparisonSearchInput");
+    const button = document.getElementById("clearComparisonSearchInput");
+
+    if (!input || !button) {
+        return;
+    }
+
+    const updateButton = () => {
+        button.classList.toggle(
+            "d-none",
+            input.value.trim() === ""
+        );
+    };
+
+    input.addEventListener("input", updateButton);
+
+    button.addEventListener("click", () => {
+        input.value = "";
+
+        input.dispatchEvent(
+            new Event("input", {
+                bubbles: true
+            })
+        );
+
+        input.focus();
+    });
+
+    updateButton();
 }
 
 function renderComparisonSubButtons(category) {
@@ -999,6 +1095,8 @@ function initializeComparison() {
             }
         );
     }
+
+    setupClearComparisonSearchInput();
 
     loadSavedComparisonSchool();
 }

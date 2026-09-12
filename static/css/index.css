@@ -26,14 +26,28 @@ body {
     z-index: 1000;
     width: 600px;
     max-width: 90vw;
+    box-sizing: border-box;
+}
+
+.administrative-filter-panel {
+    position: absolute;
+    top: 15px;
+    right: 280px;
+    z-index: 1000;
+    width: 240px;
+    font-size: .85rem;
 }
 
 #searchSuggestions {
+    position: absolute;
     top: 100%;
     left: 0;
-    z-index: 1100;
+    width: 100%;
+    max-width: 100%;
     max-height: 300px;
     overflow-y: auto;
+    z-index: 1100;
+    box-sizing: border-box;
 }
 
 .filters-panel {
@@ -152,4 +166,21 @@ body {
     z-index: 1000;
     width: 240px;
     font-size: 0.85rem;
+}
+
+.search-panel > .d-flex > .card.flex-grow-1 {
+    min-width: 0;
+}
+
+#spatialAnalysisEntry {
+    flex: 0 0 auto;
+}
+
+#searchSuggestions .list-group-item {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.search-panel.comparison-map-mode {
+    width: 400px;
 }

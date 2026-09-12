@@ -136,7 +136,31 @@ function getBooleanIcon(value) {
         : `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
 }
 
-function updateSchoolHeader(data) {
+function calculateDistanceKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+
+    const dLat =
+        (lat2 - lat1) * Math.PI / 180;
+
+    const dLng =
+        (lng2 - lng1) * Math.PI / 180;
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+
+    const c =
+        2 * Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+
+    return R * c;
+}
+
+function updateSchoolHeader(data, schoolLocation = null) {
     const nameText =
         document.getElementById("schoolName");
 
@@ -157,9 +181,47 @@ function updateSchoolHeader(data) {
         identification.numero ||
         "S/N";
 
+    let distanceHtml = "";
+
+    const savedLocation =
+        sessionStorage.getItem("userLocation");
+
+    if (
+        savedLocation &&
+        schoolLocation &&
+        schoolLocation.lat != null &&
+        schoolLocation.lng != null
+    ) {
+        try {
+            const userLocation =
+                JSON.parse(savedLocation);
+
+            const distance =
+                calculateDistanceKm(
+                    userLocation.lat,
+                    userLocation.lng,
+                    schoolLocation.lat,
+                    schoolLocation.lng
+                );
+
+            distanceHtml = `
+                <span class="text-muted ms-2">
+                    · ${distance.toFixed(1).replace(".", ",")} km
+                </span>
+            `;
+
+        } catch (error) {
+            console.error(
+                "Erro ao calcular distância:",
+                error
+            );
+        }
+    }
+
     addressText.innerHTML =
         `<i class="bi bi-geo-alt-fill text-danger"></i>
-        ${street}, ${number} - ${identification.municipio}, ${identification.uf}`;
+        ${street}, ${number} - ${identification.municipio}, ${identification.uf}
+        ${distanceHtml}`;
 }
 
 function createIdentificationSection(
@@ -1274,10 +1336,14 @@ async function loadSchoolSheet() {
     try {
         const [
             schoolResponse,
+            locationResponse,
             charts
         ] = await Promise.all([
             fetch(
                 `/api/escola/${SCHOOL_CODE}/ficha`
+            ),
+            fetch(
+                `/api/escola-localizacao/${SCHOOL_CODE}`
             ),
             loadSheetCharts()
         ]);
@@ -1288,8 +1354,17 @@ async function loadSchoolSheet() {
             );
         }
 
+        if (!locationResponse.ok) {
+            throw new Error(
+                "Erro ao carregar a localização da escola"
+            );
+        }
+
         const data =
             await schoolResponse.json();
+        
+        const schoolLocation =
+            await locationResponse.json();
 
         if (data.erro) {
             nameText.innerText =
@@ -1306,7 +1381,10 @@ async function loadSchoolSheet() {
             return;
         }
 
-        updateSchoolHeader(data);
+        updateSchoolHeader(
+            data,
+            schoolLocation
+        );
 
         const sections =
             buildSections(

@@ -7,6 +7,7 @@ let comparisonPrincipalSchool = null;
 let spatialAnalysisLayer = null;
 let spatialAnalysisMode = false;
 let proportionalSymbolLayer = null;
+let administrativeDivisionLayer = null;
 const storedPrincipalSchool =
     sessionStorage.getItem("comparisonPrincipalSchool");
 if (storedPrincipalSchool) {
@@ -79,6 +80,22 @@ const greenIcon = L.divIcon({
     iconAnchor: [14, 40]
 });
 
+const savedUserLocation =
+    sessionStorage.getItem("userLocation");
+
+if (savedUserLocation) {
+    try {
+        userLocation = JSON.parse(savedUserLocation);
+    } catch (error) {
+        console.error(
+            "Erro ao recuperar localização:",
+            error
+        );
+
+        sessionStorage.removeItem("userLocation");
+    }
+}
+
 const spatialModalityFilter =
     document.getElementById("spatialModalityFilter");
 
@@ -123,6 +140,560 @@ const proportionalFilters = [
     spatialProportionalRaceFilter
 ];
 
+const administrativeCountryFilter =
+    document.getElementById(
+        "administrativeCountryFilter"
+    );
+
+if (administrativeCountryFilter) {
+    administrativeCountryFilter.addEventListener(
+        "change",
+        async () => {
+
+            const regionFilter =
+                document.getElementById(
+                    "administrativeRegionFilter"
+                );
+
+            const ufFilter =
+                document.getElementById(
+                    "administrativeUfFilter"
+                );
+
+            const municipalityFilter =
+                document.getElementById(
+                    "administrativeMunicipalityFilter"
+                );
+
+            if (ufFilter) {
+                ufFilter.innerHTML = `
+                    <option value="" selected disabled>
+                        Selecione...
+                    </option>
+                `;
+
+                ufFilter.value = "";
+                ufFilter.disabled = true;
+            }
+
+            if (municipalityFilter) {
+                municipalityFilter.innerHTML = `
+                    <option value="" selected disabled>
+                        Selecione...
+                    </option>
+                `;
+
+                municipalityFilter.value = "";
+                municipalityFilter.disabled = true;
+            }
+
+            if (regionFilter) {
+                regionFilter.innerHTML = `
+                    <option value="" selected disabled>
+                        Selecione...
+                    </option>
+                `;
+
+                regionFilter.value = "";
+                regionFilter.disabled = true;
+            }
+
+            updateAdministrativeConfirmButton();
+
+            if (
+                !administrativeCountryFilter.value ||
+                !regionFilter
+            ) {
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        "/api/divisoes/regioes"
+                    );
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Erro ao carregar regiões: ${response.status}`
+                    );
+                }
+
+                const regions =
+                    await response.json();
+
+                regions.forEach(region => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        region.codigo;
+
+                    option.textContent =
+                        region.nome;
+
+                    regionFilter.appendChild(
+                        option
+                    );
+                });
+
+                regionFilter.disabled =
+                    regions.length === 0;
+
+                updateAdministrativeConfirmButton();
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar regiões:",
+                    error
+                );
+            }
+        }
+    );
+}
+
+const administrativeRegionFilter =
+    document.getElementById(
+        "administrativeRegionFilter"
+    );
+
+if (administrativeRegionFilter) {
+    administrativeRegionFilter.addEventListener(
+        "change",
+        async () => {
+
+            const region =
+                administrativeRegionFilter.value;
+
+            const ufFilter =
+                document.getElementById(
+                    "administrativeUfFilter"
+                );
+
+            const municipalityFilter =
+                document.getElementById(
+                    "administrativeMunicipalityFilter"
+                );
+
+            if (ufFilter) {
+                ufFilter.innerHTML = `
+                    <option value="" selected disabled>
+                        Selecione...
+                    </option>
+                `;
+
+                ufFilter.disabled = true;
+            }
+
+            if (municipalityFilter) {
+                municipalityFilter.innerHTML = `
+                    <option value="" selected disabled>
+                        Selecione...
+                    </option>
+                `;
+
+                municipalityFilter.disabled = true;
+            }
+
+            if (!region || !ufFilter) {
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `/api/divisoes/ufs?regiao=${encodeURIComponent(region)}`
+                    );
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Erro ao carregar UFs: ${response.status}`
+                    );
+                }
+
+                const ufs =
+                    await response.json();
+
+                ufs.forEach(uf => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        uf.codigo;
+
+                    option.textContent =
+                        uf.nome;
+
+                    ufFilter.appendChild(
+                        option
+                    );
+                });
+
+                ufFilter.disabled =
+                    ufs.length === 0;
+                
+                updateAdministrativeConfirmButton();
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar UFs:",
+                    error
+                );
+            }
+        }
+    );
+}
+
+const administrativeUfFilter =
+    document.getElementById(
+        "administrativeUfFilter"
+    );
+
+if (administrativeUfFilter) {
+    administrativeUfFilter.addEventListener(
+        "change",
+        async () => {
+
+            const uf =
+                administrativeUfFilter.value;
+
+            const municipalityFilter =
+                document.getElementById(
+                    "administrativeMunicipalityFilter"
+                );
+
+            if (!municipalityFilter) {
+                return;
+            }
+
+            municipalityFilter.innerHTML = `
+                <option value="" selected disabled>
+                    Selecione...
+                </option>
+            `;
+
+            municipalityFilter.disabled = true;
+
+            if (!uf) {
+                return;
+            }
+
+            try {
+                const response =
+                    await fetch(
+                        `/api/divisoes/municipios?uf=${encodeURIComponent(uf)}`
+                    );
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Erro ao carregar municípios: ${response.status}`
+                    );
+                }
+
+                const municipios =
+                    await response.json();
+
+                municipios.forEach(municipio => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        municipio.codigo;
+
+                    option.textContent =
+                        municipio.nome;
+
+                    municipalityFilter.appendChild(
+                        option
+                    );
+                });
+
+                municipalityFilter.disabled =
+                    municipios.length === 0;
+                
+                updateAdministrativeConfirmButton();
+
+            } catch (error) {
+                console.error(
+                    "Erro ao carregar municípios:",
+                    error
+                );
+            }
+        }
+    );
+}
+
+const administrativeMunicipalityFilter =
+    document.getElementById(
+        "administrativeMunicipalityFilter"
+    );
+
+if (administrativeMunicipalityFilter) {
+    administrativeMunicipalityFilter.addEventListener(
+        "change",
+        () => {
+            updateAdministrativeConfirmButton();
+        }
+    );
+}
+
+const confirmAdministrativeFilter =
+    document.getElementById(
+        "confirmAdministrativeFilter"
+    );
+
+if (confirmAdministrativeFilter) {
+    confirmAdministrativeFilter.addEventListener(
+        "click",
+        async () => {
+
+            const countryFilter =
+                document.getElementById(
+                    "administrativeCountryFilter"
+                );
+
+            const regionFilter =
+                document.getElementById(
+                    "administrativeRegionFilter"
+                );
+
+            const ufFilter =
+                document.getElementById(
+                    "administrativeUfFilter"
+                );
+
+            const municipalityFilter =
+                document.getElementById(
+                    "administrativeMunicipalityFilter"
+                );
+
+            let tipo = "";
+            let codigo = "";
+
+            if (
+                municipalityFilter &&
+                municipalityFilter.value
+            ) {
+                tipo = "municipio";
+                codigo =
+                    municipalityFilter.value;
+
+            } else if (
+                ufFilter &&
+                ufFilter.value
+            ) {
+                tipo = "uf";
+                codigo =
+                    ufFilter.value;
+
+            } else if (
+                regionFilter &&
+                regionFilter.value
+            ) {
+                tipo = "regiao";
+                codigo =
+                    regionFilter.value;
+
+            } else if (
+                countryFilter &&
+                countryFilter.value
+            ) {
+                tipo = "pais";
+                codigo =
+                    countryFilter.value;
+            }
+
+            if (!tipo || !codigo) {
+                return;
+            }
+
+            await loadAdministrativeDivision(
+                tipo,
+                codigo
+            );
+        }
+    );
+}
+
+function updateAdministrativeConfirmButton() {
+    const countryFilter =
+        document.getElementById(
+            "administrativeCountryFilter"
+        );
+
+    const regionFilter =
+        document.getElementById(
+            "administrativeRegionFilter"
+        );
+
+    const ufFilter =
+        document.getElementById(
+            "administrativeUfFilter"
+        );
+
+    const municipalityFilter =
+        document.getElementById(
+            "administrativeMunicipalityFilter"
+        );
+
+    const confirmButton =
+        document.getElementById(
+            "confirmAdministrativeFilter"
+        );
+
+    if (!confirmButton) {
+        return;
+    }
+
+    const hasSelection =
+        Boolean(
+            (countryFilter &&
+                countryFilter.value) ||
+            (regionFilter &&
+                regionFilter.value) ||
+            (ufFilter &&
+                ufFilter.value) ||
+            (municipalityFilter &&
+                municipalityFilter.value)
+        );
+
+    confirmButton.disabled =
+        !hasSelection;
+}
+
+async function loadAdministrativeCountries() {
+    const countryFilter =
+        document.getElementById(
+            "administrativeCountryFilter"
+        );
+
+    if (!countryFilter) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/divisoes/pais"
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `Erro ao carregar país: ${response.status}`
+            );
+        }
+
+        const countries =
+            await response.json();
+
+        countryFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        countries.forEach(country => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                country.codigo;
+
+            option.textContent =
+                country.nome;
+
+            countryFilter.appendChild(
+                option
+            );
+        });
+
+    } catch (error) {
+        console.error(
+            "Erro ao carregar países:",
+            error
+        );
+    }
+}
+
+async function loadAdministrativeDivision(
+    tipo,
+    codigo
+) {
+    try {
+        const url =
+            `/api/divisoes/geometria?tipo=${encodeURIComponent(tipo)}&codigo=${encodeURIComponent(codigo)}`;
+
+        const response =
+            await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(
+                `Erro ao carregar geometria: ${response.status}`
+            );
+        }
+
+        const geojson =
+            await response.json();
+
+        if (administrativeDivisionLayer) {
+            map.removeLayer(
+                administrativeDivisionLayer
+            );
+
+            administrativeDivisionLayer = null;
+        }
+
+        administrativeDivisionLayer =
+            L.geoJSON(
+                geojson,
+                {
+                    style: {
+                        color: "#007bff",
+                        weight: 2,
+                        opacity: 0.9,
+                        fillColor: "#007bff",
+                        fillOpacity: 0.12
+                    }
+                }
+            ).addTo(map);
+
+        const bounds =
+            administrativeDivisionLayer.getBounds();
+
+        if (bounds.isValid()) {
+            map.fitBounds(
+                bounds,
+                {
+                    padding: [30, 30]
+                }
+            );
+        }
+
+    } catch (error) {
+        console.error(
+            "Erro ao desenhar divisão administrativa:",
+            error
+        );
+
+        if (administrativeDivisionLayer) {
+            map.removeLayer(
+                administrativeDivisionLayer
+            );
+
+            administrativeDivisionLayer = null;
+        }
+    }
+}
 
 function handleProportionalFilterChange(
     selectedFilter
@@ -321,9 +892,19 @@ function enterSpatialAnalysisMode() {
 
     spatialAnalysisMode = true;
 
+    if (administrativeDivisionLayer) {
+        map.removeLayer(administrativeDivisionLayer);
+        administrativeDivisionLayer = null;
+    }
+    
     const filtersPanel =
         document.querySelector(
             ".filters-panel"
+        );
+
+    const administrativeFilterPanel =
+        document.getElementById(
+            "administrativeFilterPanel"
         );
 
     const spatialOptionsPanel =
@@ -361,6 +942,12 @@ function enterSpatialAnalysisMode() {
 
     if (filtersPanel) {
         filtersPanel.classList.add(
+            "d-none"
+        );
+    }
+
+    if (administrativeFilterPanel) {
+        administrativeFilterPanel.classList.add(
             "d-none"
         );
     }
@@ -443,9 +1030,19 @@ function exitSpatialAnalysisMode() {
 
     spatialAnalysisMode = false;
 
+    if (administrativeDivisionLayer) {
+        map.removeLayer(administrativeDivisionLayer);
+        administrativeDivisionLayer = null;
+    }
+
     const filtersPanel =
         document.querySelector(
             ".filters-panel"
+        );
+    
+    const administrativeFilterPanel =
+        document.getElementById(
+            "administrativeFilterPanel"
         );
 
     const spatialOptionsPanel =
@@ -503,6 +1100,12 @@ function exitSpatialAnalysisMode() {
 
     if (filtersPanel) {
         filtersPanel.classList.remove(
+            "d-none"
+        );
+    }
+
+    if (administrativeFilterPanel) {
+        administrativeFilterPanel.classList.remove(
             "d-none"
         );
     }
@@ -578,6 +1181,64 @@ function exitSpatialAnalysisMode() {
     if (proportionalRaceFilter) {
         proportionalRaceFilter.value = "";
     }
+
+    const administrativeCountryFilter =
+        document.getElementById(
+            "administrativeCountryFilter"
+        );
+
+    const administrativeRegionFilter =
+        document.getElementById(
+            "administrativeRegionFilter"
+        );
+
+    const administrativeUfFilter =
+        document.getElementById(
+            "administrativeUfFilter"
+        );
+
+    const administrativeMunicipalityFilter =
+        document.getElementById(
+            "administrativeMunicipalityFilter"
+        );
+    
+    if (administrativeCountryFilter) {
+        administrativeCountryFilter.value = "";
+    }
+
+    if (administrativeRegionFilter) {
+        administrativeRegionFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        administrativeRegionFilter.value = "";
+    }
+
+    if (administrativeUfFilter) {
+        administrativeUfFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        administrativeUfFilter.value = "";
+        administrativeUfFilter.disabled = true;
+    }
+
+    if (administrativeMunicipalityFilter) {
+        administrativeMunicipalityFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        administrativeMunicipalityFilter.value = "";
+        administrativeMunicipalityFilter.disabled = true;
+    }
+
+    updateAdministrativeConfirmButton();
 }
 
 async function loadProportionalSymbolMap() {
@@ -839,6 +1500,81 @@ document
         );
         updateArrow();
     });
+
+function setupClearSchoolInput() {
+    const input = document.getElementById("schoolInput");
+    const button = document.getElementById("clearSchoolInput");
+
+    if (!input || !button) {
+        return;
+    }
+
+    const updateButton = () => {
+        button.classList.toggle(
+            "d-none",
+            input.value.trim() === ""
+        );
+    };
+
+    input.addEventListener("input", updateButton);
+
+    button.addEventListener("click", () => {
+        input.value = "";
+
+        input.dispatchEvent(
+            new Event("input", {
+                bubbles: true
+            })
+        );
+
+        input.focus();
+    });
+
+    updateButton();
+}
+
+function renderSavedUserLocation() {
+    const savedLocation =
+        sessionStorage.getItem("userLocation");
+
+    if (!savedLocation) {
+        return;
+    }
+
+    try {
+        userLocation = JSON.parse(savedLocation);
+
+        const userIcon = L.divIcon({
+            className: "user-location-marker",
+            html: '<div class="user-location-dot"></div>',
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+        });
+
+        const latLng = [
+            userLocation.lat,
+            userLocation.lng
+        ];
+
+        if (userLocationMarker) {
+            userLocationMarker.setLatLng(latLng);
+        } else {
+            userLocationMarker = L.marker(
+                latLng,
+                { icon: userIcon }
+            ).addTo(map);
+        }
+
+    } catch (error) {
+        console.error(
+            "Erro ao recuperar localização salva:",
+            error
+        );
+
+        sessionStorage.removeItem("userLocation");
+        userLocation = null;
+    }
+}
 
 function createMarker(school) {
     const marker = L.circleMarker(
@@ -1344,7 +2080,7 @@ window.addEventListener("load", () => {
     schoolLayer.clearLayers();
     selectedLayer.clearLayers();
     schoolMarkers.clear();
-
+    renderSavedUserLocation();
     selectedSchoolCode = null;
 
     const spatialModalityFilter =
@@ -1388,8 +2124,61 @@ window.addEventListener("load", () => {
         spatialDependencyFilter.value = "";
     }
 
-    if (proportionalModalityFilter) {
-        proportionalModalityFilter.value = "";
+    const administrativeCountryFilter =
+        document.getElementById(
+            "administrativeCountryFilter"
+        );
+
+    const administrativeRegionFilter =
+        document.getElementById(
+            "administrativeRegionFilter"
+        );
+
+    const administrativeUfFilter =
+        document.getElementById(
+            "administrativeUfFilter"
+        );
+
+    const administrativeMunicipalityFilter =
+        document.getElementById(
+            "administrativeMunicipalityFilter"
+        );
+
+    if (administrativeCountryFilter) {
+        administrativeCountryFilter.value = "";
+    }
+
+    if (administrativeRegionFilter) {
+        administrativeRegionFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        administrativeRegionFilter.value = "";
+        administrativeRegionFilter.disabled = true;
+    }
+
+    if (administrativeUfFilter) {
+        administrativeUfFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        administrativeUfFilter.value = "";
+        administrativeUfFilter.disabled = true;
+    }
+
+    if (administrativeMunicipalityFilter) {
+        administrativeMunicipalityFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+
+        administrativeMunicipalityFilter.value = "";
+        administrativeMunicipalityFilter.disabled = true;
     }
 
     hideSchoolCard();
@@ -1398,10 +2187,22 @@ window.addEventListener("load", () => {
         document
             .getElementById("schoolSearchBox")
             .classList.add("d-none");
+        
+        document
+            .getElementById("spatialAnalysisEntry")
+            .classList.add("d-none");
+
+        document
+            .getElementById("administrativeFilterPanel")
+            .classList.add("d-none");
 
         document
             .getElementById("comparisonBackButton")
             .classList.remove("d-none");
+        
+        document
+            .querySelector(".search-panel")
+            .classList.add("comparison-map-mode");
     }
 
     const principalSchoolCode =
@@ -1445,7 +2246,12 @@ window.addEventListener("load", () => {
             })
             .catch(console.error);
     }
+
+    loadAdministrativeCountries();
+    updateAdministrativeConfirmButton();
 });
+
+setupClearSchoolInput();
 
 searchInput.addEventListener("input", onSearchInput);
 
@@ -1491,20 +2297,13 @@ map.on("locationfound", function (e) {
         lat: e.latlng.lat,
         lng: e.latlng.lng
     };
-    const userIcon = L.divIcon({
-        className: "user-location-marker",
-        html: '<div class="user-location-dot"></div>',
-        iconSize: [18, 18],
-        iconAnchor: [9, 9]
-    });
-    if (userLocationMarker) {
-        userLocationMarker.setLatLng(e.latlng);
-    } else {
-        userLocationMarker = L.marker(
-            e.latlng,
-            { icon: userIcon }
-        ).addTo(map);
-    }
+
+    sessionStorage.setItem(
+        "userLocation",
+        JSON.stringify(userLocation)
+    );
+
+    renderSavedUserLocation();
 });
 
 map.on("locationerror", function (e) {

@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import datetime
+import geopandas as gpd
 
 load_dotenv()
 
@@ -788,6 +789,281 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
         "escola_comparada": comparison_data,
         "comparacao": comparison
     }
+
+@app.route('/api/divisoes/pais')
+def get_country():
+    try:
+        query = """
+            SELECT
+                "ID_PAIS",
+                "Pais",
+                "AREA_KM2"
+            FROM dim_pais
+            ORDER BY "ID_PAIS"
+        """
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                text(query)
+            ).fetchall()
+
+        paises = [
+            {
+                "codigo": int(row[0]),
+                "nome": row[1],
+                "area_km2": float(row[2])
+            }
+            for row in results
+        ]
+
+        return jsonify(paises)
+
+    except Exception as e:
+        print(
+            f"Error fetching countries: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/divisoes/regioes')
+def get_regions():
+    try:
+        query = """
+            SELECT
+                "CD_REGIAO",
+                "NM_REGIAO",
+                "SIGLA_RG"
+            FROM dim_regiao
+            ORDER BY "CD_REGIAO"
+        """
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                text(query)
+            ).fetchall()
+
+        regioes = [
+            {
+                "codigo": int(row[0]),
+                "nome": row[1],
+                "sigla": row[2]
+            }
+            for row in results
+        ]
+
+        return jsonify(regioes)
+
+    except Exception as e:
+        print(
+            f"Error fetching regions: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/divisoes/ufs')
+def get_ufs():
+    try:
+        regiao = request.args.get(
+            "regiao",
+            ""
+        ).strip()
+
+        if not regiao:
+            return jsonify({
+                "erro": "Grande Região não informada."
+            }), 400
+
+        try:
+            regiao = int(regiao)
+        except ValueError:
+            return jsonify({
+                "erro": "Código de Grande Região inválido."
+            }), 400
+
+        query = """
+            SELECT
+                "CD_UF",
+                "NM_UF",
+                "SIGLA_UF"
+            FROM dim_uf
+            WHERE "CD_REGIAO" = :regiao
+            ORDER BY "NM_UF"
+        """
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                text(query),
+                {
+                    "regiao": regiao
+                }
+            ).fetchall()
+
+        ufs = [
+            {
+                "codigo": int(row[0]),
+                "nome": row[1],
+                "sigla": row[2]
+            }
+            for row in results
+        ]
+
+        return jsonify(ufs)
+
+    except Exception as e:
+        print(
+            f"Error fetching UFs: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+    
+@app.route('/api/divisoes/municipios')
+def get_municipios():
+    try:
+        uf = request.args.get(
+            "uf",
+            ""
+        ).strip()
+
+        if not uf:
+            return jsonify({
+                "erro": "Unidade Federativa não informada."
+            }), 400
+
+        try:
+            uf = int(uf)
+        except ValueError:
+            return jsonify({
+                "erro": "Código de Unidade Federativa inválido."
+            }), 400
+
+        query = """
+            SELECT
+                "CD_MUN",
+                "NM_MUN"
+            FROM dim_municipio
+            WHERE "CD_UF" = :uf
+            ORDER BY "NM_MUN"
+        """
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                text(query),
+                {
+                    "uf": uf
+                }
+            ).fetchall()
+
+        municipios = [
+            {
+                "codigo": int(row[0]),
+                "nome": row[1]
+            }
+            for row in results
+        ]
+
+        return jsonify(municipios)
+
+    except Exception as e:
+        print(
+            f"Error fetching municipalities: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/divisoes/geometria')
+def get_division_geometry():
+    try:
+        tipo = request.args.get(
+            "tipo",
+            ""
+        ).lower().strip()
+
+        codigo = request.args.get(
+            "codigo",
+            ""
+        ).strip()
+
+        shapefile_map = {
+            "regiao": {
+                "path": "shapefiles/regioes/BR_Regioes_2025.shp",
+                "column": "CD_REGIAO"
+            },
+            "uf": {
+                "path": "shapefiles/uf/BR_UF_2025.shp",
+                "column": "CD_UF"
+            },
+            "municipio": {
+                "path": "shapefiles/municipios/BR_Municipios_2025.shp",
+                "column": "CD_MUN"
+            },
+            "pais": {
+                "path": "shapefiles/pais/BR_Pais_2025.shp",
+                "column": "Pais"
+            }
+        }
+
+        if tipo not in shapefile_map:
+            return jsonify({
+                "erro": "Tipo de divisão inválido."
+            }), 400
+
+        if not codigo:
+            return jsonify({
+                "erro": "Código da divisão não informado."
+            }), 400
+
+        config = shapefile_map[tipo]
+
+        gdf = gpd.read_file(
+            config["path"]
+        )
+
+        if tipo == "pais":
+
+            if codigo != "1":
+                return jsonify({
+                    "erro": "País não encontrado."
+                }), 404
+
+            if gdf.empty:
+                return jsonify({
+                    "erro": "Geometria do país não encontrada."
+                }), 404
+
+            return gdf.to_json()
+
+        gdf[config["column"]] = (
+            gdf[config["column"]]
+            .astype(str)
+        )
+
+        division = gdf[
+            gdf[config["column"]] == codigo
+        ]
+
+        if division.empty:
+            return jsonify({
+                "erro": "Divisão administrativa não encontrada."
+            }), 404
+
+        return division.to_json()
+
+    except Exception as e:
+        print(
+            f"Error fetching division geometry: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
 @app.route('/api/analise-espacial/escolas')
 def get_spatial_analysis_schools():

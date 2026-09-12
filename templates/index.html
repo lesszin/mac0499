@@ -47,7 +47,7 @@
             <div class="d-flex gap-2 align-items-start">
                 <div class="card shadow border-0 flex-grow-1">
                     <div id="schoolSearchBox" class="card-body p-2">
-                        <div class="input-group">
+                        <div class="input-group position-relative">
                             <span class="input-group-text bg-white border-0 text-primary">
                                 <i class="bi bi-search"></i>
                             </span>
@@ -57,6 +57,13 @@
                                 class="form-control border-0 shadow-none"
                                 placeholder="Digite o nome da escola"
                                 autocomplete="off">
+                            <button
+                                type="button"
+                                id="clearSchoolInput"
+                                class="btn btn-link text-muted border-0 shadow-none d-none"
+                                aria-label="Limpar busca">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
                         </div>
                         <div
                             id="searchSuggestions"
@@ -384,6 +391,85 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div
+            id="administrativeFilterPanel"
+            class="card shadow border-0 bg-white administrative-filter-panel">
+            <div
+                class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-2 filter-header-cursor"
+                data-bs-toggle="collapse"
+                data-bs-target="#administrativeFilterBody"
+                aria-expanded="false">
+                <span class="fw-bold text-primary mb-0">
+                    Filtro Avançado
+                </span>
+                <i class="bi bi-chevron-down text-primary small collapse-arrow"></i>
+            </div>
+            <div
+                id="administrativeFilterBody"
+                class="collapse">
+                <div class="card-body pt-0 pb-3">
+                    <div class="mb-3">
+                        <small class="fw-semibold text-muted">
+                            País
+                        </small>
+                        <select
+                            id="administrativeCountryFilter"
+                            class="form-select form-select-sm mt-1">
+                            <option value="" selected disabled>
+                                Selecione...
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <small class="fw-semibold text-muted">
+                            Grande Região
+                        </small>
+                        <select
+                            id="administrativeRegionFilter"
+                            class="form-select form-select-sm mt-1"
+                            disabled>
+                            <option value="" selected disabled>
+                                Selecione...
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <small class="fw-semibold text-muted">
+                            Unidade Federativa
+                        </small>
+                        <select
+                            id="administrativeUfFilter"
+                            class="form-select form-select-sm mt-1"
+                            disabled>
+
+                            <option value="" selected disabled>
+                                Selecione...
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <small class="fw-semibold text-muted">
+                            Município
+                        </small>
+                        <select
+                            id="administrativeMunicipalityFilter"
+                            class="form-select form-select-sm mt-1"
+                            disabled>
+                            <option value="" selected disabled>
+                                Selecione...
+                            </option>
+                        </select>
+                    </div>
+                    <button
+                        id="confirmAdministrativeFilter"
+                        type="button"
+                        class="btn btn-primary btn-sm w-100"
+                        disabled>
+                        Confirmar
+                    </button>
                 </div>
             </div>
         </div>
