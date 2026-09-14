@@ -790,6 +790,452 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
         "comparacao": comparison
     }
 
+@app.route('/api/divisoes/ficha')
+def get_division_sheet():
+    try:
+        tipo = request.args.get("tipo", "").strip().lower()
+        codigo = request.args.get("codigo", "").strip()
+
+        config = {
+            "pais": {
+                "table": "dim_pais",
+                "column": "ID_PAIS"
+            },
+            "regiao": {
+                "table": "dim_regiao",
+                "column": "CD_REGIAO"
+            },
+            "uf": {
+                "table": "dim_uf",
+                "column": "CD_UF"
+            },
+            "municipio": {
+                "table": "dim_municipio",
+                "column": "CD_MUN"
+            }
+        }
+
+        if tipo not in config:
+            return jsonify({
+                "erro": "Tipo de divisão administrativa inválido."
+            }), 400
+
+        if not codigo:
+            return jsonify({
+                "erro": "Código da divisão administrativa não informado."
+            }), 400
+
+        try:
+            codigo_int = int(codigo)
+        except ValueError:
+            return jsonify({
+                "erro": "Código da divisão administrativa inválido."
+            }), 400
+
+        table = config[tipo]["table"]
+        column = config[tipo]["column"]
+
+        query = f'''
+            SELECT *
+            FROM "{table}"
+            WHERE "{column}" = :codigo
+            LIMIT 1
+        '''
+
+        with engine.connect() as conn:
+            row = conn.execute(
+                text(query),
+                {"codigo": codigo_int}
+            ).mappings().first()
+
+        if not row:
+            return jsonify({
+                "erro": "Divisão administrativa não encontrada."
+            }), 404
+
+        data = dict(row)
+
+        return jsonify({
+            "tipo": tipo,
+            "codigo": codigo_int,
+            "dados": data
+        })
+
+    except Exception as error:
+        print(
+            "Erro ao carregar ficha administrativa:",
+            error
+        )
+
+        return jsonify({
+            "erro": "Erro interno ao carregar a divisão administrativa."
+        }), 500
+
+@app.route('/divisao/<tipo>/<int:codigo>')
+def division_page(tipo, codigo):
+    tipos_validos = {
+        "pais",
+        "regiao",
+        "uf",
+        "municipio"
+    }
+
+    if tipo not in tipos_validos:
+        return "Divisão administrativa inválida.", 404
+
+    return render_template(
+        "division.html",
+        tipo=tipo,
+        codigo=codigo
+    )
+
+@app.route('/api/divisoes/filhas')
+def get_child_divisions():
+    try:
+        tipo = request.args.get("tipo", "").strip().lower()
+        codigo = request.args.get("codigo", "").strip()
+
+        try:
+            limite = int(
+                request.args.get("limite", 10)
+            )
+            offset = int(
+                request.args.get("offset", 0)
+            )
+        except ValueError:
+            return jsonify({
+                "erro": "Limite ou offset inválido."
+            }), 400
+
+        if limite <= 0:
+            limite = 10
+
+        if offset < 0:
+            offset = 0
+
+        config = {
+            "pais": {
+                "table": "dim_regiao",
+                "codigo": "CD_REGIAO",
+                "nome": "NM_REGIAO",
+                "parent_column": None,
+                "parent_value": None
+            },
+
+            "regiao": {
+                "table": "dim_uf",
+                "codigo": "CD_UF",
+                "nome": "NM_UF",
+                "parent_column": "CD_REGIAO"
+            },
+
+            "uf": {
+                "table": "dim_municipio",
+                "codigo": "CD_MUN",
+                "nome": "NM_MUN",
+                "parent_column": "CD_UF"
+            }
+        }
+
+        if tipo == "municipio":
+            return jsonify({
+                "tipo": tipo,
+                "codigo": int(codigo) if codigo else None,
+                "divisoes": [],
+                "tem_mais": False
+            })
+
+        if tipo not in config:
+            return jsonify({
+                "erro": "Tipo de divisão administrativa inválido."
+            }), 400
+
+        if not codigo:
+            return jsonify({
+                "erro": "Código da divisão administrativa não informado."
+            }), 400
+
+        try:
+            codigo_int = int(codigo)
+        except ValueError:
+            return jsonify({
+                "erro": "Código da divisão administrativa inválido."
+            }), 400
+
+        item = config[tipo]
+
+        table = item["table"]
+        codigo_column = item["codigo"]
+        nome_column = item["nome"]
+        parent_column = item["parent_column"]
+
+        if parent_column is None:
+            query = text(f'''
+                SELECT
+                    "{codigo_column}" AS codigo,
+                    "{nome_column}" AS nome
+                FROM "{table}"
+                ORDER BY "{codigo_column}"
+                LIMIT :limite
+                OFFSET :offset
+            ''')
+
+            count_query = text(f'''
+                SELECT COUNT(*)
+                FROM "{table}"
+            ''')
+
+            params = {
+                "limite": limite,
+                "offset": offset
+            }
+
+        else:
+            query = text(f'''
+                SELECT
+                    "{codigo_column}" AS codigo,
+                    "{nome_column}" AS nome
+                FROM "{table}"
+                WHERE "{parent_column}" = :codigo
+                ORDER BY "{codigo_column}"
+                LIMIT :limite
+                OFFSET :offset
+            ''')
+
+            count_query = text(f'''
+                SELECT COUNT(*)
+                FROM "{table}"
+                WHERE "{parent_column}" = :codigo
+            ''')
+
+            params = {
+                "codigo": codigo_int,
+                "limite": limite,
+                "offset": offset
+            }
+
+        with engine.connect() as conn:
+            rows = conn.execute(
+                query,
+                params
+            ).mappings().all()
+
+            if parent_column is None:
+                total = conn.execute(
+                    count_query
+                ).scalar_one()
+
+            else:
+                total = conn.execute(
+                    count_query,
+                    {"codigo": codigo_int}
+                ).scalar_one()
+
+        divisoes = [
+            {
+                "codigo": int(row["codigo"]),
+                "nome": row["nome"]
+            }
+            for row in rows
+        ]
+
+        return jsonify({
+            "tipo": tipo,
+            "codigo": codigo_int,
+            "divisoes": divisoes,
+            "total": total,
+            "offset": offset,
+            "limite": limite,
+            "tem_mais": (
+                offset + len(divisoes)
+            ) < total
+        })
+
+    except Exception as error:
+        print(
+            "Erro ao carregar divisões filhas:",
+            error
+        )
+
+        return jsonify({
+            "erro": (
+                "Erro interno ao carregar "
+                "as divisões administrativas."
+            )
+        }), 500
+
+@app.route('/api/divisoes/indicadores')
+def get_division_indicators():
+    try:
+        tipo = request.args.get("tipo", "").strip().lower()
+        codigo = request.args.get("codigo", "").strip()
+
+        division_config = {
+            "pais": {
+                "column": None
+            },
+            "regiao": {
+                "column": "CO_REGIAO"
+            },
+            "uf": {
+                "column": "CO_UF"
+            },
+            "municipio": {
+                "column": "CO_MUNICIPIO"
+            }
+        }
+
+        if tipo not in division_config:
+            return jsonify({
+                "erro": "Tipo de divisão administrativa inválido."
+            }), 400
+
+        if not codigo:
+            return jsonify({
+                "erro": "Código da divisão administrativa não informado."
+            }), 400
+
+        try:
+            codigo_int = int(codigo)
+        except ValueError:
+            return jsonify({
+                "erro": "Código da divisão administrativa inválido."
+            }), 400
+
+        config = division_config[tipo]
+        year = 2025
+
+        params = {
+            "ano": year,
+            "codigo": codigo_int
+        }
+
+        if config["column"] is None:
+            school_filter = ""
+        else:
+            school_filter = f'''
+                AND e."{config["column"]}" = :codigo
+            '''
+
+        matricula_query = text(f'''
+            SELECT
+                COALESCE(SUM(m."QT_MAT_BAS"), 0) AS basica,
+                COALESCE(SUM(m."QT_MAT_INF_CRE"), 0) AS creche,
+                COALESCE(SUM(m."QT_MAT_INF_PRE"), 0) AS pre_escola,
+                COALESCE(SUM(m."QT_MAT_FUND_AI"), 0) AS fund_ai,
+                COALESCE(SUM(m."QT_MAT_FUND_AF"), 0) AS fund_af,
+                COALESCE(SUM(m."QT_MAT_MED"), 0) AS medio,
+                COALESCE(SUM(m."QT_MAT_PROF"), 0) AS profissional,
+                COALESCE(SUM(m."QT_MAT_EJA_FUND"), 0) AS eja_fund,
+                COALESCE(SUM(m."QT_MAT_EJA_MED"), 0) AS eja_med,
+                COALESCE(SUM(m."QT_MAT_ESP"), 0) AS especial,
+
+                COALESCE(SUM(m."QT_MAT_BAS_MASC"), 0) AS masculino,
+                COALESCE(SUM(m."QT_MAT_BAS_FEM"), 0) AS feminino,
+
+                COALESCE(SUM(m."QT_MAT_BAS_ND"), 0) AS nao_declarado,
+                COALESCE(SUM(m."QT_MAT_BAS_BRANCA"), 0) AS branca,
+                COALESCE(SUM(m."QT_MAT_BAS_PRETA"), 0) AS preta,
+                COALESCE(SUM(m."QT_MAT_BAS_PARDA"), 0) AS parda,
+                COALESCE(SUM(m."QT_MAT_BAS_AMARELA"), 0) AS amarela,
+                COALESCE(SUM(m."QT_MAT_BAS_INDIGENA"), 0) AS indigena
+
+            FROM "fato_matricula" m
+            INNER JOIN "dim_escola" e
+                ON e."CO_ENTIDADE" = m."CO_ENTIDADE"
+
+            WHERE m."NU_ANO_CENSO" = :ano
+                AND e."TP_SITUACAO_FUNCIONAMENTO" = 1
+                {school_filter}
+        ''')
+
+        docente_query = text(f'''
+            SELECT
+                COALESCE(SUM(d."QT_DOC_BAS"), 0) AS basica,
+                COALESCE(SUM(d."QT_DOC_INF_CRE"), 0) AS creche,
+                COALESCE(SUM(d."QT_DOC_INF_PRE"), 0) AS pre_escola,
+                COALESCE(SUM(d."QT_DOC_FUND_AI"), 0) AS fund_ai,
+                COALESCE(SUM(d."QT_DOC_FUND_AF"), 0) AS fund_af,
+                COALESCE(SUM(d."QT_DOC_MED"), 0) AS medio,
+                COALESCE(SUM(d."QT_DOC_PROF"), 0) AS profissional,
+                COALESCE(SUM(d."QT_DOC_EJA"), 0) AS eja,
+                COALESCE(SUM(d."QT_DOC_ESP"), 0) AS especial,
+
+                COALESCE(SUM(d."QT_DOC_BAS_MASC"), 0) AS masculino,
+                COALESCE(SUM(d."QT_DOC_BAS_FEM"), 0) AS feminino,
+
+                COALESCE(SUM(d."QT_DOC_BAS_ND"), 0) AS nao_declarado,
+                COALESCE(SUM(d."QT_DOC_BAS_BRANCA"), 0) AS branca,
+                COALESCE(SUM(d."QT_DOC_BAS_PRETA"), 0) AS preta,
+                COALESCE(SUM(d."QT_DOC_BAS_PARDA"), 0) AS parda,
+                COALESCE(SUM(d."QT_DOC_BAS_AMARELA"), 0) AS amarela,
+                COALESCE(SUM(d."QT_DOC_BAS_INDIGENA"), 0) AS indigena
+
+            FROM "fato_docente" d
+            INNER JOIN "dim_escola" e
+                ON e."CO_ENTIDADE" = d."CO_ENTIDADE"
+
+            WHERE d."NU_ANO_CENSO" = :ano
+                AND e."TP_SITUACAO_FUNCIONAMENTO" = 1
+                {school_filter}
+        ''')
+
+        turma_query = text(f'''
+            SELECT
+                COALESCE(SUM(t."QT_TUR_INF_CRE"), 0) AS creche,
+                COALESCE(SUM(t."QT_TUR_INF_PRE"), 0) AS pre_escola,
+                COALESCE(SUM(t."QT_TUR_FUND_AI"), 0) AS fund_ai,
+                COALESCE(SUM(t."QT_TUR_FUND_AF"), 0) AS fund_af,
+                COALESCE(SUM(t."QT_TUR_MED"), 0) AS medio,
+                COALESCE(SUM(t."QT_TUR_PROF"), 0) AS profissional,
+                COALESCE(SUM(t."QT_TUR_EJA"), 0) AS eja,
+                COALESCE(SUM(t."QT_TUR_ESP"), 0) AS especial
+
+            FROM "fato_turma" t
+            INNER JOIN "dim_escola" e
+                ON e."CO_ENTIDADE" = t."CO_ENTIDADE"
+
+            WHERE t."NU_ANO_CENSO" = :ano
+                AND e."TP_SITUACAO_FUNCIONAMENTO" = 1
+                {school_filter}
+        ''')
+
+        with engine.connect() as conn:
+            matriculas = conn.execute(
+                matricula_query,
+                params
+            ).mappings().first()
+
+            docentes = conn.execute(
+                docente_query,
+                params
+            ).mappings().first()
+
+            turmas = conn.execute(
+                turma_query,
+                params
+            ).mappings().first()
+
+        return jsonify({
+            "ano": year,
+            "tipo": tipo,
+            "codigo": codigo_int,
+
+            "matriculas": dict(matriculas),
+            "docentes": dict(docentes),
+            "turmas": dict(turmas)
+        })
+
+    except Exception as error:
+        print(
+            "Erro ao carregar indicadores da divisão:",
+            error
+        )
+
+        return jsonify({
+            "erro": "Erro interno ao carregar os indicadores da divisão."
+        }), 500
+
 @app.route('/api/divisoes/pais')
 def get_country():
     try:

@@ -478,6 +478,7 @@ if (confirmAdministrativeFilter) {
 
             let tipo = "";
             let codigo = "";
+            let nome = "";
 
             if (
                 municipalityFilter &&
@@ -487,6 +488,11 @@ if (confirmAdministrativeFilter) {
                 codigo =
                     municipalityFilter.value;
 
+                nome =
+                    municipalityFilter.options[
+                        municipalityFilter.selectedIndex
+                    ].text;
+
             } else if (
                 ufFilter &&
                 ufFilter.value
@@ -494,6 +500,11 @@ if (confirmAdministrativeFilter) {
                 tipo = "uf";
                 codigo =
                     ufFilter.value;
+
+                nome =
+                    ufFilter.options[
+                        ufFilter.selectedIndex
+                    ].text;
 
             } else if (
                 regionFilter &&
@@ -503,6 +514,11 @@ if (confirmAdministrativeFilter) {
                 codigo =
                     regionFilter.value;
 
+                nome =
+                    regionFilter.options[
+                        regionFilter.selectedIndex
+                    ].text;
+
             } else if (
                 countryFilter &&
                 countryFilter.value
@@ -510,6 +526,11 @@ if (confirmAdministrativeFilter) {
                 tipo = "pais";
                 codigo =
                     countryFilter.value;
+
+                nome =
+                    countryFilter.options[
+                        countryFilter.selectedIndex
+                    ].text;
             }
 
             if (!tipo || !codigo) {
@@ -518,9 +539,22 @@ if (confirmAdministrativeFilter) {
 
             await loadAdministrativeDivision(
                 tipo,
-                codigo
+                codigo,
+                nome
             );
         }
+    );
+}
+
+const clearAdministrativeFilterButton =
+    document.getElementById(
+        "clearAdministrativeFilter"
+    );
+
+if (clearAdministrativeFilterButton) {
+    clearAdministrativeFilterButton.addEventListener(
+        "click",
+        clearAdministrativeFilter
     );
 }
 
@@ -550,9 +584,10 @@ function updateAdministrativeConfirmButton() {
             "confirmAdministrativeFilter"
         );
 
-    if (!confirmButton) {
-        return;
-    }
+    const clearButton =
+        document.getElementById(
+            "clearAdministrativeFilter"
+        );
 
     const hasSelection =
         Boolean(
@@ -566,8 +601,129 @@ function updateAdministrativeConfirmButton() {
                 municipalityFilter.value)
         );
 
-    confirmButton.disabled =
-        !hasSelection;
+    if (confirmButton) {
+        confirmButton.disabled =
+            !hasSelection;
+    }
+
+    if (clearButton) {
+        clearButton.disabled =
+            !hasSelection &&
+            !administrativeDivisionLayer;
+    }
+}
+
+function clearAdministrativeFilter() {
+    const countryFilter =
+        document.getElementById(
+            "administrativeCountryFilter"
+        );
+
+    const regionFilter =
+        document.getElementById(
+            "administrativeRegionFilter"
+        );
+
+    const ufFilter =
+        document.getElementById(
+            "administrativeUfFilter"
+        );
+
+    const municipalityFilter =
+        document.getElementById(
+            "administrativeMunicipalityFilter"
+        );
+
+    if (countryFilter) {
+        countryFilter.value = "";
+    }
+
+    if (regionFilter) {
+        regionFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+        regionFilter.value = "";
+        regionFilter.disabled = true;
+    }
+
+    if (ufFilter) {
+        ufFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+        ufFilter.value = "";
+        ufFilter.disabled = true;
+    }
+
+    if (municipalityFilter) {
+        municipalityFilter.innerHTML = `
+            <option value="" selected disabled>
+                Selecione...
+            </option>
+        `;
+        municipalityFilter.value = "";
+        municipalityFilter.disabled = true;
+    }
+
+    if (administrativeDivisionLayer) {
+        map.removeLayer(
+            administrativeDivisionLayer
+        );
+
+        administrativeDivisionLayer = null;
+    }
+
+    hideAdministrativeDivisionCard();
+
+    updateAdministrativeConfirmButton();
+}
+
+function showAdministrativeDivisionCard(
+    tipo,
+    codigo,
+    nome
+) {
+    const card =
+        document.getElementById(
+            "administrativeDivisionCard"
+        );
+
+    const body =
+        document.getElementById(
+            "administrativeDivisionCardBody"
+        );
+
+    if (!card || !body) {
+        return;
+    }
+
+    body.innerHTML = `
+        <h6 class="fw-bold mb-3">
+            ${nome}
+        </h6>
+
+        <a
+            href="/divisao/${tipo}/${codigo}"
+            class="btn btn-primary btn-sm">
+            Ver ficha técnica
+        </a>
+    `;
+
+    card.classList.remove("d-none");
+}
+
+function hideAdministrativeDivisionCard() {
+    const card =
+        document.getElementById(
+            "administrativeDivisionCard"
+        );
+
+    if (card) {
+        card.classList.add("d-none");
+    }
 }
 
 async function loadAdministrativeCountries() {
@@ -627,8 +783,11 @@ async function loadAdministrativeCountries() {
 
 async function loadAdministrativeDivision(
     tipo,
-    codigo
+    codigo,
+    nome
 ) {
+    hideAdministrativeDivisionCard();
+
     try {
         const url =
             `/api/divisoes/geometria?tipo=${encodeURIComponent(tipo)}&codigo=${encodeURIComponent(codigo)}`;
@@ -679,6 +838,14 @@ async function loadAdministrativeDivision(
             );
         }
 
+        hideSchoolCard();
+
+        showAdministrativeDivisionCard(
+            tipo,
+            codigo,
+            nome
+        );
+
     } catch (error) {
         console.error(
             "Erro ao desenhar divisão administrativa:",
@@ -692,6 +859,347 @@ async function loadAdministrativeDivision(
 
             administrativeDivisionLayer = null;
         }
+
+        hideAdministrativeDivisionCard();
+    }
+}
+
+async function restoreAdministrativeDivisionFromSheet() {
+    const saved =
+        sessionStorage.getItem(
+            "returnToAdministrativeMap"
+        );
+
+    if (!saved) {
+        return;
+    }
+
+    try {
+        const state =
+            JSON.parse(saved);
+
+        const countryFilter =
+            document.getElementById(
+                "administrativeCountryFilter"
+            );
+
+        const regionFilter =
+            document.getElementById(
+                "administrativeRegionFilter"
+            );
+
+        const ufFilter =
+            document.getElementById(
+                "administrativeUfFilter"
+            );
+
+        const municipalityFilter =
+            document.getElementById(
+                "administrativeMunicipalityFilter"
+            );
+
+        if (
+            !countryFilter ||
+            !regionFilter ||
+            !ufFilter ||
+            !municipalityFilter
+        ) {
+            return;
+        }
+
+        const response =
+            await fetch(
+                `/api/divisoes/ficha?tipo=${encodeURIComponent(state.tipo)}&codigo=${encodeURIComponent(state.codigo)}`
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `Erro ao recuperar divisão: ${response.status}`
+            );
+        }
+
+        const result =
+            await response.json();
+
+        if (result.erro) {
+            throw new Error(
+                result.erro
+            );
+        }
+
+        const data =
+            result.dados;
+
+        countryFilter.value = "1";
+
+        let regionCode = null;
+        let ufCode = null;
+        let municipalityCode = null;
+
+        if (state.tipo === "regiao") {
+
+            regionCode =
+                state.codigo;
+
+        } else if (state.tipo === "uf") {
+
+            regionCode =
+                data.CD_REGIAO;
+
+            ufCode =
+                state.codigo;
+
+        } else if (state.tipo === "municipio") {
+
+            regionCode =
+                data.CD_REGIAO;
+
+            ufCode =
+                data.CD_UF;
+
+            municipalityCode =
+                state.codigo;
+        }
+
+        if (state.tipo === "pais") {
+
+            const regionResponse =
+                await fetch(
+                    "/api/divisoes/regioes"
+                );
+
+            if (!regionResponse.ok) {
+                throw new Error(
+                    `Erro ao carregar regiões: ${regionResponse.status}`
+                );
+            }
+
+            const regions =
+                await regionResponse.json();
+
+            regionFilter.innerHTML = `
+                <option value="" selected disabled>
+                    Selecione...
+                </option>
+            `;
+
+            regions.forEach(region => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    region.codigo;
+
+                option.textContent =
+                    region.nome;
+
+                regionFilter.appendChild(
+                    option
+                );
+            });
+
+            regionFilter.disabled =
+                regions.length === 0;
+
+        } else {
+
+            if (regionCode != null) {
+
+                const regionResponse =
+                    await fetch(
+                        "/api/divisoes/regioes"
+                    );
+
+                if (!regionResponse.ok) {
+                    throw new Error(
+                        `Erro ao carregar regiões: ${regionResponse.status}`
+                    );
+                }
+
+                const regions =
+                    await regionResponse.json();
+
+                regionFilter.innerHTML = `
+                    <option value="" disabled>
+                        Selecione...
+                    </option>
+                `;
+
+                regions.forEach(region => {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        region.codigo;
+
+                    option.textContent =
+                        region.nome;
+
+                    regionFilter.appendChild(
+                        option
+                    );
+                });
+
+                regionFilter.value =
+                    String(regionCode);
+
+                regionFilter.disabled =
+                    false;
+            }
+        }
+
+        if (
+            state.tipo === "regiao" ||
+            state.tipo === "uf" ||
+            state.tipo === "municipio"
+        ) {
+            const ufResponse =
+                await fetch(
+                    `/api/divisoes/ufs?regiao=${encodeURIComponent(regionCode)}`
+                );
+
+            if (!ufResponse.ok) {
+                throw new Error(
+                    `Erro ao carregar UFs: ${ufResponse.status}`
+                );
+            }
+
+            const ufs =
+                await ufResponse.json();
+
+            ufFilter.innerHTML = `
+                <option value="" selected disabled>
+                    Selecione...
+                </option>
+            `;
+
+            ufs.forEach(uf => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    uf.codigo;
+
+                option.textContent =
+                    uf.nome;
+
+                ufFilter.appendChild(
+                    option
+                );
+            });
+
+            if (ufCode != null) {
+                ufFilter.value =
+                    String(ufCode);
+            }
+
+            ufFilter.disabled =
+                ufs.length === 0;
+        }
+
+        if (
+            state.tipo === "uf" ||
+            state.tipo === "municipio"
+        ) {
+            const municipalityResponse =
+                await fetch(
+                    `/api/divisoes/municipios?uf=${encodeURIComponent(ufCode)}`
+                );
+
+            if (!municipalityResponse.ok) {
+                throw new Error(
+                    `Erro ao carregar municípios: ${municipalityResponse.status}`
+                );
+            }
+
+            const municipalities =
+                await municipalityResponse.json();
+
+            municipalityFilter.innerHTML = `
+                <option value="" selected disabled>
+                    Selecione...
+                </option>
+            `;
+
+            municipalities.forEach(municipio => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    municipio.codigo;
+
+                option.textContent =
+                    municipio.nome;
+
+                municipalityFilter.appendChild(
+                    option
+                );
+            });
+
+            if (municipalityCode != null) {
+                municipalityFilter.value =
+                    String(municipalityCode);
+            }
+
+            municipalityFilter.disabled =
+                municipalities.length === 0;
+        }
+
+        let nome = "";
+
+        if (state.tipo === "municipio") {
+
+            nome =
+                data.NM_MUN;
+
+        } else if (state.tipo === "uf") {
+
+            nome =
+                data.NM_UF;
+
+        } else if (state.tipo === "regiao") {
+
+            nome =
+                data.NM_REGIAO;
+
+        } else if (state.tipo === "pais") {
+
+            nome =
+                data.Pais;
+        }
+
+        await loadAdministrativeDivision(
+            state.tipo,
+            state.codigo,
+            nome
+        );
+
+        updateAdministrativeConfirmButton();
+
+    } catch (error) {
+
+        console.error(
+            "Erro ao restaurar divisão administrativa:",
+            error
+        );
+
+    } finally {
+
+        sessionStorage.removeItem(
+            "returnToAdministrativeMap"
+        );
     }
 }
 
@@ -922,6 +1430,11 @@ function enterSpatialAnalysisMode() {
             "schoolCard"
         );
 
+    const administrativeDivisionCard =
+        document.getElementById(
+            "administrativeDivisionCard"
+        );
+
     const analysisEntry =
         document.getElementById(
             "spatialAnalysisEntry"
@@ -939,6 +1452,7 @@ function enterSpatialAnalysisMode() {
 
     clearSuggestions();
     hideSchoolCard();
+    hideAdministrativeDivisionCard();
 
     if (filtersPanel) {
         filtersPanel.classList.add(
@@ -966,6 +1480,12 @@ function enterSpatialAnalysisMode() {
 
     if (schoolCard) {
         schoolCard.classList.add(
+            "d-none"
+        );
+    }
+
+    if (administrativeDivisionCard) {
+        administrativeDivisionCard.classList.add(
             "d-none"
         );
     }
@@ -1214,6 +1734,7 @@ function exitSpatialAnalysisMode() {
         `;
 
         administrativeRegionFilter.value = "";
+        administrativeRegionFilter.disabled = true;
     }
 
     if (administrativeUfFilter) {
@@ -1863,7 +2384,9 @@ async function restoreSchoolFromSheet() {
             await response.json();
 
         if (school.erro) {
-            throw new Error(school.erro);
+            throw new Error(
+                school.erro
+            );
         }
 
         if (
@@ -1873,19 +2396,10 @@ async function restoreSchoolFromSheet() {
             return;
         }
 
-        selectedSchoolCode =
-            school.codigo;
-
-        const marker =
-            createPin(school);
-
-        selectedLayer.clearLayers();
-        selectedLayer.addLayer(marker);
-
         searchInput.value =
             school.nome || "";
 
-        showSuggestions([school]);
+        selectSchool(school);
 
         map.flyTo(
             [school.lat, school.lng],
@@ -2318,6 +2832,7 @@ window.addEventListener("load", () => {
     loadAdministrativeCountries();
     updateAdministrativeConfirmButton();
     restoreSchoolFromSheet();
+    restoreAdministrativeDivisionFromSheet();
 });
 
 setupClearSchoolInput();
@@ -2329,6 +2844,15 @@ document.addEventListener('click', (e) => {
         hideSuggestionsBox();
     }
 });
+
+document
+    .getElementById(
+        "closeAdministrativeDivisionCard"
+    )
+    .addEventListener(
+        "click",
+        hideAdministrativeDivisionCard
+    );
 
 document
     .getElementById("closeSchoolCard")
