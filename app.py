@@ -871,6 +871,86 @@ def get_division_sheet():
             "erro": "Erro interno ao carregar a divisão administrativa."
         }), 500
 
+@app.route('/api/divisoes/graficos')
+def generate_division_charts():
+    try:
+        tipo = request.args.get("tipo")
+        codigo = request.args.get("codigo", type=int)
+
+        if not tipo or codigo is None:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Parâmetros 'tipo' e 'codigo' são obrigatórios."
+            }), 400
+
+        tipos_validos = {"pais", "regiao", "uf", "municipio"}
+
+        if tipo not in tipos_validos:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Tipo de divisão administrativa inválido."
+            }), 400
+
+        questions = {
+            "matriculas": {
+                "modalidade": 89,
+                "genero": 91,
+                "raca": 93
+            },
+            "docentes": {
+                "modalidade": 88,
+                "genero": 92,
+                "raca": 94
+            },
+            "turmas": {
+                "modalidade": 90
+            }
+        }
+
+        urls = {}
+
+        for categoria, perguntas in questions.items():
+            urls[categoria] = {}
+
+            for nome, question_id in perguntas.items():
+                payload = {
+                    "resource": {
+                        "question": question_id
+                    },
+                    "params": {
+                        "tipo": tipo,
+                        "codigo": codigo
+                    },
+                    "exp": round(
+                        (
+                            datetime.datetime.now(datetime.timezone.utc)
+                            + datetime.timedelta(minutes=30)
+                        ).timestamp()
+                    )
+                }
+
+                token = jwt.encode(
+                    payload,
+                    METABASE_SECRET_KEY,
+                    algorithm="HS256"
+                )
+
+                urls[categoria][nome] = (
+                    f"{METABASE_SITE_URL}/embed/question/{token}"
+                    "?bordered=false&titled=false"
+                )
+
+        return jsonify({
+            "sucesso": True,
+            "urls": urls
+        })
+
+    except Exception as e:
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
 @app.route('/divisao/<tipo>/<int:codigo>')
 def division_page(tipo, codigo):
     tipos_validos = {

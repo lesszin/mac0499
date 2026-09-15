@@ -86,7 +86,7 @@ function createGroupCard(
                                     src="${group.chart}"
                                     frameborder="0"
                                     width="100%"
-                                    height="340"
+                                    height="420"
                                     allowtransparency="true"
                                     loading="lazy">
                                 </iframe>
