@@ -951,6 +951,260 @@ def generate_division_charts():
             "erro": str(e)
         }), 500
 
+@app.route('/api/divisoes/escolas')
+def get_division_schools():
+    try:
+        dependencia_map = {
+            "federal": 1,
+            "estadual": 2,
+            "municipal": 3,
+            "privada": 4
+        }
+
+        localizacao_map = {
+            "urbano": 1,
+            "rural": 2
+        }
+
+        tipo = request.args.get("tipo")
+        codigo = request.args.get("codigo", type=int)
+        categoria = request.args.get("categoria")
+        filtro = request.args.get("filtro")
+
+        limite = request.args.get(
+            "limite",
+            default=10,
+            type=int
+        )
+
+        offset = request.args.get(
+            "offset",
+            default=0,
+            type=int
+        )
+
+        tipos_validos = {
+            "pais",
+            "regiao",
+            "uf",
+            "municipio"
+        }
+
+        categorias_validas = {
+            "modalidade",
+            "dependencia",
+            "localizacao"
+        }
+
+        if tipo not in tipos_validos:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Tipo de divisão administrativa inválido."
+            }), 400
+
+        if codigo is None:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Código da divisão é obrigatório."
+            }), 400
+
+        if categoria not in categorias_validas:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Categoria de filtro inválida."
+            }), 400
+
+        if not filtro:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Filtro escolar é obrigatório."
+            }), 400
+
+        query = """
+            SELECT
+                e."CO_ENTIDADE",
+                e."NO_ENTIDADE",
+                e."NO_MUNICIPIO",
+                e."SG_UF",
+                e."LATITUDE",
+                e."LONGITUDE",
+                COUNT(*) OVER() AS total
+            FROM dim_escola e
+            WHERE e."TP_SITUACAO_FUNCIONAMENTO" = 1
+        """
+
+        params = {
+            "limite": limite,
+            "offset": offset
+        }
+
+        if tipo == "regiao":
+            query += """
+                AND e."CO_REGIAO" = :codigo
+            """
+
+            params["codigo"] = codigo
+
+        elif tipo == "uf":
+            query += """
+                AND e."CO_UF" = :codigo
+            """
+
+            params["codigo"] = codigo
+
+        elif tipo == "municipio":
+            query += """
+                AND e."CO_MUNICIPIO" = :codigo
+            """
+
+            params["codigo"] = codigo
+
+        if categoria == "dependencia":
+            dependencia = dependencia_map.get(filtro)
+
+            if dependencia is None:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Dependência administrativa inválida."
+                }), 400
+
+            query += """
+                AND e."TP_DEPENDENCIA" = :dependencia
+            """
+
+            params["dependencia"] = dependencia
+
+        elif categoria == "localizacao":
+            localizacao = localizacao_map.get(filtro)
+
+            if localizacao is None:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Localização inválida."
+                }), 400
+
+            query += """
+                AND e."TP_LOCALIZACAO" = :localizacao
+            """
+
+            params["localizacao"] = localizacao
+
+        elif categoria == "modalidade":
+
+            filter_map = {
+                "creche":
+                    't."QT_TUR_INF_CRE" > 0',
+
+                "pre_escola":
+                    't."QT_TUR_INF_PRE" > 0',
+
+                "fund_ai":
+                    't."QT_TUR_FUND_AI" > 0',
+
+                "fund_af":
+                    't."QT_TUR_FUND_AF" > 0',
+
+                "medio":
+                    't."QT_TUR_MED" > 0',
+
+                "medio_int":
+                    't."QT_TUR_PROF" > 0',
+
+                "eja_fund":
+                    't."QT_TUR_EJA_FUND" > 0',
+
+                "eja_med":
+                    't."QT_TUR_EJA_MED" > 0'
+            }
+
+            if filtro == "tecnico":
+
+                query += """
+                    AND EXISTS (
+                        SELECT 1
+                        FROM fato_curso c
+                        WHERE c."CO_ENTIDADE" =
+                              e."CO_ENTIDADE"
+                          AND c."NU_ANO_CENSO" = 2025
+                    )
+                """
+
+            elif filtro in filter_map:
+
+                query += f"""
+                    AND EXISTS (
+                        SELECT 1
+                        FROM fato_turma t
+                        WHERE t."CO_ENTIDADE" =
+                              e."CO_ENTIDADE"
+                          AND t."NU_ANO_CENSO" = 2025
+                          AND {filter_map[filtro]}
+                    )
+                """
+
+            else:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Modalidade inválida."
+                }), 400
+
+        query += """
+            ORDER BY e."NO_ENTIDADE"
+            LIMIT :limite
+            OFFSET :offset
+        """
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                text(query),
+                params
+            ).fetchall()
+
+        total = (
+            int(results[0][6])
+            if results
+            else 0
+        )
+
+        escolas = [
+            {
+                "codigo": row[0],
+                "nome": row[1],
+                "cidade": row[2],
+                "estado": row[3],
+                "lat": (
+                    float(row[4])
+                    if row[4] is not None
+                    else None
+                ),
+                "lng": (
+                    float(row[5])
+                    if row[5] is not None
+                    else None
+                )
+            }
+            for row in results
+        ]
+
+        return jsonify({
+            "sucesso": True,
+            "escolas": escolas,
+            "total": total,
+            "limite": limite,
+            "offset": offset,
+            "quantidade": len(escolas)
+        })
+
+    except Exception as e:
+        print(
+            f"Error in division schools route: {e}"
+        )
+
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
 @app.route('/divisao/<tipo>/<int:codigo>')
 def division_page(tipo, codigo):
     tipos_validos = {

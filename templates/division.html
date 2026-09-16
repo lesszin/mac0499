@@ -41,6 +41,24 @@
                 </p>
             </div>
         </div>
+        <ul class="nav nav-tabs mb-4 border-bottom-0">
+            <li class="nav-item">
+                <a
+                    class="nav-link active"
+                    id="btnSheet"
+                    onclick="switchTab('sheet')">
+                    Ficha
+                </a>
+            </li>
+            <li class="nav-item">
+                <a
+                    class="nav-link"
+                    id="btnSchools"
+                    onclick="switchTab('schools')">
+                    Escolas
+                </a>
+            </li>
+        </ul>
         <div id="contentSheet">
             <div id="dataSheet">
                 <div class="text-center py-5">
@@ -50,6 +68,9 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div id="contentSchools" class="tab-hidden">
+            <div id="schoolsSheet"></div>
         </div>
     </div>
     <script>

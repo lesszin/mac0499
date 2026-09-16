@@ -230,8 +230,7 @@ function createComparisonSuggestion(school) {
 
     let distanceHtml = "";
 
-    const savedLocation =
-        sessionStorage.getItem("userLocation");
+    const savedLocation = localStorage.getItem("userLocation");
 
     if (
         savedLocation &&

@@ -80,8 +80,7 @@ const greenIcon = L.divIcon({
     iconAnchor: [14, 40]
 });
 
-const savedUserLocation =
-    sessionStorage.getItem("userLocation");
+const savedUserLocation = localStorage.getItem("userLocation");
 
 if (savedUserLocation) {
     try {
@@ -2055,8 +2054,7 @@ function setupClearSchoolInput() {
 }
 
 function renderSavedUserLocation() {
-    const savedLocation =
-        sessionStorage.getItem("userLocation");
+    const savedLocation = localStorage.getItem("userLocation");
 
     if (!savedLocation) {
         return;
@@ -2891,7 +2889,7 @@ map.on("locationfound", function (e) {
         lng: e.latlng.lng
     };
 
-    sessionStorage.setItem(
+    localStorage.setItem(
         "userLocation",
         JSON.stringify(userLocation)
     );
