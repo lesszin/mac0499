@@ -790,6 +790,177 @@ def get_comparison_data(school_code, comparison_school_code, categoria, indicado
         "comparacao": comparison
     }
 
+def get_division_evolution_summary(
+    tipo,
+    codigo,
+    categoria,
+    indicador
+):
+    queries = {
+        "matriculas": {
+            "total": text("""
+                SELECT
+                    m."NU_ANO_CENSO" AS ano,
+                    SUM(
+                        COALESCE(
+                            m."QT_MAT_BAS",
+                            0
+                        )
+                    ) AS valor
+
+                FROM fato_matricula m
+
+                JOIN dim_escola e
+                    ON e."CO_ENTIDADE" =
+                       m."CO_ENTIDADE"
+
+                WHERE
+                    (
+                        :tipo = 'pais'
+
+                        OR (
+                            :tipo = 'regiao'
+                            AND e."CO_REGIAO" = :codigo
+                        )
+
+                        OR (
+                            :tipo = 'uf'
+                            AND e."CO_UF" = :codigo
+                        )
+
+                        OR (
+                            :tipo = 'municipio'
+                            AND e."CO_MUNICIPIO" = :codigo
+                        )
+                    )
+
+                GROUP BY
+                    m."NU_ANO_CENSO"
+
+                ORDER BY
+                    m."NU_ANO_CENSO"
+            """)
+        },
+
+        "docentes": {
+            "total": text("""
+                SELECT
+                    d."NU_ANO_CENSO" AS ano,
+                    SUM(
+                        COALESCE(
+                            d."QT_DOC_BAS",
+                            0
+                        )
+                    ) AS valor
+
+                FROM fato_docente d
+
+                JOIN dim_escola e
+                    ON e."CO_ENTIDADE" =
+                       d."CO_ENTIDADE"
+
+                WHERE
+                    (
+                        :tipo = 'pais'
+
+                        OR (
+                            :tipo = 'regiao'
+                            AND e."CO_REGIAO" = :codigo
+                        )
+
+                        OR (
+                            :tipo = 'uf'
+                            AND e."CO_UF" = :codigo
+                        )
+
+                        OR (
+                            :tipo = 'municipio'
+                            AND e."CO_MUNICIPIO" = :codigo
+                        )
+                    )
+
+                GROUP BY
+                    d."NU_ANO_CENSO"
+
+                ORDER BY
+                    d."NU_ANO_CENSO"
+            """)
+        },
+
+        "turmas": {
+            "total": text("""
+                SELECT
+                    t."NU_ANO_CENSO" AS ano,
+                    SUM(
+                        COALESCE(
+                            t."QT_TUR_BAS",
+                            0
+                        )
+                    ) AS valor
+
+                FROM fato_turma t
+
+                JOIN dim_escola e
+                    ON e."CO_ENTIDADE" =
+                       t."CO_ENTIDADE"
+
+                WHERE
+                    (
+                        :tipo = 'pais'
+
+                        OR (
+                            :tipo = 'regiao'
+                            AND e."CO_REGIAO" = :codigo
+                        )
+
+                        OR (
+                            :tipo = 'uf'
+                            AND e."CO_UF" = :codigo
+                        )
+
+                        OR (
+                            :tipo = 'municipio'
+                            AND e."CO_MUNICIPIO" = :codigo
+                        )
+                    )
+
+                GROUP BY
+                    t."NU_ANO_CENSO"
+
+                ORDER BY
+                    t."NU_ANO_CENSO"
+            """)
+        }
+    }
+
+    if categoria not in queries:
+        return None
+
+    if indicador not in queries[categoria]:
+        return None
+
+    with engine.connect() as connection:
+
+        result = connection.execute(
+            queries[categoria][indicador],
+            {
+                "tipo": tipo,
+                "codigo": codigo
+            }
+        ).fetchall()
+
+    data = [
+        {
+            "ano": row.ano,
+            "valor": row.valor
+        }
+        for row in result
+    ]
+
+    return calculate_time_series_summary(
+        data
+    )
+
 @app.route('/api/divisoes/ficha')
 def get_division_sheet():
     try:
@@ -948,6 +1119,166 @@ def generate_division_charts():
     except Exception as e:
         return jsonify({
             "sucesso": False,
+            "erro": str(e)
+        }), 500
+
+@app.route('/api/divisoes/evolucao')
+def generate_division_evolution_charts():
+    try:
+        tipo = request.args.get("tipo")
+        codigo = request.args.get("codigo", type=int)
+
+        if not tipo or codigo is None:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Parâmetros 'tipo' e 'codigo' são obrigatórios."
+            }), 400
+
+        tipos_validos = {
+            "pais",
+            "regiao",
+            "uf",
+            "municipio"
+        }
+
+        if tipo not in tipos_validos:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Tipo de divisão administrativa inválido."
+            }), 400
+
+        questions = {
+            "matriculas": {
+                "total": 95,
+                "variacao": 98,
+                "evolucao_modalidade": 101,
+                "participacao_modalidade": 104,
+                "crescimento_modalidade": 108,
+                "evolucao_genero": 107,
+                "participacao_genero": 111,
+                "evolucao_raca": 112,
+                "participacao_raca": 113,
+                "crescimento_raca": 114
+            },
+
+            "docentes": {
+                "total": 96,
+                "variacao": 99,
+                "evolucao_modalidade": 102,
+                "participacao_modalidade": 105,
+                "crescimento_modalidade": 109
+            },
+
+            "turmas": {
+                "total": 97,
+                "variacao": 100,
+                "evolucao_modalidade": 103,
+                "participacao_modalidade": 106,
+                "crescimento_modalidade": 110
+            }
+        }
+
+        urls = {}
+
+        for categoria, perguntas in questions.items():
+            urls[categoria] = {}
+
+            for nome, question_id in perguntas.items():
+
+                payload = {
+                    "resource": {
+                        "question": question_id
+                    },
+
+                    "params": {
+                        "tipo": tipo,
+                        "codigo": codigo
+                    },
+
+                    "exp": round(
+                        (
+                            datetime.datetime.now(
+                                datetime.timezone.utc
+                            )
+                            + datetime.timedelta(
+                                minutes=30
+                            )
+                        ).timestamp()
+                    )
+                }
+
+                token = jwt.encode(
+                    payload,
+                    METABASE_SECRET_KEY,
+                    algorithm="HS256"
+                )
+
+                urls[categoria][nome] = (
+                    f"{METABASE_SITE_URL}/embed/question/{token}"
+                    "?bordered=false&titled=false"
+                )
+
+        return jsonify({
+            "sucesso": True,
+            "urls": urls
+        })
+
+    except Exception as e:
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
+@app.route(
+    "/api/divisoes/evolucao/resumo/<categoria>/<indicador>"
+)
+def division_evolution_summary(
+    categoria,
+    indicador
+):
+    try:
+        tipo = request.args.get("tipo")
+        codigo = request.args.get(
+            "codigo",
+            type=int
+        )
+
+        tipos_validos = {
+            "pais",
+            "regiao",
+            "uf",
+            "municipio"
+        }
+
+        if tipo not in tipos_validos:
+            return jsonify({
+                "erro":
+                    "Tipo de divisão administrativa inválido."
+            }), 400
+
+        if codigo is None:
+            return jsonify({
+                "erro":
+                    "Código da divisão é obrigatório."
+            }), 400
+
+        summary = get_division_evolution_summary(
+            tipo,
+            codigo,
+            categoria,
+            indicador
+        )
+
+        if summary is None:
+            return jsonify({
+                "erro":
+                    "Categoria ou indicador inválido."
+            }), 404
+
+        return jsonify(summary)
+
+    except Exception as e:
+        return jsonify({
             "erro": str(e)
         }), 500
 
