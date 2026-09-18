@@ -961,6 +961,273 @@ def get_division_evolution_summary(
         data
     )
 
+def get_division_comparison_data(
+    tipo,
+    codigo,
+    tipo_comparacao,
+    codigo_comparacao,
+    categoria,
+    indicador,
+    filtro=None
+):
+    metric_queries = {
+        "matriculas": {
+            "total": """
+                SUM(m."QT_MAT_BAS")
+            """,
+
+            "modalidade": """
+                SUM(
+                    CASE
+                        WHEN :filtro = 'Educação Infantil - Creche'
+                            THEN m."QT_MAT_INF_CRE"
+                        WHEN :filtro = 'Educação Infantil - Pré-Escola'
+                            THEN m."QT_MAT_INF_PRE"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Iniciais'
+                            THEN m."QT_MAT_FUND_AI"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Finais'
+                            THEN m."QT_MAT_FUND_AF"
+                        WHEN :filtro = 'Ensino Médio'
+                            THEN m."QT_MAT_MED"
+                        WHEN :filtro = 'Educação Profissional'
+                            THEN m."QT_MAT_PROF"
+                        WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
+                            THEN m."QT_MAT_EJA"
+                        WHEN :filtro = 'Educação Especial'
+                            THEN m."QT_MAT_ESP"
+                        ELSE 0
+                    END
+                )
+            """,
+
+            "genero": """
+                SUM(
+                    CASE
+                        WHEN :filtro = 'Masculino'
+                            THEN m."QT_MAT_BAS_MASC"
+                        WHEN :filtro = 'Feminino'
+                            THEN m."QT_MAT_BAS_FEM"
+                        ELSE 0
+                    END
+                )
+            """,
+
+            "raca": """
+                SUM(
+                    CASE
+                        WHEN :filtro = 'Não Declarada'
+                            THEN m."QT_MAT_BAS_ND"
+                        WHEN :filtro = 'Branca'
+                            THEN m."QT_MAT_BAS_BRANCA"
+                        WHEN :filtro = 'Preta'
+                            THEN m."QT_MAT_BAS_PRETA"
+                        WHEN :filtro = 'Parda'
+                            THEN m."QT_MAT_BAS_PARDA"
+                        WHEN :filtro = 'Amarela'
+                            THEN m."QT_MAT_BAS_AMARELA"
+                        WHEN :filtro = 'Indígena'
+                            THEN m."QT_MAT_BAS_INDIGENA"
+                        ELSE 0
+                    END
+                )
+            """
+        },
+
+        "docentes": {
+            "total": """
+                SUM(d."QT_DOC_BAS")
+            """,
+
+            "modalidade": """
+                SUM(
+                    CASE
+                        WHEN :filtro = 'Educação Infantil - Creche'
+                            THEN d."QT_DOC_INF_CRE"
+                        WHEN :filtro = 'Educação Infantil - Pré-Escola'
+                            THEN d."QT_DOC_INF_PRE"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Iniciais'
+                            THEN d."QT_DOC_FUND_AI"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Finais'
+                            THEN d."QT_DOC_FUND_AF"
+                        WHEN :filtro = 'Ensino Médio'
+                            THEN d."QT_DOC_MED"
+                        WHEN :filtro = 'Educação Profissional'
+                            THEN d."QT_DOC_PROF"
+                        WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
+                            THEN d."QT_DOC_EJA"
+                        WHEN :filtro = 'Educação Especial'
+                            THEN d."QT_DOC_ESP"
+                        ELSE 0
+                    END
+                )
+            """
+        },
+
+        "turmas": {
+            "total": """
+                SUM(t."QT_TUR_BAS")
+            """,
+
+            "modalidade": """
+                SUM(
+                    CASE
+                        WHEN :filtro = 'Educação Infantil - Creche'
+                            THEN t."QT_TUR_INF_CRE"
+                        WHEN :filtro = 'Educação Infantil - Pré-Escola'
+                            THEN t."QT_TUR_INF_PRE"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Iniciais'
+                            THEN t."QT_TUR_FUND_AI"
+                        WHEN :filtro = 'Ensino Fundamental - Anos Finais'
+                            THEN t."QT_TUR_FUND_AF"
+                        WHEN :filtro = 'Ensino Médio'
+                            THEN t."QT_TUR_MED"
+                        WHEN :filtro = 'Educação Profissional'
+                            THEN t."QT_TUR_PROF"
+                        WHEN :filtro = 'Educação de Jovens e Adultos (EJA)'
+                            THEN t."QT_TUR_EJA"
+                        WHEN :filtro = 'Educação Especial'
+                            THEN t."QT_TUR_ESP"
+                        ELSE 0
+                    END
+                )
+            """
+        }
+    }
+
+    if categoria not in metric_queries:
+        return None
+
+    if indicador not in metric_queries[categoria]:
+        return None
+
+    metric = metric_queries[categoria][indicador]
+
+    if categoria == "matriculas":
+        table = "fato_matricula"
+        alias = "m"
+
+    elif categoria == "docentes":
+        table = "fato_docente"
+        alias = "d"
+
+    else:
+        table = "fato_turma"
+        alias = "t"
+
+    query = text(f"""
+        SELECT
+            {alias}."NU_ANO_CENSO" AS ano,
+            {metric} AS valor
+
+        FROM {table} {alias}
+
+        JOIN dim_escola e
+            ON e."CO_ENTIDADE" = {alias}."CO_ENTIDADE"
+
+        WHERE
+            (
+                :tipo = 'pais'
+
+                OR (
+                    :tipo = 'regiao'
+                    AND e."CO_REGIAO" = :codigo
+                )
+
+                OR (
+                    :tipo = 'uf'
+                    AND e."CO_UF" = :codigo
+                )
+
+                OR (
+                    :tipo = 'municipio'
+                    AND e."CO_MUNICIPIO" = :codigo
+                )
+            )
+
+        GROUP BY
+            {alias}."NU_ANO_CENSO"
+
+        ORDER BY
+            {alias}."NU_ANO_CENSO"
+    """)
+
+    params_main = {
+        "tipo": tipo,
+        "codigo": codigo,
+        "filtro": filtro
+    }
+
+    params_comparison = {
+        "tipo": tipo_comparacao,
+        "codigo": codigo_comparacao,
+        "filtro": filtro
+    }
+
+    with engine.connect() as connection:
+
+        result_main = connection.execute(
+            query,
+            params_main
+        ).fetchall()
+
+        result_comparison = connection.execute(
+            query,
+            params_comparison
+        ).fetchall()
+
+    main_data = [
+        {
+            "ano": row.ano,
+            "valor": row.valor
+        }
+        for row in result_main
+    ]
+
+    comparison_data = [
+        {
+            "ano": row.ano,
+            "valor": row.valor
+        }
+        for row in result_comparison
+    ]
+
+    main_by_year = {
+        item["ano"]: item["valor"]
+        for item in main_data
+    }
+
+    comparison_by_year = {
+        item["ano"]: item["valor"]
+        for item in comparison_data
+    }
+
+    common_years = sorted(
+        set(main_by_year) &
+        set(comparison_by_year)
+    )
+
+    comparison = None
+
+    if common_years:
+        ano = common_years[-1]
+
+        valor_principal = main_by_year[ano]
+        valor_comparado = comparison_by_year[ano]
+        diferenca = valor_principal - valor_comparado
+
+        comparison = {
+            "ano": ano,
+            "valor_principal": valor_principal,
+            "valor_comparado": valor_comparado,
+            "diferenca": diferenca
+        }
+
+    return {
+        "divisao_principal": main_data,
+        "divisao_comparada": comparison_data,
+        "comparacao": comparison
+    }
+
 @app.route('/api/divisoes/ficha')
 def get_division_sheet():
     try:
@@ -1230,6 +1497,155 @@ def generate_division_evolution_charts():
         }), 500
 
 @app.route(
+    '/api/busca-divisao/<string:tipo>/<string:text_query>'
+)
+def search_divisions(tipo, text_query):
+    try:
+        configs = {
+            "regiao": {
+                "table": "dim_regiao",
+                "code": "CD_REGIAO",
+                "name": "NM_REGIAO",
+                "description": "Brasil"
+            },
+
+            "uf": {
+                "table": "dim_uf",
+                "code": "CD_UF",
+                "name": "NM_UF"
+            },
+
+            "municipio": {
+                "table": "dim_municipio",
+                "code": "CD_MUN",
+                "name": "NM_MUN"
+            }
+        }
+
+        if tipo not in configs:
+            return jsonify({
+                "erro":
+                    "Tipo de divisão administrativa inválido para comparação."
+            }), 400
+
+        codigo_atual = request.args.get(
+            "codigo",
+            type=int
+        )
+
+        words = text_query.split()
+
+        if not words:
+            return jsonify([])
+
+        config = configs[tipo]
+
+        if tipo == "municipio":
+            search_clauses = " AND ".join(
+                [
+                    f'dm."{config["name"]}" ILIKE :word_{i}'
+                    for i in range(len(words))
+                ]
+            )
+
+            query_string = f"""
+                SELECT
+                    dm."{config["code"]}",
+                    dm."{config["name"]}",
+                    dm."NM_UF"
+                FROM {config["table"]} dm
+                WHERE {search_clauses}
+            """
+
+        elif tipo == "uf":
+            search_clauses = " AND ".join(
+                [
+                    f'du."{config["name"]}" ILIKE :word_{i}'
+                    for i in range(len(words))
+                ]
+            )
+
+            query_string = f"""
+                SELECT
+                    du."{config["code"]}",
+                    du."{config["name"]}",
+                    du."NM_REGIAO"
+                FROM {config["table"]} du
+                WHERE {search_clauses}
+            """
+
+        else:
+            search_clauses = " AND ".join(
+                [
+                    f'dr."{config["name"]}" ILIKE :word_{i}'
+                    for i in range(len(words))
+                ]
+            )
+
+            query_string = f"""
+                SELECT
+                    dr."{config["code"]}",
+                    dr."{config["name"]}"
+                FROM {config["table"]} dr
+                WHERE {search_clauses}
+            """
+
+        params = {
+            f"word_{i}": f"%{word}%"
+            for i, word in enumerate(words)
+        }
+
+        if codigo_atual is not None:
+            query_string += f"""
+                AND "{config["code"]}" <> :codigo_atual
+            """
+
+            params["codigo_atual"] = codigo_atual
+
+        query_string += f"""
+            ORDER BY "{config["name"]}"
+            LIMIT 100
+        """
+
+        query = text(query_string)
+
+        with engine.connect() as connection:
+            results = connection.execute(
+                query,
+                params
+            ).fetchall()
+
+        divisions = []
+
+        for row in results:
+
+            if tipo == "regiao":
+                descricao = "Brasil"
+
+            elif tipo == "uf":
+                descricao = row[2]
+
+            else:
+                descricao = row[2]
+
+            divisions.append({
+                "codigo": row[0],
+                "nome": row[1],
+                "descricao": descricao
+            })
+
+        return jsonify(divisions)
+
+    except Exception as e:
+        print(
+            f"Error in division search route: {e}"
+        )
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+@app.route(
     '/api/divisoes/comparacao/grafico/<string:categoria>/<string:indicador>'
 )
 def generate_division_comparison_chart(
@@ -1422,6 +1838,70 @@ def generate_division_comparison_chart(
             "sucesso": False,
             "erro": str(e)
         }), 500
+
+@app.route(
+    "/api/divisoes/comparacao/<string:categoria>/<string:indicador>"
+)
+def division_comparison_data(categoria, indicador):
+
+    tipo = request.args.get("tipo")
+
+    codigo = request.args.get(
+        "codigo",
+        type=int
+    )
+
+    tipo_comparacao = request.args.get(
+        "tipo_comparacao"
+    )
+
+    codigo_comparacao = request.args.get(
+        "codigo_comparacao",
+        type=int
+    )
+
+    filtro = request.args.get(
+        "filtro"
+    )
+
+    tipos_validos = {
+        "pais",
+        "regiao",
+        "uf",
+        "municipio"
+    }
+
+    if (
+        tipo not in tipos_validos
+        or tipo_comparacao not in tipos_validos
+        or codigo is None
+        or codigo_comparacao is None
+    ):
+        return jsonify({
+            "erro": "Parâmetros de divisão inválidos."
+        }), 400
+
+    if tipo != tipo_comparacao:
+        return jsonify({
+            "erro": "A comparação deve ser feita entre divisões do mesmo tipo."
+        }), 400
+
+    data = get_division_comparison_data(
+        tipo,
+        codigo,
+        tipo_comparacao,
+        codigo_comparacao,
+        categoria,
+        indicador,
+        filtro
+    )
+
+    if data is None:
+        return jsonify({
+            "erro": "Categoria ou indicador inválido."
+        }), 404
+
+    return jsonify(data)
 
 @app.route(
     "/api/divisoes/evolucao/resumo/<categoria>/<indicador>"

@@ -2,7 +2,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
     <title>MAC0499</title>
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -58,6 +60,16 @@
                     Evolução
                 </a>
             </li>
+            <li
+                class="nav-item"
+                id="comparisonTab">
+                <a
+                    class="nav-link"
+                    id="btnComparison"
+                    onclick="switchTab('comparison')">
+                    Comparação
+                </a>
+            </li>
             <li class="nav-item">
                 <a
                     class="nav-link"
@@ -77,11 +89,17 @@
                 </div>
             </div>
         </div>
-        <div id="contentEvolution" class="tab-hidden">
+        <div
+            id="contentEvolution"
+            class="tab-hidden">
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body">
-                    <div id="chartPlaceholder" class="px-3">
-                        <i class="bi bi-bar-chart-line fs-1 text-muted"></i>
+                    <div
+                        id="chartPlaceholder"
+                        class="px-3">
+                        <i
+                            class="bi bi-bar-chart-line fs-1 text-muted">
+                        </i>
                         <h5 class="mt-3">
                             Evolução da Divisão
                         </h5>
@@ -103,7 +121,13 @@
                     <div
                         id="evolutionLoader"
                         class="d-none text-center py-5">
-                        ...
+                        <div
+                            class="spinner-border text-primary"
+                            role="status">
+                        </div>
+                        <p class="text-muted mt-3 mb-0">
+                            Carregando gráfico...
+                        </p>
                     </div>
                     <div
                         id="chartSummary"
@@ -118,13 +142,112 @@
                 </div>
             </div>
         </div>
-        <div id="contentSchools" class="tab-hidden">
+        <div id="contentComparison" class="tab-hidden">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body">
+                    <div id="comparisonContent">
+                        <div id="comparisonSearchState">
+                            <h5 class="mb-2">
+                                Comparar com outra divisão
+                            </h5>
+                            <p class="text-muted mb-3">
+                                Selecione uma divisão para comparar sua evolução.
+                            </p>
+                            <div class="position-relative">
+                                <input
+                                    type="text"
+                                    id="comparisonSearchInput"
+                                    class="form-control"
+                                    placeholder="Digite o nome da divisão..."
+                                    autocomplete="off">
+                                <button
+                                    type="button"
+                                    id="clearComparisonSearchInput"
+                                    class="btn btn-link text-muted position-absolute top-50 end-0 translate-middle-y d-none"
+                                    aria-label="Limpar busca">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                                <div
+                                    id="comparisonSuggestions"
+                                    class="list-group position-absolute w-100 shadow-sm d-none"
+                                    style="z-index: 1000;">
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            id="comparisonSelectedState"
+                            class="d-none">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <small class="text-muted">
+                                        Divisão selecionada para comparação
+                                    </small>
+                                    <h5
+                                        id="comparisonSelectedName"
+                                        class="fw-bold mb-1">
+                                    </h5>
+                                    <p
+                                        id="comparisonSelectedDescription"
+                                        class="text-muted mb-0">
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    id="changeComparisonDivision"
+                                    class="btn btn-outline-secondary btn-sm">
+                                    Trocar divisão
+                                </button>
+                            </div>
+                            <hr class="my-4">
+                            <div id="comparisonIndicators">
+                                <div
+                                    id="comparisonIndicatorMessage"
+                                    class="mb-4">
+                                    <i class="bi bi-arrow-left-right fs-1 text-muted"></i>
+                                    <h5 class="mt-3">
+                                        O que deseja comparar?
+                                    </h5>
+                                    <p class="text-muted mt-3 mb-0">
+                                        Selecione um indicador para comparar.
+                                    </p>
+                                </div>
+                                <div
+                                    id="comparisonMainCategoryButtons"
+                                    class="d-flex justify-content-center gap-2 flex-wrap">
+                                </div>
+                                <div
+                                    id="comparisonSubCategoryButtons"
+                                    class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+                                </div>
+                            </div>
+                            <hr
+                                id="comparisonResultSeparator"
+                                class="my-4 d-none">
+                            <div
+                                id="comparisonSummary"
+                                class="d-none mb-4">
+                            </div>
+                            <iframe
+                                id="comparisonMetabasePlayer"
+                                class="w-100 d-none mt-4"
+                                height="650"
+                                frameborder="0">
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div
+            id="contentSchools"
+            class="tab-hidden">
             <div id="schoolsSheet"></div>
         </div>
     </div>
     <script>
         window.DIVISION_TYPE =
             "{{ tipo }}";
+
         window.DIVISION_CODE =
             Number("{{ codigo }}");
     </script>

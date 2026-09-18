@@ -1,14 +1,20 @@
 import "./division/sheet.js";
 import "./division/school.js";
 import "./division/evolution.js";
+import "./division/comparison.js";
 
 function switchTab(tabName) {
+
     document.getElementById(
         "contentSheet"
     ).style.display = "none";
 
     document.getElementById(
         "contentEvolution"
+    ).style.display = "none";
+
+    document.getElementById(
+        "contentComparison"
     ).style.display = "none";
 
     document.getElementById(
@@ -24,8 +30,13 @@ function switchTab(tabName) {
     ).classList.remove("active");
 
     document.getElementById(
+        "btnComparison"
+    ).classList.remove("active");
+
+    document.getElementById(
         "btnSchools"
     ).classList.remove("active");
+
 
     if (tabName === "sheet") {
 
@@ -36,6 +47,7 @@ function switchTab(tabName) {
         document.getElementById(
             "btnSheet"
         ).classList.add("active");
+
 
     } else if (tabName === "evolution") {
 
@@ -50,6 +62,22 @@ function switchTab(tabName) {
         if (window.initializeEvolution) {
             window.initializeEvolution();
         }
+
+
+    } else if (tabName === "comparison") {
+
+        document.getElementById(
+            "contentComparison"
+        ).style.display = "block";
+
+        document.getElementById(
+            "btnComparison"
+        ).classList.add("active");
+
+        if (window.initializeComparison) {
+            window.initializeComparison();
+        }
+
 
     } else if (tabName === "schools") {
 
@@ -66,5 +94,21 @@ function switchTab(tabName) {
         }
     }
 }
+
+
+if (window.DIVISION_TYPE === "pais") {
+
+    const comparisonTab =
+        document.getElementById(
+            "comparisonTab"
+        );
+
+    if (comparisonTab) {
+        comparisonTab.classList.add(
+            "d-none"
+        );
+    }
+}
+
 
 window.switchTab = switchTab;
