@@ -1230,6 +1230,200 @@ def generate_division_evolution_charts():
         }), 500
 
 @app.route(
+    '/api/divisoes/comparacao/grafico/<string:categoria>/<string:indicador>'
+)
+def generate_division_comparison_chart(
+    categoria,
+    indicador
+):
+    try:
+        tipo = request.args.get("tipo")
+        codigo = request.args.get(
+            "codigo",
+            type=int
+        )
+
+        tipo_comparacao = request.args.get(
+            "tipo_comparacao"
+        )
+
+        codigo_comparacao = request.args.get(
+            "codigo_comparacao",
+            type=int
+        )
+
+        filtro = request.args.get("filtro")
+
+        tipos_validos = {
+            "pais",
+            "regiao",
+            "uf",
+            "municipio"
+        }
+
+        if tipo not in tipos_validos:
+            return jsonify({
+                "sucesso": False,
+                "erro":
+                    "Tipo de divisão administrativa inválido."
+            }), 400
+
+        if tipo_comparacao not in tipos_validos:
+            return jsonify({
+                "sucesso": False,
+                "erro":
+                    "Tipo de divisão administrativa da comparação inválido."
+            }), 400
+
+        if codigo is None:
+            return jsonify({
+                "sucesso": False,
+                "erro":
+                    "Código da divisão é obrigatório."
+            }), 400
+
+        if codigo_comparacao is None:
+            return jsonify({
+                "sucesso": False,
+                "erro":
+                    "Código da divisão de comparação é obrigatório."
+            }), 400
+
+        questions = {
+            "matriculas": {
+                "total": 115,
+                "modalidade": 118,
+                "genero": 121,
+                "raca": 122
+            },
+
+            "docentes": {
+                "total": 116,
+                "modalidade": 119
+            },
+
+            "turmas": {
+                "total": 117,
+                "modalidade": 120
+            }
+        }
+
+        if categoria not in questions:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Categoria inválida."
+            }), 400
+
+        if indicador not in questions[categoria]:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Indicador inválido."
+            }), 400
+
+        question_id = questions[categoria][indicador]
+
+        filter_options = {
+            "modalidade": [
+                "Educação Infantil - Creche",
+                "Educação Infantil - Pré-Escola",
+                "Ensino Fundamental - Anos Iniciais",
+                "Ensino Fundamental - Anos Finais",
+                "Ensino Médio",
+                "Educação Profissional",
+                "Educação de Jovens e Adultos (EJA)",
+                "Educação Especial"
+            ],
+
+            "genero": [
+                "Masculino",
+                "Feminino"
+            ],
+
+            "raca": [
+                "Não Declarada",
+                "Branca",
+                "Preta",
+                "Parda",
+                "Amarela",
+                "Indígena"
+            ]
+        }
+
+        if indicador in filter_options:
+
+            if not filtro:
+                return jsonify({
+                    "sucesso": False,
+                    "erro":
+                        "É necessário informar um filtro para este indicador."
+                }), 400
+
+            if filtro not in filter_options[indicador]:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Filtro inválido."
+                }), 400
+
+        params = {
+            "tipo": tipo,
+            "codigo": codigo,
+            "tipo_comparacao":
+                tipo_comparacao,
+            "codigo_comparacao":
+                codigo_comparacao
+        }
+
+        if indicador == "modalidade":
+            params["modalidade"] = filtro
+
+        elif indicador == "genero":
+            params["genero"] = filtro
+
+        elif indicador == "raca":
+            params["raca"] = filtro
+
+        payload = {
+            "resource": {
+                "question": question_id
+            },
+
+            "params": params,
+
+            "exp": round(
+                (
+                    datetime.datetime.now(
+                        datetime.timezone.utc
+                    )
+                    + datetime.timedelta(
+                        minutes=30
+                    )
+                ).timestamp()
+            )
+        }
+
+        token = jwt.encode(
+            payload,
+            METABASE_SECRET_KEY,
+            algorithm="HS256"
+        )
+
+        url = (
+            f"{METABASE_SITE_URL}/embed/question/{token}"
+            "?bordered=false&titled=false"
+        )
+
+        return jsonify({
+            "sucesso": True,
+            "url": url
+        })
+
+    except Exception as e:
+        return jsonify({
+            "sucesso": False,
+            "erro": str(e)
+        }), 500
+
+@app.route(
     "/api/divisoes/evolucao/resumo/<categoria>/<indicador>"
 )
 def division_evolution_summary(
