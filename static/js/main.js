@@ -2437,7 +2437,7 @@ function selectComparisonSchoolFromMap(school) {
         );
 
     window.location.href =
-        returnUrl || "/";
+        returnUrl || "/mapa";
 }
 
 function selectComparisonCandidate(school) {
@@ -2921,7 +2921,7 @@ document
         );
 
         window.location.href =
-            returnUrl || "/";
+            returnUrl || "/mapa";
     });
 
 document

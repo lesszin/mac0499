@@ -1,0 +1,24 @@
+.platform-header {
+    width: 100%;
+    height: 50px;
+    flex: 0 0 50px;
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.platform-header-brand {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    margin-left: 24px;
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.platform-header-brand:hover {
+    color: #0a58ca;
+}

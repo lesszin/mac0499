@@ -7,10 +7,17 @@ body {
     overflow: hidden;
 }
 
+body {
+    display: flex;
+    flex-direction: column;
+}
+
 .main-wrapper {
     position: relative;
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 50px);
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 #mapContainer {
@@ -125,7 +132,7 @@ body {
 }
 
 #filtersBody {
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 230px);
     overflow-y: auto;
 }
 

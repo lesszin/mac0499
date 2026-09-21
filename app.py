@@ -3209,9 +3209,14 @@ def evolution_summary(school_code, categoria, indicador):
         }), 404
     return jsonify(summary)
 
-@app.route('/')
-def render_index():
-    return render_template('index.html')
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+
+@app.route("/mapa")
+def index():
+    return render_template("index.html")
 
 @app.route('/api/busca/<string:text_query>')
 def search_schools(text_query):

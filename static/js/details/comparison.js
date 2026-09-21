@@ -1090,7 +1090,7 @@ function initializeComparison() {
                     window.location.href
                 );
 
-                window.location.href = "/";
+                window.location.href = "/mapa";
             }
         );
     }
