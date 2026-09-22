@@ -3215,8 +3215,8 @@ def home():
 
 
 @app.route("/mapa")
-def index():
-    return render_template("index.html")
+def map():
+    return render_template("map.html")
 
 @app.route('/api/busca/<string:text_query>')
 def search_schools(text_query):

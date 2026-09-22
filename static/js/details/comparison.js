@@ -1021,7 +1021,10 @@ function loadSavedComparisonSchool() {
             "comparisonSearchInput"
         ).value = "";
 
-        window.switchTab("comparison");
+        window.switchTab(
+            "comparison",
+            false
+        );
 
         renderComparisonMainButtons();
 
