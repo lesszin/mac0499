@@ -64,6 +64,14 @@ function initializeMapComparison({
     function selectComparisonCandidate(school) {
 
         if (
+            comparisonPrincipalSchool &&
+            school.codigo ===
+                comparisonPrincipalSchool.codigo
+        ) {
+            return;
+        }
+
+        if (
             school.lat == null ||
             school.lng == null
         ) {

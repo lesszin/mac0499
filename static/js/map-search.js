@@ -500,6 +500,12 @@ function initializeMapSearch({
 
             searchInput.value =
                 school.nome || "";
+            
+            searchInput.dispatchEvent(
+                new Event("input", {
+                    bubbles: true
+                })
+            );
 
             selectSchool(
                 school
