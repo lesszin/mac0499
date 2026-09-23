@@ -1,12 +1,23 @@
 const SCHOOL_CODE = window.SCHOOL_CODE;
 
+
+// Carrega as URLs dos gráficos utilizados na ficha técnica da escola.
 async function loadSheetCharts() {
+    /**
+     * Carrega do backend as URLs dos gráficos associados à ficha
+     * técnica da escola.
+     *
+     * @returns {Promise<Object|null>} URLs dos gráficos ou null
+     * quando a API retorna erro.
+     */
+
     const response = await fetch(
         `/api/ficha/${SCHOOL_CODE}`
     );
 
     const data = await response.json();
 
+    // Verifica se o backend retornou uma resposta válida.
     if (!data.sucesso) {
         console.error(data.erro);
         return null;
@@ -15,11 +26,27 @@ async function loadSheetCharts() {
     return data.urls;
 }
 
+
 function createGroupCard(
     title,
     rows,
     emptyMessage = null
 ) {
+    /**
+     * Cria o cartão HTML de uma seção da ficha técnica.
+     *
+     * A função permite renderizar tanto linhas simples quanto
+     * grupos internos de informações e seus respectivos gráficos.
+     *
+     * @param {string} title Título da seção.
+     * @param {Object[]} rows Linhas ou subgrupos que compõem a seção.
+     * @param {string|null} emptyMessage Mensagem apresentada quando
+     * não existem registros.
+     * @returns {string} HTML completo do cartão.
+     */
+
+    // Se não houver informações e nenhuma mensagem foi fornecida,
+    // não há conteúdo a ser renderizado.
     if (rows.length === 0 && !emptyMessage) {
         return "";
     }
@@ -32,18 +59,22 @@ function createGroupCard(
                 </h5>
     `;
 
+    // Renderiza a mensagem de ausência de dados quando aplicável.
     if (rows.length === 0 && emptyMessage) {
         html += `
             <p class="text-muted mb-0">
                 ${emptyMessage}
             </p>
         `;
+
     } else {
+        // Verifica se as linhas representam subgrupos internos.
         const hasSubgroups =
             rows.length > 0 &&
             rows[0].subgroup;
 
         if (hasSubgroups) {
+            // Renderiza apenas os subgrupos que possuem dados.
             rows
                 .filter(
                     group =>
@@ -60,6 +91,7 @@ function createGroupCard(
                             <div class="card-body py-2">
                     `;
 
+                    // Renderiza as linhas pertencentes ao subgrupo.
                     group.rows.forEach((row, index) => {
                         const borderClass =
                             index === group.rows.length - 1
@@ -79,6 +111,7 @@ function createGroupCard(
                         `;
                     });
 
+                    // Adiciona o gráfico associado ao subgrupo, quando existente.
                     if (group.chart) {
                         html += `
                             <div class="mt-3 pt-3 border-top">
@@ -101,6 +134,7 @@ function createGroupCard(
                 });
 
         } else {
+            // Renderiza linhas simples quando não existem subgrupos.
             rows.forEach((row, index) => {
                 const borderClass =
                     index === rows.length - 1
@@ -130,27 +164,53 @@ function createGroupCard(
     return html;
 }
 
+
 function getBooleanIcon(value) {
+    /**
+     * Retorna o ícone correspondente ao valor booleano armazenado
+     * no formato utilizado pelos dados da ficha.
+     *
+     * @param {number} value Valor que indica presença ou ausência
+     * do recurso.
+     * @returns {string} HTML do ícone correspondente.
+     */
+
     return value === 1
         ? `<i class="bi bi-check-circle-fill text-success fs-5"></i>`
         : `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
 }
 
+
 function calculateDistanceKm(lat1, lng1, lat2, lng2) {
+    /**
+     * Calcula a distância aproximada, em quilômetros, entre duas
+     * coordenadas geográficas utilizando a fórmula de Haversine.
+     *
+     * @param {number} lat1 Latitude do primeiro ponto.
+     * @param {number} lng1 Longitude do primeiro ponto.
+     * @param {number} lat2 Latitude do segundo ponto.
+     * @param {number} lng2 Longitude do segundo ponto.
+     * @returns {number} Distância entre os pontos em quilômetros.
+     */
+
+    // Raio médio da Terra em quilômetros.
     const R = 6371;
 
+    // Converte as diferenças de latitude e longitude para radianos.
     const dLat =
         (lat2 - lat1) * Math.PI / 180;
 
     const dLng =
         (lng2 - lng1) * Math.PI / 180;
 
+    // Calcula o termo intermediário da fórmula de Haversine.
     const a =
         Math.sin(dLat / 2) ** 2 +
         Math.cos(lat1 * Math.PI / 180) *
         Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLng / 2) ** 2;
 
+    // Obtém o ângulo central entre os dois pontos.
     const c =
         2 * Math.atan2(
             Math.sqrt(a),
@@ -160,7 +220,20 @@ function calculateDistanceKm(lat1, lng1, lat2, lng2) {
     return R * c;
 }
 
+
 function updateSchoolHeader(data, schoolLocation = null) {
+    /**
+     * Atualiza o nome e o endereço apresentados no cabeçalho
+     * da ficha técnica da escola.
+     *
+     * Quando a localização do usuário e as coordenadas da escola
+     * estão disponíveis, também exibe a distância aproximada.
+     *
+     * @param {Object} data Dados da escola.
+     * @param {Object|null} schoolLocation Coordenadas geográficas
+     * da escola.
+     */
+
     const nameText =
         document.getElementById("schoolName");
 
@@ -170,9 +243,14 @@ function updateSchoolHeader(data, schoolLocation = null) {
     const identification =
         data.identificacao;
 
+
+    // Atualiza o nome da escola.
     nameText.innerText =
         data.nome;
 
+
+    // Obtém o endereço e o número, utilizando valores padrão
+    // quando essas informações não estiverem cadastradas.
     const street =
         identification.endereco ||
         "Endereço não informado";
@@ -181,10 +259,16 @@ function updateSchoolHeader(data, schoolLocation = null) {
         identification.numero ||
         "S/N";
 
+
     let distanceHtml = "";
 
+
+    // Recupera a localização do usuário armazenada anteriormente.
     const savedLocation = localStorage.getItem("userLocation");
 
+
+    // Calcula a distância somente quando todas as coordenadas
+    // necessárias estão disponíveis.
     if (
         savedLocation &&
         schoolLocation &&
@@ -217,15 +301,29 @@ function updateSchoolHeader(data, schoolLocation = null) {
         }
     }
 
+
+    // Monta o endereço completo e, quando possível,
+    // acrescenta a distância até a escola.
     addressText.innerHTML =
         `<i class="bi bi-geo-alt-fill text-danger"></i>
         ${street}, ${number} - ${identification.municipio}, ${identification.uf}
         ${distanceHtml}`;
 }
 
+
 function createIdentificationSection(
     identificacao
 ) {
+    /**
+     * Cria a seção de identificação da escola.
+     *
+     * A seção contém a dependência administrativa, localização,
+     * situação de funcionamento e ano do último Censo Escolar.
+     *
+     * @param {Object} identificacao Dados de identificação da escola.
+     * @returns {Object} Configuração da seção de identificação.
+     */
+
     const rows = [
         {
             label: "Dependência Administrativa:",
@@ -233,6 +331,8 @@ function createIdentificationSection(
         }
     ];
 
+
+    // Escolas privadas exibem também sua categoria administrativa.
     if (
         identificacao.dependencia === "Privada" &&
         identificacao.categoria_privada
@@ -242,6 +342,7 @@ function createIdentificationSection(
             value: identificacao.categoria_privada
         });
     }
+
 
     rows.push(
         {
@@ -264,9 +365,17 @@ function createIdentificationSection(
     };
 }
 
+
 function createAttendanceSection(
     atendimentos
 ) {
+    /**
+     * Cria a seção de atendimentos e atividades da escola.
+     *
+     * @param {Object} atendimentos Dados dos atendimentos e atividades.
+     * @returns {Object} Configuração da seção.
+     */
+
     return {
         title: "Atendimentos e Atividades",
         rows: [
@@ -300,15 +409,31 @@ function createAttendanceSection(
     };
 }
 
+
 function createEnrollmentSection(
     matriculas,
     charts
 ) {
+    /**
+     * Cria a seção de matrículas da escola.
+     *
+     * Organiza os dados em modalidades, gênero e raça/cor,
+     * associando os gráficos disponíveis a cada grupo.
+     *
+     * @param {Object|null} matriculas Dados de matrícula da escola.
+     * @param {Object} charts URLs dos gráficos de matrícula.
+     * @returns {Object} Configuração da seção de matrículas.
+     */
+
     const modalityRows = [];
     const genderRows = [];
     const raceRows = [];
 
+
     if (matriculas) {
+
+        // Adiciona os indicadores de matrícula por modalidade
+        // somente quando possuem valor positivo.
         if (matriculas.basica > 0) {
             modalityRows.push({
                 label: "Número Total de Matrículas",
@@ -358,6 +483,8 @@ function createEnrollmentSection(
             });
         }
 
+
+        // Consolida EJA Fundamental e EJA Médio em um único indicador.
         if (
             matriculas.eja_fund > 0 ||
             matriculas.eja_med > 0
@@ -377,6 +504,8 @@ function createEnrollmentSection(
             });
         }
 
+
+        // Organiza os indicadores de matrícula por gênero.
         if (matriculas.masculino > 0) {
             genderRows.push({
                 label: "Número de Matrículas Masculino",
@@ -391,6 +520,8 @@ function createEnrollmentSection(
             });
         }
 
+
+        // Organiza os indicadores de matrícula por raça/cor.
         if (matriculas.nao_declarado > 0) {
             raceRows.push({
                 label: "Número de Matrículas Não Declarada",
@@ -434,6 +565,7 @@ function createEnrollmentSection(
         }
     }
 
+
     return {
         title: "Matrículas",
         rows: [
@@ -458,9 +590,17 @@ function createEnrollmentSection(
     };
 }
 
+
 function createInfrastructureSection(
     infraestrutura
 ) {
+    /**
+     * Cria a seção de infraestrutura da escola.
+     *
+     * @param {Object} infraestrutura Dados de infraestrutura.
+     * @returns {Object} Configuração da seção.
+     */
+
     return {
         title: "Infraestrutura",
         rows: [
@@ -492,9 +632,17 @@ function createInfrastructureSection(
     };
 }
 
+
 function createDependenciesSection(
     dependencias
 ) {
+    /**
+     * Cria a seção de dependências físicas da escola.
+     *
+     * @param {Object} dependencias Dados das dependências existentes.
+     * @returns {Object} Configuração da seção.
+     */
+
     return {
         title: "Dependências",
         rows: [
@@ -602,9 +750,17 @@ function createDependenciesSection(
     };
 }
 
+
 function createAccessibilitySection(
     acessibilidade
 ) {
+    /**
+     * Cria a seção de recursos de acessibilidade da escola.
+     *
+     * @param {Object} acessibilidade Dados dos recursos de acessibilidade.
+     * @returns {Object} Configuração da seção.
+     */
+
     return {
         title: "Recursos de Acessibilidade",
         rows: [
@@ -666,21 +822,36 @@ function createAccessibilitySection(
     };
 }
 
+
 function createCommunitySection(
     comunidade
 ) {
+    /**
+     * Cria a seção de relação escola-comunidade.
+     *
+     * @param {Object} comunidade Dados relacionados à relação
+     * escola-comunidade.
+     * @returns {Object} Configuração da seção.
+     */
+
+    // Converte os códigos de utilização dos espaços
+    // para os textos apresentados na ficha.
     const spaceMap = {
         0: "Não",
         1: "Sim",
         9: "Não informado"
     };
 
+
+    // Converte os códigos referentes ao projeto pedagógico
+    // para os textos apresentados na ficha.
     const proposalMap = {
         0: "Não",
         1: "Sim",
         2: "A escola não possui projeto político pedagógico/proposta pedagógica",
         9: "Não informado"
     };
+
 
     return {
         title: "Relação escola-comunidade",
@@ -734,9 +905,19 @@ function createCommunitySection(
     };
 }
 
+
 function createTechnologySection(
     tecnologia
 ) {
+    /**
+     * Cria a seção de internet, computadores e equipamentos multimídia.
+     *
+     * @param {Object} tecnologia Dados relacionados à infraestrutura
+     * tecnológica da escola.
+     * @returns {Object} Configuração da seção.
+     */
+
+    // Converte os códigos da rede local para os textos apresentados.
     const networkMap = {
         0: "Não há rede local interligando computadores",
         1: "A cabo",
@@ -744,6 +925,7 @@ function createTechnologySection(
         3: "A cabo e Wireless",
         9: "Não informado"
     };
+
 
     return {
         title: "Internet, Computadores e Equipamentos Multimídia",
@@ -826,7 +1008,16 @@ function createTechnologySection(
     };
 }
 
+
 function createMaterialsSection(materiais) {
+    /**
+     * Cria a seção de instrumentos e materiais socioculturais
+     * e/ou pedagógicos da escola.
+     *
+     * @param {Object} materiais Dados dos materiais disponíveis.
+     * @returns {Object} Configuração da seção.
+     */
+
     return {
         title: "Instrumentos e materiais socioculturais e/ou pedagógicos",
         rows: [
@@ -924,14 +1115,28 @@ function createMaterialsSection(materiais) {
     };
 }
 
+
 function createTeachersSection(
     docentes,
     charts
 ) {
+    /**
+     * Cria a seção de docentes da escola.
+     *
+     * Organiza os dados por modalidade, gênero e raça/cor,
+     * associando os gráficos correspondentes.
+     *
+     * @param {Object} docentes Dados dos docentes.
+     * @param {Object} charts URLs dos gráficos de docentes.
+     * @returns {Object} Configuração da seção de docentes.
+     */
+
     const modalityRows = [];
     const genderRows = [];
     const raceRows = [];
 
+
+    // Adiciona os indicadores de docentes por modalidade.
     if (docentes.basica > 0) {
         modalityRows.push({
             label: "Número total de Docentes da Educação Básica",
@@ -995,6 +1200,8 @@ function createTeachersSection(
         });
     }
 
+
+    // Organiza os docentes por gênero.
     if (docentes.masculino > 0) {
         genderRows.push({
             label: "Número de Docentes Masculino",
@@ -1009,6 +1216,8 @@ function createTeachersSection(
         });
     }
 
+
+    // Organiza os docentes por raça/cor.
     if (docentes.nao_declarado > 0) {
         raceRows.push({
             label: "Número de Docentes Não Declarada",
@@ -1051,13 +1260,14 @@ function createTeachersSection(
         });
     }
 
+
     return {
         title: "Docentes",
         rows: [
             {
                 subgroup: "Modalidades",
                 rows: modalityRows,
-                chart: charts.modalidade
+                chart: charts.docentes
             },
             {
                 subgroup: "Gênero",
@@ -1075,9 +1285,17 @@ function createTeachersSection(
     };
 }
 
+
 function createProfessionalsSection(
     profissionais
 ) {
+    /**
+     * Cria a seção de demais profissionais e educadores da escola.
+     *
+     * @param {Object} profissionais Dados dos demais profissionais.
+     * @returns {Object} Configuração da seção.
+     */
+
     return {
         title: "Demais profissionais/educadores",
         rows: [
@@ -1157,12 +1375,26 @@ function createProfessionalsSection(
     };
 }
 
+
 function createClassesSection(
     turmas,
     charts
 ) {
+    /**
+     * Cria a seção de turmas da escola.
+     *
+     * Organiza as turmas por modalidade e associa o gráfico
+     * correspondente.
+     *
+     * @param {Object|null} turmas Dados das turmas.
+     * @param {Object} charts URLs dos gráficos de turmas.
+     * @returns {Object} Configuração da seção de turmas.
+     */
+
     const modalityRows = [];
 
+
+    // Sem dados de turmas, retorna uma seção vazia.
     if (!turmas) {
         return {
             title: "Turmas",
@@ -1172,6 +1404,8 @@ function createClassesSection(
         };
     }
 
+
+    // Adiciona as modalidades de turmas com valores positivos.
     if (turmas.creche > 0) {
         modalityRows.push({
             label: "Número de Turmas da Educação Infantil - Creche",
@@ -1228,6 +1462,7 @@ function createClassesSection(
         });
     }
 
+
     return {
         title: "Turmas",
         rows: [
@@ -1242,12 +1477,27 @@ function createClassesSection(
     };
 }
 
+
 function buildSections(data, charts) {
+    /**
+     * Monta, na ordem de apresentação, todas as seções da ficha técnica.
+     *
+     * Para escolas que não estão em atividade no último Censo,
+     * somente a seção de identificação é retornada.
+     *
+     * @param {Object} data Dados completos da escola.
+     * @param {Object} charts URLs dos gráficos disponíveis.
+     * @returns {Object[]} Lista de seções da ficha.
+     */
+
     const identification =
         createIdentificationSection(
             data.identificacao
         );
 
+
+    // Para escolas que não estão em atividade, a ficha apresenta
+    // somente as informações de identificação.
     if (
         data.identificacao.situacao !==
         "Em Atividade"
@@ -1255,6 +1505,8 @@ function buildSections(data, charts) {
         return [identification];
     }
 
+
+    // Para escolas em atividade, monta todas as seções disponíveis.
     return [
         identification,
         createAttendanceSection(
@@ -1296,15 +1548,24 @@ function buildSections(data, charts) {
     ].filter(Boolean);
 }
 
+
 function renderSections(
     dataDiv,
     sections
 ) {
+    /**
+     * Renderiza no elemento informado as seções da ficha técnica.
+     *
+     * @param {HTMLElement} dataDiv Elemento que receberá o conteúdo.
+     * @param {Object[]} sections Seções preparadas por buildSections().
+     */
+
     dataDiv.classList.remove(
         "text-center",
         "py-5"
     );
 
+    // Constrói o HTML de todos os cartões e insere o resultado no DOM.
     dataDiv.innerHTML = sections
         .map(section =>
             createGroupCard(
@@ -1316,7 +1577,13 @@ function renderSections(
         .join("");
 }
 
+
 async function loadSchoolSheet() {
+    /**
+     * Carrega os dados da ficha técnica, localização e gráficos
+     * da escola e renderiza o conteúdo correspondente.
+     */
+
     const dataDiv =
         document.getElementById(
             "dataSheet"
@@ -1332,7 +1599,10 @@ async function loadSchoolSheet() {
             "schoolAddress"
         );
 
+
     try {
+        // Carrega em paralelo os dados da escola, sua localização
+        // e as URLs dos gráficos.
         const [
             schoolResponse,
             locationResponse,
@@ -1347,17 +1617,22 @@ async function loadSchoolSheet() {
             loadSheetCharts()
         ]);
 
+
+        // Valida a resposta principal da ficha.
         if (!schoolResponse.ok) {
             throw new Error(
                 "Network response was not ok"
             );
         }
 
+
+        // Valida a resposta da localização.
         if (!locationResponse.ok) {
             throw new Error(
                 "Erro ao carregar a localização da escola"
             );
         }
+
 
         const data =
             await schoolResponse.json();
@@ -1365,6 +1640,8 @@ async function loadSchoolSheet() {
         const schoolLocation =
             await locationResponse.json();
 
+
+        // Trata o caso em que a escola não foi encontrada.
         if (data.erro) {
             nameText.innerText =
                 "Escola não encontrada";
@@ -1380,11 +1657,15 @@ async function loadSchoolSheet() {
             return;
         }
 
+
+        // Atualiza o cabeçalho com os dados da escola e sua localização.
         updateSchoolHeader(
             data,
             schoolLocation
         );
 
+
+        // Monta e renderiza as seções da ficha.
         const sections =
             buildSections(
                 data,
@@ -1396,6 +1677,9 @@ async function loadSchoolSheet() {
             sections
         );
 
+
+        // Quando existe uma escola selecionada para comparação,
+        // inicializa a interface correspondente.
         if (
             sessionStorage.getItem(
                 "comparisonSelectedSchool"
@@ -1408,6 +1692,8 @@ async function loadSchoolSheet() {
     } catch (error) {
         console.error(error);
 
+        // Exibe uma mensagem de erro quando não foi possível
+        // carregar os dados da ficha.
         dataDiv.innerHTML =
             `<div class="alert alert-danger">
                 Erro de conexão ao carregar a ficha técnica.
@@ -1415,6 +1701,8 @@ async function loadSchoolSheet() {
     }
 }
 
+
+// Configura o botão utilizado para retornar ao mapa.
 const backToMapButton =
     document.getElementById("backToMapButton");
 
@@ -1422,6 +1710,8 @@ if (backToMapButton) {
     backToMapButton.addEventListener(
         "click",
         () => {
+            // Guarda temporariamente o código da escola para
+            // que o mapa possa restaurar sua seleção.
             sessionStorage.setItem(
                 "returnToSchoolMap",
                 SCHOOL_CODE
@@ -1430,4 +1720,6 @@ if (backToMapButton) {
     );
 }
 
+
+// Carrega a ficha técnica assim que o módulo é executado.
 loadSchoolSheet();

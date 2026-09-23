@@ -2,10 +2,21 @@ function initializeMapAdministrative({
     map,
     hideSchoolCard
 }) {
+    // Mantém a camada responsável pela geometria da divisão
+    // administrativa atualmente exibida no mapa.
     let administrativeDivisionLayer = null;
 
 
     function updateAdministrativeConfirmButton() {
+        /**
+         * Atualiza o estado dos botões de confirmação e limpeza
+         * da seleção de divisão administrativa.
+         *
+         * O botão de confirmação é habilitado quando existe alguma
+         * divisão selecionada. O botão de limpeza permanece habilitado
+         * enquanto houver uma seleção ou uma geometria desenhada no mapa.
+         */
+
         const countryFilter =
             document.getElementById(
                 "administrativeCountryFilter"
@@ -36,6 +47,8 @@ function initializeMapAdministrative({
                 "clearAdministrativeFilter"
             );
 
+
+        // Verifica se existe alguma divisão administrativa selecionada.
         const hasSelection =
             Boolean(
                 (countryFilter &&
@@ -48,11 +61,16 @@ function initializeMapAdministrative({
                     municipalityFilter.value)
             );
 
+
+        // Atualiza o estado do botão de confirmação.
         if (confirmButton) {
             confirmButton.disabled =
                 !hasSelection;
         }
 
+
+        // O botão de limpeza também considera a existência
+        // de uma camada administrativa desenhada.
         if (clearButton) {
             clearButton.disabled =
                 !hasSelection &&
@@ -62,6 +80,11 @@ function initializeMapAdministrative({
 
 
     function clearAdministrativeDivisionLayer() {
+        /**
+         * Remove do mapa a camada correspondente à divisão
+         * administrativa atualmente desenhada.
+         */
+
         if (administrativeDivisionLayer) {
             map.removeLayer(
                 administrativeDivisionLayer
@@ -73,6 +96,11 @@ function initializeMapAdministrative({
 
 
     function clearAdministrativeFilter() {
+        /**
+         * Limpa todos os filtros de divisão administrativa,
+         * remove a geometria do mapa e oculta o cartão correspondente.
+         */
+
         const countryFilter =
             document.getElementById(
                 "administrativeCountryFilter"
@@ -93,10 +121,14 @@ function initializeMapAdministrative({
                 "administrativeMunicipalityFilter"
             );
 
+
+        // Limpa a seleção de país.
         if (countryFilter) {
             countryFilter.value = "";
         }
 
+
+        // Reinicia e desabilita o filtro de região.
         if (regionFilter) {
             regionFilter.innerHTML = `
                 <option value="" selected disabled>
@@ -108,6 +140,8 @@ function initializeMapAdministrative({
             regionFilter.disabled = true;
         }
 
+
+        // Reinicia e desabilita o filtro de UF.
         if (ufFilter) {
             ufFilter.innerHTML = `
                 <option value="" selected disabled>
@@ -119,6 +153,8 @@ function initializeMapAdministrative({
             ufFilter.disabled = true;
         }
 
+
+        // Reinicia e desabilita o filtro de município.
         if (municipalityFilter) {
             municipalityFilter.innerHTML = `
                 <option value="" selected disabled>
@@ -130,10 +166,14 @@ function initializeMapAdministrative({
             municipalityFilter.disabled = true;
         }
 
+
+        // Remove a divisão atualmente desenhada.
         clearAdministrativeDivisionLayer();
 
+        // Esconde o cartão da divisão.
         hideAdministrativeDivisionCard();
 
+        // Atualiza os botões após a limpeza.
         updateAdministrativeConfirmButton();
     }
 
@@ -143,6 +183,14 @@ function initializeMapAdministrative({
         codigo,
         nome
     ) {
+        /**
+         * Exibe o cartão de informações da divisão administrativa.
+         *
+         * @param {string} tipo Tipo da divisão administrativa.
+         * @param {string|number} codigo Código da divisão.
+         * @param {string} nome Nome exibido da divisão.
+         */
+
         const card =
             document.getElementById(
                 "administrativeDivisionCard"
@@ -157,6 +205,9 @@ function initializeMapAdministrative({
             return;
         }
 
+
+        // Preenche o cartão com o nome da divisão
+        // e o link para sua ficha técnica.
         body.innerHTML = `
             <h6 class="fw-bold mb-3">
                 ${nome}
@@ -169,6 +220,7 @@ function initializeMapAdministrative({
             </a>
         `;
 
+        // Torna o cartão visível.
         card.classList.remove(
             "d-none"
         );
@@ -176,6 +228,10 @@ function initializeMapAdministrative({
 
 
     function hideAdministrativeDivisionCard() {
+        /**
+         * Oculta o cartão de informações da divisão administrativa.
+         */
+
         const card =
             document.getElementById(
                 "administrativeDivisionCard"
@@ -190,6 +246,11 @@ function initializeMapAdministrative({
 
 
     async function loadAdministrativeCountries() {
+        /**
+         * Carrega do backend os países disponíveis e os insere
+         * no filtro de país.
+         */
+
         const countryFilter =
             document.getElementById(
                 "administrativeCountryFilter"
@@ -200,6 +261,7 @@ function initializeMapAdministrative({
         }
 
         try {
+            // Solicita os países disponíveis à API.
             const response =
                 await fetch(
                     "/api/divisoes/pais"
@@ -214,12 +276,17 @@ function initializeMapAdministrative({
             const countries =
                 await response.json();
 
+
+            // Reinicia as opções do filtro antes de adicionar
+            // os resultados retornados pelo backend.
             countryFilter.innerHTML = `
                 <option value="" selected disabled>
                     Selecione...
                 </option>
             `;
 
+
+            // Cria uma opção para cada país retornado.
             countries.forEach(country => {
                 const option =
                     document.createElement(
@@ -251,14 +318,27 @@ function initializeMapAdministrative({
         codigo,
         nome
     ) {
+        /**
+         * Carrega e desenha no mapa a geometria de uma divisão
+         * administrativa.
+         *
+         * @param {string} tipo Tipo da divisão administrativa.
+         * @param {string|number} codigo Código da divisão.
+         * @param {string} nome Nome da divisão utilizado no cartão.
+         */
+
+        // Remove o cartão anterior antes de carregar a nova divisão.
         hideAdministrativeDivisionCard();
 
         try {
+            // Monta a URL da API que fornece a geometria da divisão.
             const url =
                 `/api/divisoes/geometria?` +
                 `tipo=${encodeURIComponent(tipo)}` +
                 `&codigo=${encodeURIComponent(codigo)}`;
 
+
+            // Solicita a geometria ao backend.
             const response =
                 await fetch(url);
 
@@ -271,8 +351,12 @@ function initializeMapAdministrative({
             const geojson =
                 await response.json();
 
+
+            // Remove a geometria anterior antes de desenhar a nova.
             clearAdministrativeDivisionLayer();
 
+
+            // Cria a camada GeoJSON com o estilo da divisão administrativa.
             administrativeDivisionLayer =
                 L.geoJSON(
                     geojson,
@@ -287,10 +371,14 @@ function initializeMapAdministrative({
                     }
                 ).addTo(map);
 
+
+            // Obtém os limites da geometria para ajustar a visualização.
             const bounds =
                 administrativeDivisionLayer
                     .getBounds();
 
+
+            // Centraliza e dimensiona o mapa para enquadrar a divisão.
             if (bounds.isValid()) {
                 map.fitBounds(
                     bounds,
@@ -300,8 +388,13 @@ function initializeMapAdministrative({
                 );
             }
 
+
+            // Esconde o cartão de escola para dar lugar ao
+            // cartão da divisão administrativa.
             hideSchoolCard();
 
+
+            // Exibe as informações da divisão selecionada.
             showAdministrativeDivisionCard(
                 tipo,
                 codigo,
@@ -314,16 +407,29 @@ function initializeMapAdministrative({
                 error
             );
 
+            // Remove qualquer camada que possa ter sido criada
+            // antes da ocorrência do erro.
             clearAdministrativeDivisionLayer();
 
             hideAdministrativeDivisionCard();
         }
 
+
+        // Atualiza os botões após o carregamento da divisão.
         updateAdministrativeConfirmButton();
     }
 
 
     async function restoreAdministrativeDivisionFromSheet() {
+        /**
+         * Restaura no mapa a divisão administrativa que originou
+         * o retorno de uma ficha técnica.
+         *
+         * O estado temporário é recuperado do sessionStorage,
+         * os filtros hierárquicos são reconstruídos e a geometria
+         * da divisão é desenhada novamente.
+         */
+
         const saved =
             sessionStorage.getItem(
                 "returnToAdministrativeMap"
@@ -334,9 +440,12 @@ function initializeMapAdministrative({
         }
 
         try {
+            // Recupera o estado salvo antes do acesso à ficha técnica.
             const state =
                 JSON.parse(saved);
 
+
+            // Recupera os filtros administrativos da interface.
             const countryFilter =
                 document.getElementById(
                     "administrativeCountryFilter"
@@ -357,6 +466,8 @@ function initializeMapAdministrative({
                     "administrativeMunicipalityFilter"
                 );
 
+
+            // Sem os elementos necessários, não é possível restaurar o estado.
             if (
                 !countryFilter ||
                 !regionFilter ||
@@ -366,6 +477,8 @@ function initializeMapAdministrative({
                 return;
             }
 
+
+            // Recupera os dados da divisão administrativa.
             const response =
                 await fetch(
                     `/api/divisoes/ficha?` +
@@ -391,12 +504,19 @@ function initializeMapAdministrative({
             const data =
                 result.dados;
 
+
+            // O mapa administrativo considera o país como Brasil
+            // durante a reconstrução da hierarquia.
             countryFilter.value = "1";
+
 
             let regionCode = null;
             let ufCode = null;
             let municipalityCode = null;
 
+
+            // Determina os códigos dos níveis administrativos
+            // necessários para reconstruir os filtros.
             if (state.tipo === "regiao") {
                 regionCode =
                     state.codigo;
@@ -419,6 +539,9 @@ function initializeMapAdministrative({
                     state.codigo;
             }
 
+
+            // Quando o estado salvo é o país, carrega todas as regiões
+            // para reconstruir o próximo nível da hierarquia.
             if (state.tipo === "pais") {
                 const regionResponse =
                     await fetch(
@@ -440,6 +563,8 @@ function initializeMapAdministrative({
                     </option>
                 `;
 
+
+                // Adiciona as regiões disponíveis ao filtro.
                 regions.forEach(region => {
                     const option =
                         document.createElement(
@@ -460,6 +585,9 @@ function initializeMapAdministrative({
                 regionFilter.disabled =
                     regions.length === 0;
 
+
+            // Quando há uma região associada à divisão salva,
+            // carrega as regiões e restaura sua seleção.
             } else if (regionCode != null) {
                 const regionResponse =
                     await fetch(
@@ -480,6 +608,7 @@ function initializeMapAdministrative({
                         Selecione...
                     </option>
                 `;
+
 
                 regions.forEach(region => {
                     const option =
@@ -505,6 +634,9 @@ function initializeMapAdministrative({
                     false;
             }
 
+
+            // Para regiões, UFs e municípios, recupera as UFs
+            // pertencentes à região correspondente.
             if (
                 state.tipo === "regiao" ||
                 state.tipo === "uf" ||
@@ -530,6 +662,8 @@ function initializeMapAdministrative({
                     </option>
                 `;
 
+
+                // Adiciona as UFs retornadas ao filtro.
                 ufs.forEach(uf => {
                     const option =
                         document.createElement(
@@ -547,6 +681,8 @@ function initializeMapAdministrative({
                     );
                 });
 
+
+                // Restaura a UF quando ela faz parte do estado salvo.
                 if (ufCode != null) {
                     ufFilter.value =
                         String(ufCode);
@@ -556,6 +692,9 @@ function initializeMapAdministrative({
                     ufs.length === 0;
             }
 
+
+            // Para UFs e municípios, recupera os municípios
+            // pertencentes à UF correspondente.
             if (
                 state.tipo === "uf" ||
                 state.tipo === "municipio"
@@ -580,6 +719,8 @@ function initializeMapAdministrative({
                     </option>
                 `;
 
+
+                // Adiciona os municípios retornados ao filtro.
                 municipalities.forEach(municipio => {
                     const option =
                         document.createElement(
@@ -597,6 +738,8 @@ function initializeMapAdministrative({
                     );
                 });
 
+
+                // Restaura o município quando ele faz parte do estado salvo.
                 if (municipalityCode != null) {
                     municipalityFilter.value =
                         String(
@@ -608,8 +751,12 @@ function initializeMapAdministrative({
                     municipalities.length === 0;
             }
 
+
             let nome = "";
 
+
+            // Determina o nome a ser utilizado no cartão
+            // de acordo com o nível administrativo restaurado.
             if (state.tipo === "municipio") {
                 nome = data.NM_MUN;
 
@@ -623,11 +770,14 @@ function initializeMapAdministrative({
                 nome = data.Pais;
             }
 
+
+            // Redesenha a divisão administrativa restaurada.
             await loadAdministrativeDivision(
                 state.tipo,
                 state.codigo,
                 nome
             );
+
 
             updateAdministrativeConfirmButton();
 
@@ -638,6 +788,7 @@ function initializeMapAdministrative({
             );
 
         } finally {
+            // Remove o estado temporário depois da restauração.
             sessionStorage.removeItem(
                 "returnToAdministrativeMap"
             );
@@ -645,6 +796,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Configura o filtro de país e o carregamento das regiões.
     const countryFilter =
         document.getElementById(
             "administrativeCountryFilter"
@@ -669,6 +821,8 @@ function initializeMapAdministrative({
                         "administrativeMunicipalityFilter"
                     );
 
+
+                // Ao trocar o país, os níveis inferiores são reiniciados.
                 if (ufFilter) {
                     ufFilter.innerHTML = `
                         <option value="" selected disabled>
@@ -702,7 +856,9 @@ function initializeMapAdministrative({
                     regionFilter.disabled = true;
                 }
 
+
                 updateAdministrativeConfirmButton();
+
 
                 if (
                     !countryFilter.value ||
@@ -712,6 +868,7 @@ function initializeMapAdministrative({
                 }
 
                 try {
+                    // Carrega as regiões disponíveis para o país selecionado.
                     const response =
                         await fetch(
                             "/api/divisoes/regioes"
@@ -726,6 +883,8 @@ function initializeMapAdministrative({
                     const regions =
                         await response.json();
 
+
+                    // Adiciona cada região ao filtro.
                     regions.forEach(
                         region => {
                             const option =
@@ -761,6 +920,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Configura o filtro de região e o carregamento das UFs.
     const regionFilter =
         document.getElementById(
             "administrativeRegionFilter"
@@ -783,6 +943,8 @@ function initializeMapAdministrative({
                         "administrativeMunicipalityFilter"
                     );
 
+
+                // Ao trocar a região, reinicia a UF e o município.
                 if (ufFilter) {
                     ufFilter.innerHTML = `
                         <option value="" selected disabled>
@@ -803,11 +965,13 @@ function initializeMapAdministrative({
                     municipalityFilter.disabled = true;
                 }
 
+
                 if (!region || !ufFilter) {
                     return;
                 }
 
                 try {
+                    // Carrega as UFs pertencentes à região selecionada.
                     const response =
                         await fetch(
                             `/api/divisoes/ufs?regiao=${encodeURIComponent(region)}`
@@ -822,6 +986,8 @@ function initializeMapAdministrative({
                     const ufs =
                         await response.json();
 
+
+                    // Adiciona cada UF ao filtro correspondente.
                     ufs.forEach(
                         uf => {
                             const option =
@@ -857,6 +1023,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Configura o filtro de UF e o carregamento dos municípios.
     const ufFilter =
         document.getElementById(
             "administrativeUfFilter"
@@ -878,6 +1045,8 @@ function initializeMapAdministrative({
                     return;
                 }
 
+
+                // Reinicia o filtro de município ao trocar a UF.
                 municipalityFilter.innerHTML = `
                     <option value="" selected disabled>
                         Selecione...
@@ -887,11 +1056,13 @@ function initializeMapAdministrative({
                 municipalityFilter.disabled =
                     true;
 
+
                 if (!uf) {
                     return;
                 }
 
                 try {
+                    // Carrega os municípios pertencentes à UF selecionada.
                     const response =
                         await fetch(
                             `/api/divisoes/municipios?uf=${encodeURIComponent(uf)}`
@@ -906,6 +1077,8 @@ function initializeMapAdministrative({
                     const municipios =
                         await response.json();
 
+
+                    // Adiciona cada município ao filtro.
                     municipios.forEach(
                         municipio => {
                             const option =
@@ -941,6 +1114,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Atualiza o botão de confirmação quando o município é selecionado.
     const municipalityFilter =
         document.getElementById(
             "administrativeMunicipalityFilter"
@@ -954,6 +1128,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Configura o botão para confirmar a divisão administrativa selecionada.
     const confirmButton =
         document.getElementById(
             "confirmAdministrativeFilter"
@@ -987,6 +1162,8 @@ function initializeMapAdministrative({
                 let codigo = "";
                 let nome = "";
 
+
+                // Prioriza o nível administrativo mais específico selecionado.
                 if (
                     municipalityFilter &&
                     municipalityFilter.value
@@ -1040,10 +1217,14 @@ function initializeMapAdministrative({
                         ].text;
                 }
 
+
+                // Sem uma divisão selecionada, não há ação a executar.
                 if (!tipo || !codigo) {
                     return;
                 }
 
+
+                // Carrega a geometria e exibe o cartão da divisão selecionada.
                 await loadAdministrativeDivision(
                     tipo,
                     codigo,
@@ -1054,6 +1235,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Configura o botão responsável por limpar a seleção administrativa.
     const clearButton =
         document.getElementById(
             "clearAdministrativeFilter"
@@ -1067,6 +1249,7 @@ function initializeMapAdministrative({
     }
 
 
+    // Expõe as funções utilizadas por outros módulos do mapa.
     return {
         updateAdministrativeConfirmButton,
         clearAdministrativeFilter,

@@ -3,13 +3,18 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
+
+# Carrega as variáveis definidas no arquivo de ambiente.
 load_dotenv()
+
 
 spatial_bp = Blueprint(
     "spatial",
     __name__
 )
 
+
+# Configurações de acesso ao banco de dados.
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
@@ -19,6 +24,8 @@ DB_PORT = os.getenv(
     "5432"
 )
 
+
+# Cria a conexão com o banco de dados PostgreSQL.
 engine = create_engine(
     f"postgresql://{DB_USER}:{DB_PASS}@"
     f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -29,7 +36,22 @@ engine = create_engine(
     '/api/analise-espacial/escolas'
 )
 def get_spatial_analysis_schools():
+    """
+    Retorna as coordenadas geográficas das escolas que atendem
+    aos filtros utilizados na análise espacial.
+
+    Os filtros permitem selecionar a dependência administrativa
+    ou a modalidade de ensino. Apenas um dos dois tipos de filtro
+    pode ser utilizado simultaneamente.
+
+    Returns:
+        Uma resposta JSON contendo latitude e longitude das escolas
+        encontradas ou uma mensagem de erro.
+    """
+
     try:
+        # Mapeia os nomes das dependências administrativas para
+        # os códigos utilizados no banco de dados.
         dependencia_map = {
             "federal": 1,
             "estadual": 2,
@@ -37,6 +59,8 @@ def get_spatial_analysis_schools():
             "privada": 4
         }
 
+        # Mapeia cada modalidade para a condição utilizada
+        # para verificar sua existência na escola.
         modalidade_map = {
             "creche":
                 't."QT_TUR_INF_CRE" > 0',
@@ -66,6 +90,7 @@ def get_spatial_analysis_schools():
                 "tecnico"
         }
 
+        # Obtém os filtros enviados pela requisição.
         dependencia = request.args.get(
             "dependencia",
             ""
@@ -76,6 +101,7 @@ def get_spatial_analysis_schools():
             ""
         ).lower()
 
+        # Valida o filtro de dependência administrativa.
         if (
             dependencia and
             dependencia != "todas"
@@ -86,6 +112,7 @@ def get_spatial_analysis_schools():
                         "Dependência administrativa inválida."
                 }), 400
 
+        # Valida o filtro de modalidade.
         if (
             modalidade and
             modalidade != "todas"
@@ -96,6 +123,8 @@ def get_spatial_analysis_schools():
                         "Modalidade inválida."
                 }), 400
 
+        # Impede que os dois tipos de filtro sejam utilizados
+        # simultaneamente.
         if (
             dependencia not in (
                 "",
@@ -112,6 +141,7 @@ def get_spatial_analysis_schools():
                     "Selecione apenas um tipo de filtro."
             }), 400
 
+        # Consulta as escolas em atividade que possuem coordenadas.
         query = """
             SELECT
                 "LATITUDE",
@@ -126,6 +156,8 @@ def get_spatial_analysis_schools():
 
         params = {}
 
+        # Adiciona à consulta o filtro de dependência administrativa,
+        # quando informado.
         if (
             dependencia and
             dependencia != "todas"
@@ -139,11 +171,14 @@ def get_spatial_analysis_schools():
                 dependencia_map[dependencia]
             )
 
+        # Adiciona à consulta o filtro de modalidade, quando informado.
         if (
             modalidade and
             modalidade != "todas"
         ):
 
+            # A modalidade técnica é identificada pela existência
+            # de cursos registrados para a escola.
             if modalidade == "tecnico":
 
                 query += """
@@ -158,6 +193,8 @@ def get_spatial_analysis_schools():
 
             else:
 
+                # Para as demais modalidades, verifica a existência
+                # de turmas correspondentes no ano de referência.
                 query += f"""
                     AND EXISTS (
                         SELECT 1
@@ -169,6 +206,7 @@ def get_spatial_analysis_schools():
                     )
                 """
 
+        # Executa a consulta com os parâmetros definidos.
         with engine.connect() as connection:
 
             results = connection.execute(
@@ -176,6 +214,8 @@ def get_spatial_analysis_schools():
                 params
             ).fetchall()
 
+        # Converte as coordenadas retornadas pelo banco para valores
+        # numéricos no formato utilizado pela API.
         schools = [
             {
                 "lat": float(row[0]),
@@ -188,6 +228,7 @@ def get_spatial_analysis_schools():
 
     except Exception as e:
 
+        # Registra o erro no servidor e retorna a mensagem da exceção.
         print(
             "Error fetching schools for "
             f"spatial analysis: {e}"
@@ -202,7 +243,22 @@ def get_spatial_analysis_schools():
     '/api/analise-espacial/matriculas'
 )
 def get_spatial_analysis_enrollments():
+    """
+    Retorna dados de matrículas associados às coordenadas geográficas
+    das escolas para utilização na análise espacial.
+
+    O indicador pode ser selecionado por modalidade, gênero ou raça/cor.
+    Também é possível informar os limites geográficos do mapa para
+    restringir os resultados retornados.
+
+    Returns:
+        Uma resposta JSON contendo latitude, longitude e valor do
+        indicador selecionado ou uma mensagem de erro.
+    """
+
     try:
+        # Mapeia indicadores de modalidade para as respectivas
+        # colunas da tabela de matrículas.
         modalidade_map = {
             "total":
                 'm."QT_MAT_BAS"',
@@ -235,6 +291,8 @@ def get_spatial_analysis_enrollments():
                 'm."QT_MAT_PROF"'
         }
 
+        # Mapeia os indicadores de gênero para as colunas
+        # correspondentes da tabela de matrículas.
         genero_map = {
             "masculino":
                 'm."QT_MAT_BAS_MASC"',
@@ -243,6 +301,8 @@ def get_spatial_analysis_enrollments():
                 'm."QT_MAT_BAS_FEM"'
         }
 
+        # Mapeia os indicadores de raça/cor para as colunas
+        # correspondentes da tabela de matrículas.
         raca_cor_map = {
             "nd":
                 'm."QT_MAT_BAS_ND"',
@@ -263,6 +323,7 @@ def get_spatial_analysis_enrollments():
                 'm."QT_MAT_BAS_INDIGENA"'
         }
 
+        # Obtém o tipo e o indicador enviados pela requisição.
         tipo = request.args.get(
             "tipo",
             ""
@@ -273,6 +334,7 @@ def get_spatial_analysis_enrollments():
             ""
         ).lower()
 
+        # Valida os tipos de indicadores suportados.
         if tipo not in (
             "modalidade",
             "genero",
@@ -283,6 +345,8 @@ def get_spatial_analysis_enrollments():
                     "Tipo de indicador inválido."
             }), 400
 
+        # Seleciona o conjunto de indicadores correspondente
+        # ao tipo solicitado.
         if tipo == "modalidade":
 
             indicador_map = modalidade_map
@@ -295,12 +359,14 @@ def get_spatial_analysis_enrollments():
 
             indicador_map = raca_cor_map
 
+        # Valida o indicador dentro do conjunto selecionado.
         if indicador not in indicador_map:
             return jsonify({
                 "erro":
                     "Indicador inválido."
             }), 400
 
+        # Obtém os limites geográficos opcionais enviados pelo mapa.
         lat_min = request.args.get(
             "lat_min"
         )
@@ -317,6 +383,7 @@ def get_spatial_analysis_enrollments():
             "lng_max"
         )
 
+        # Verifica se todos os limites geográficos foram informados.
         has_bounds = all(
             v is not None
             for v in [
@@ -327,6 +394,8 @@ def get_spatial_analysis_enrollments():
             ]
         )
 
+        # Converte os limites para valores numéricos quando
+        # o filtro espacial está sendo utilizado.
         if has_bounds:
 
             lat_min = float(
@@ -345,6 +414,8 @@ def get_spatial_analysis_enrollments():
                 lng_max
             )
 
+        # Consulta o indicador selecionado para as escolas em atividade
+        # que possuem coordenadas e registram valor positivo no indicador.
         query = f"""
             SELECT
                 e."LATITUDE",
@@ -377,6 +448,8 @@ def get_spatial_analysis_enrollments():
 
         params = {}
 
+        # Restringe a consulta à área atualmente visível no mapa,
+        # quando os limites geográficos foram fornecidos.
         if has_bounds:
 
             query += """
@@ -394,10 +467,14 @@ def get_spatial_analysis_enrollments():
                 "lng_max": lng_max
             })
 
+        # Para indicadores por modalidade, aplica uma verificação
+        # adicional de existência de turmas ou cursos no ano de referência.
         if tipo == "modalidade":
 
             if indicador == "tecnico":
 
+                # Verifica a existência de cursos registrados
+                # para a escola no ano de referência.
                 query += """
                     AND EXISTS (
                         SELECT 1
@@ -411,6 +488,8 @@ def get_spatial_analysis_enrollments():
 
             elif indicador != "total":
 
+                # Define as condições de existência de turmas
+                # para cada modalidade de ensino.
                 modalidade_filtro = {
                     "creche":
                         't."QT_TUR_INF_CRE" > 0',
@@ -437,6 +516,8 @@ def get_spatial_analysis_enrollments():
                         't."QT_TUR_EJA_MED" > 0'
                 }
 
+                # Mantém apenas escolas que possuem pelo menos uma
+                # turma da modalidade selecionada.
                 query += f"""
                     AND EXISTS (
                         SELECT 1
@@ -450,9 +531,12 @@ def get_spatial_analysis_enrollments():
                     )
                 """
 
+        # Quando há limites geográficos, limita a quantidade de
+        # resultados retornados para evitar excesso de pontos no mapa.
         if has_bounds:
             query += " LIMIT 5000"
 
+        # Executa a consulta no banco.
         with engine.connect() as connection:
 
             results = connection.execute(
@@ -460,6 +544,8 @@ def get_spatial_analysis_enrollments():
                 params
             ).fetchall()
 
+        # Converte cada registro para o formato consumido
+        # pela visualização espacial.
         schools = [
             {
                 "lat": float(row[0]),
@@ -473,6 +559,7 @@ def get_spatial_analysis_enrollments():
 
     except Exception as e:
 
+        # Registra o erro no servidor e retorna a mensagem da exceção.
         print(
             "Error fetching enrollment data "
             f"for spatial analysis: {e}"

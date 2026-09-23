@@ -9,6 +9,7 @@ function initializeMapSearch({
     onComparisonSchoolSelected,
     setSelectedSchoolCode
 }) {
+    // Campo de busca e área onde as sugestões de escolas serão exibidas.
     const searchInput =
         document.getElementById(
             "schoolInput"
@@ -19,20 +20,35 @@ function initializeMapSearch({
             "searchSuggestions"
         );
 
+
     function calculateDistanceKm(
         lat1,
         lng1,
         lat2,
         lng2
     ) {
+        /**
+         * Calcula a distância aproximada, em quilômetros, entre duas
+         * coordenadas geográficas utilizando a fórmula de Haversine.
+         *
+         * @param {number} lat1 Latitude do primeiro ponto.
+         * @param {number} lng1 Longitude do primeiro ponto.
+         * @param {number} lat2 Latitude do segundo ponto.
+         * @param {number} lng2 Longitude do segundo ponto.
+         * @returns {number} Distância entre os dois pontos em quilômetros.
+         */
+
+        // Raio médio da Terra em quilômetros.
         const R = 6371;
 
+        // Converte as diferenças de latitude e longitude para radianos.
         const dLat =
             (lat2 - lat1) * Math.PI / 180;
 
         const dLng =
             (lng2 - lng1) * Math.PI / 180;
 
+        // Calcula o valor intermediário da fórmula de Haversine.
         const a =
             Math.sin(dLat / 2) ** 2 +
             Math.cos(
@@ -43,6 +59,7 @@ function initializeMapSearch({
             ) *
             Math.sin(dLng / 2) ** 2;
 
+        // Obtém o ângulo central entre os dois pontos.
         const c =
             2 *
             Math.atan2(
@@ -55,6 +72,14 @@ function initializeMapSearch({
 
 
     function setupClearSchoolInput() {
+        /**
+         * Configura o botão utilizado para limpar o campo de busca
+         * por escolas.
+         *
+         * O botão é exibido somente quando existe algum texto no campo
+         * e, ao ser acionado, limpa o conteúdo e devolve o foco ao campo.
+         */
+
         const input =
             document.getElementById(
                 "schoolInput"
@@ -69,6 +94,7 @@ function initializeMapSearch({
             return;
         }
 
+        // Atualiza a visibilidade do botão de limpeza.
         const updateButton = () => {
             button.classList.toggle(
                 "d-none",
@@ -76,11 +102,13 @@ function initializeMapSearch({
             );
         };
 
+        // Mantém o botão sincronizado com o conteúdo do campo.
         input.addEventListener(
             "input",
             updateButton
         );
 
+        // Limpa o campo e dispara novamente o evento de entrada.
         button.addEventListener(
             "click",
             () => {
@@ -101,6 +129,14 @@ function initializeMapSearch({
 
 
     function searchSchools(term) {
+        /**
+         * Consulta o backend para localizar escolas a partir de um termo
+         * de busca.
+         *
+         * @param {string} term Texto informado pelo usuário.
+         * @returns {Promise<Object[]>} Lista de escolas retornada pela API.
+         */
+
         return fetch(
             `/api/busca/${term}`
         )
@@ -111,6 +147,10 @@ function initializeMapSearch({
 
 
     function showSuggestionsBox() {
+        /**
+         * Exibe a área de sugestões de escolas.
+         */
+
         suggestionsBox.classList.remove(
             "d-none"
         );
@@ -118,6 +158,10 @@ function initializeMapSearch({
 
 
     function hideSuggestionsBox() {
+        /**
+         * Oculta a área de sugestões de escolas.
+         */
+
         suggestionsBox.classList.add(
             "d-none"
         );
@@ -125,6 +169,11 @@ function initializeMapSearch({
 
 
     function clearSuggestions() {
+        /**
+         * Remove todas as sugestões atualmente exibidas
+         * e oculta a área correspondente.
+         */
+
         suggestionsBox.innerHTML = "";
 
         hideSuggestionsBox();
@@ -132,6 +181,10 @@ function initializeMapSearch({
 
 
     function hideSchoolCard() {
+        /**
+         * Oculta o cartão com as informações da escola selecionada.
+         */
+
         const card =
             document.getElementById(
                 "schoolCard"
@@ -149,6 +202,18 @@ function initializeMapSearch({
         school,
         comparisonMode = false
     ) {
+        /**
+         * Exibe as informações resumidas de uma escola no cartão do mapa.
+         *
+         * Quando uma localização do usuário está disponível, mostra também
+         * a distância aproximada até a escola. Em modo de comparação,
+         * apresenta a ação para selecionar a escola como comparada.
+         *
+         * @param {Object} school Dados da escola.
+         * @param {boolean} comparisonMode Indica se o cartão está sendo
+         * utilizado no modo de comparação.
+         */
+
         const card =
             document.getElementById(
                 "schoolCard"
@@ -163,6 +228,7 @@ function initializeMapSearch({
             return;
         }
 
+        // Verifica se a escola possui coordenadas geográficas.
         const hasCoordinates =
             school.lat != null &&
             school.lng != null;
@@ -170,6 +236,8 @@ function initializeMapSearch({
         const userLocation =
             getUserLocation();
 
+        // Informa ao usuário quando a escola não pode ser posicionada
+        // no mapa por ausência de coordenadas.
         const locationMessage =
             hasCoordinates
                 ? ""
@@ -181,6 +249,7 @@ function initializeMapSearch({
 
         let distanceHtml = "";
 
+        // Calcula e exibe a distância até a escola quando possível.
         if (
             userLocation &&
             hasCoordinates
@@ -202,6 +271,7 @@ function initializeMapSearch({
             `;
         }
 
+        // Define a ação disponível no cartão de acordo com o modo atual.
         const actionHtml =
             comparisonMode
                 ? `
@@ -220,6 +290,7 @@ function initializeMapSearch({
                     </a>
                 `;
 
+        // Monta o conteúdo apresentado no cartão.
         body.innerHTML = `
             <h6 class="fw-bold mb-1">
                 ${school.nome}
@@ -240,10 +311,13 @@ function initializeMapSearch({
             ${actionHtml}
         `;
 
+        // Exibe o cartão após preencher seu conteúdo.
         card.classList.remove(
             "d-none"
         );
 
+        // No modo de comparação, configura o botão para selecionar
+        // a escola atualmente apresentada.
         if (comparisonMode) {
             const compareButton =
                 document.getElementById(
@@ -265,10 +339,19 @@ function initializeMapSearch({
 
 
     function selectSchool(schoolData) {
+        /**
+         * Seleciona uma escola no mapa e atualiza o marcador e o cartão
+         * de informações correspondentes.
+         *
+         * @param {Object} schoolData Dados da escola selecionada.
+         */
+
+        // Remove a seleção anterior.
         selectedLayer.clearLayers();
 
         setSelectedSchoolCode(null);
 
+        // Adiciona a escola ao mapa somente quando suas coordenadas existem.
         if (
             schoolData.lat != null &&
             schoolData.lng != null
@@ -278,6 +361,7 @@ function initializeMapSearch({
                     schoolData.codigo
                 );
 
+            // Cria o marcador caso ele ainda não esteja registrado.
             if (!marker) {
                 marker =
                     addMarker(
@@ -295,10 +379,12 @@ function initializeMapSearch({
             );
         }
 
+        // Atualiza o cartão da escola selecionada.
         showSchoolCard(
             schoolData
         );
 
+        // Registra o código da escola selecionada.
         setSelectedSchoolCode(
             schoolData.codigo
         );
@@ -308,6 +394,13 @@ function initializeMapSearch({
     function createSuggestionButton(
         school
     ) {
+        /**
+         * Cria o botão correspondente a uma escola na lista de sugestões.
+         *
+         * @param {Object} school Dados da escola.
+         * @returns {HTMLButtonElement} Botão criado para a sugestão.
+         */
+
         const button =
             document.createElement(
                 "button"
@@ -325,6 +418,8 @@ function initializeMapSearch({
         const userLocation =
             getUserLocation();
 
+        // Calcula a distância da escola até a localização do usuário,
+        // quando ambas as posições estão disponíveis.
         if (
             userLocation &&
             school.lat != null &&
@@ -347,6 +442,7 @@ function initializeMapSearch({
             `;
         }
 
+        // Define o conteúdo visual da sugestão.
         button.innerHTML = `
             <div class="fw-bold text-dark">
                 ${school.nome}
@@ -363,11 +459,13 @@ function initializeMapSearch({
             </div>
         `;
 
+        // Seleciona a escola quando o usuário clica na sugestão.
         button.onclick = () => {
             hideSuggestionsBox();
 
             searchInput.value = "";
 
+            // Escolas com coordenadas são centralizadas antes da seleção.
             if (
                 school.lat != null &&
                 school.lng != null
@@ -395,6 +493,8 @@ function initializeMapSearch({
                 );
 
             } else {
+                // Quando não há coordenadas, apenas seleciona a escola
+                // sem tentar movimentar o mapa.
                 selectSchool(
                     school
                 );
@@ -408,8 +508,15 @@ function initializeMapSearch({
     function showSuggestions(
         schools
     ) {
+        /**
+         * Exibe no campo de busca a lista de escolas retornada pela API.
+         *
+         * @param {Object[]} schools Lista de escolas encontradas.
+         */
+
         suggestionsBox.innerHTML = "";
 
+        // Informa quando a busca não encontrou resultados.
         if (
             !schools ||
             schools.length === 0
@@ -426,6 +533,7 @@ function initializeMapSearch({
             return;
         }
 
+        // Cria um botão de sugestão para cada escola encontrada.
         schools.forEach(
             school => {
                 suggestionsBox.appendChild(
@@ -441,6 +549,13 @@ function initializeMapSearch({
 
 
     function onSearchInput() {
+        /**
+         * Processa as alterações no campo de busca.
+         *
+         * Consultas com menos de três caracteres são ignoradas;
+         * caso contrário, os resultados são solicitados ao backend.
+         */
+
         const term =
             searchInput.value.trim();
 
@@ -461,6 +576,14 @@ function initializeMapSearch({
 
 
     async function restoreSchoolFromSheet() {
+        /**
+         * Restaura no mapa a escola que originou o retorno da ficha técnica.
+         *
+         * O código da escola é recuperado do sessionStorage, os dados
+         * são obtidos pela API e a escola é selecionada e centralizada
+         * novamente no mapa.
+         */
+
         const schoolCode =
             sessionStorage.getItem(
                 "returnToSchoolMap"
@@ -471,6 +594,7 @@ function initializeMapSearch({
         }
 
         try {
+            // Recupera os dados da escola pelo código armazenado.
             const response =
                 await fetch(
                     `/api/escola-localizacao/${schoolCode}`
@@ -491,6 +615,7 @@ function initializeMapSearch({
                 );
             }
 
+            // Sem coordenadas, não é possível restaurar a posição no mapa.
             if (
                 school.lat == null ||
                 school.lng == null
@@ -498,15 +623,19 @@ function initializeMapSearch({
                 return;
             }
 
+            // Restaura o nome da escola no campo de busca.
             searchInput.value =
                 school.nome || "";
             
+            // Dispara o evento de entrada para atualizar os elementos
+            // associados ao campo, como o botão de limpeza.
             searchInput.dispatchEvent(
                 new Event("input", {
                     bubbles: true
                 })
             );
 
+            // Restaura a escola selecionada e centraliza o mapa.
             selectSchool(
                 school
             );
@@ -526,6 +655,7 @@ function initializeMapSearch({
             );
 
         } finally {
+            // Remove o estado temporário após a tentativa de restauração.
             sessionStorage.removeItem(
                 "returnToSchoolMap"
             );
@@ -533,14 +663,18 @@ function initializeMapSearch({
     }
 
 
+    // Configura o botão de limpeza do campo de busca.
     setupClearSchoolInput();
 
+    // Inicia a busca conforme o usuário digita.
     searchInput.addEventListener(
         "input",
         onSearchInput
     );
 
 
+    // Fecha as sugestões quando o usuário clica fora do campo
+    // e da própria área de sugestões.
     document.addEventListener(
         "click",
         event => {
@@ -558,6 +692,7 @@ function initializeMapSearch({
     );
 
 
+    // Expõe as operações que precisam ser utilizadas por outros módulos.
     return {
         clearSuggestions,
         hideSchoolCard,

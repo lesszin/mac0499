@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, text
 
 from routes.school import get_school_structure_snapshot
 
+# Carrega as variáveis definidas no arquivo de ambiente.
 load_dotenv()
 
 comparison_bp = Blueprint(
@@ -14,11 +15,15 @@ comparison_bp = Blueprint(
     __name__
 )
 
+
+# Configurações utilizadas na geração dos links de incorporação do Metabase.
 METABASE_SITE_URL = "http://localhost:3000"
 METABASE_SECRET_KEY = os.getenv(
     "METABASE_SECRET_KEY"
 )
 
+
+# Configurações de acesso ao banco de dados.
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
@@ -28,6 +33,8 @@ DB_PORT = os.getenv(
     "5432"
 )
 
+
+# Cria a conexão com o banco de dados PostgreSQL.
 engine = create_engine(
     f"postgresql://{DB_USER}:{DB_PASS}@"
     f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -41,6 +48,27 @@ def get_comparison_data(
     indicador,
     filtro=None
 ):
+    """
+    Obtém os dados históricos de dois estabelecimentos de ensino
+    para um determinado indicador e calcula a diferença no ano mais
+    recente compartilhado pelas duas séries.
+
+    Args:
+        school_code: Código da escola principal.
+        comparison_school_code: Código da escola comparada.
+        categoria: Categoria do indicador, como matrículas, docentes
+            ou turmas.
+        indicador: Indicador específico dentro da categoria.
+        filtro: Filtro adicional para indicadores que possuem
+            subdivisões, como modalidade, gênero ou raça/cor.
+
+    Returns:
+        Um dicionário contendo as séries históricas da escola principal
+        e da escola comparada, além da comparação do último ano comum.
+        Retorna None quando a categoria ou o indicador não é encontrado.
+    """
+
+    # Consultas históricas disponíveis para cada categoria e indicador.
     queries = {
         "matriculas": {
             "total": text("""
@@ -244,6 +272,7 @@ def get_comparison_data(
         }
     }
 
+    # Valida a existência da categoria e do indicador solicitado.
     if categoria not in queries:
         return None
 
@@ -252,16 +281,19 @@ def get_comparison_data(
 
     query = queries[categoria][indicador]
 
+    # Parâmetros da escola principal.
     params_main = {
         "codigo": school_code,
         "filtro": filtro
     }
 
+    # Parâmetros da escola comparada.
     params_comparison = {
         "codigo": comparison_school_code,
         "filtro": filtro
     }
 
+    # Executa a mesma consulta para as duas escolas.
     with engine.connect() as connection:
 
         result_main = connection.execute(
@@ -274,6 +306,7 @@ def get_comparison_data(
             params_comparison
         ).fetchall()
 
+    # Converte o resultado do banco para o formato utilizado pela API.
     main_data = [
         {
             "ano": row.ano,
@@ -290,6 +323,8 @@ def get_comparison_data(
         for row in result_comparison
     ]
 
+    # Organiza os dados por ano para facilitar a identificação
+    # dos anos existentes nas duas séries.
     main_by_year = {
         item["ano"]: item["valor"]
         for item in main_data
@@ -300,6 +335,7 @@ def get_comparison_data(
         for item in comparison_data
     }
 
+    # Mantém apenas os anos presentes nas duas escolas.
     common_years = sorted(
         set(main_by_year) &
         set(comparison_by_year)
@@ -307,6 +343,7 @@ def get_comparison_data(
 
     comparison = None
 
+    # Calcula a diferença utilizando o ano mais recente em comum.
     if common_years:
 
         ano = common_years[-1]
@@ -355,6 +392,27 @@ def get_division_comparison_data(
     indicador,
     filtro=None
 ):
+    """
+    Obtém os dados históricos agregados de duas divisões administrativas
+    para uma determinada categoria e indicador.
+
+    Args:
+        tipo: Tipo da divisão principal, como país, região, UF
+            ou município.
+        codigo: Código da divisão administrativa principal.
+        tipo_comparacao: Tipo da divisão administrativa comparada.
+        codigo_comparacao: Código da divisão administrativa comparada.
+        categoria: Categoria do indicador.
+        indicador: Indicador específico dentro da categoria.
+        filtro: Filtro adicional para indicadores subdivididos.
+
+    Returns:
+        Um dicionário com as séries históricas das duas divisões e
+        a comparação do ano mais recente compartilhado. Retorna None
+        quando a categoria ou indicador não existe.
+    """
+
+    # Expressões utilizadas para calcular cada indicador agregado.
     metric_queries = {
         "matriculas": {
             "total": """
@@ -479,6 +537,7 @@ def get_division_comparison_data(
         }
     }
 
+    # Valida a categoria e o indicador solicitados.
     if categoria not in metric_queries:
         return None
 
@@ -487,6 +546,8 @@ def get_division_comparison_data(
 
     metric = metric_queries[categoria][indicador]
 
+    # Define a tabela e o alias utilizados na consulta de acordo
+    # com a categoria selecionada.
     if categoria == "matriculas":
 
         table = "fato_matricula"
@@ -502,6 +563,8 @@ def get_division_comparison_data(
         table = "fato_turma"
         alias = "t"
 
+    # A consulta agrega os registros das escolas pertencentes
+    # à divisão administrativa selecionada.
     query = text(f"""
         SELECT
             {alias}."NU_ANO_CENSO" AS ano,
@@ -540,18 +603,21 @@ def get_division_comparison_data(
             {alias}."NU_ANO_CENSO"
     """)
 
+    # Parâmetros da divisão administrativa principal.
     params_main = {
         "tipo": tipo,
         "codigo": codigo,
         "filtro": filtro
     }
 
+    # Parâmetros da divisão administrativa comparada.
     params_comparison = {
         "tipo": tipo_comparacao,
         "codigo": codigo_comparacao,
         "filtro": filtro
     }
 
+    # Executa a mesma consulta para as duas divisões.
     with engine.connect() as connection:
 
         result_main = connection.execute(
@@ -564,6 +630,7 @@ def get_division_comparison_data(
             params_comparison
         ).fetchall()
 
+    # Converte os resultados para a estrutura retornada pela API.
     main_data = [
         {
             "ano": row.ano,
@@ -580,6 +647,7 @@ def get_division_comparison_data(
         for row in result_comparison
     ]
 
+    # Organiza os valores por ano para permitir a comparação entre séries.
     main_by_year = {
         item["ano"]: item["valor"]
         for item in main_data
@@ -590,6 +658,7 @@ def get_division_comparison_data(
         for item in comparison_data
     }
 
+    # Identifica os anos presentes nas duas séries.
     common_years = sorted(
         set(main_by_year) &
         set(comparison_by_year)
@@ -597,6 +666,8 @@ def get_division_comparison_data(
 
     comparison = None
 
+    # Calcula a diferença utilizando o último ano disponível
+    # nas duas divisões administrativas.
     if common_years:
 
         ano = common_years[-1]
@@ -647,10 +718,28 @@ def comparison_data(
     categoria,
     indicador
 ):
+    """
+    Retorna os dados históricos utilizados na comparação entre
+    duas escolas.
+
+    Args:
+        school_code: Código da escola principal recebido pela URL.
+        comparison_school_code: Código da escola comparada recebido
+            pela URL.
+        categoria: Categoria do indicador.
+        indicador: Indicador solicitado.
+
+    Returns:
+        Uma resposta JSON com os dados das duas escolas ou um erro
+        HTTP 404 quando a categoria ou o indicador são inválidos.
+    """
+
+    # Obtém o filtro opcional enviado como parâmetro de consulta.
     filtro = request.args.get(
         "filtro"
     )
 
+    # Consulta os dados das duas escolas.
     data = get_comparison_data(
         school_code,
         comparison_school_code,
@@ -659,6 +748,8 @@ def comparison_data(
         filtro
     )
 
+    # Retorna erro quando a combinação de categoria e indicador
+    # não é suportada.
     if data is None:
         return jsonify({
             "erro":
@@ -677,7 +768,22 @@ def comparison_structure(
     school_code,
     comparison_code
 ):
+    """
+    Retorna o snapshot da estrutura de duas escolas para os anos
+    selecionados.
+
+    Args:
+        school_code: Código da escola principal.
+        comparison_code: Código da escola comparada.
+
+    Returns:
+        Uma resposta JSON contendo os dados estruturais das duas escolas.
+        Retorna erros 400 para anos inválidos, 404 para ausência de dados
+        e 500 para erros inesperados.
+    """
+
     try:
+        # Obtém os anos opcionais enviados pelos parâmetros da requisição.
         year_main_param = request.args.get(
             "ano_principal"
         )
@@ -686,6 +792,7 @@ def comparison_structure(
             "ano_comparacao"
         )
 
+        # Converte o ano da escola principal para inteiro quando informado.
         if year_main_param:
 
             try:
@@ -703,6 +810,7 @@ def comparison_structure(
         else:
             year_main = None
 
+        # Converte o ano da escola comparada para inteiro quando informado.
         if year_comparison_param:
 
             try:
@@ -720,10 +828,18 @@ def comparison_structure(
         else:
             year_comparison = None
 
-        main_data = get_school_structure_snapshot(school_code, year_main)
+        # Carrega os snapshots estruturais das duas escolas.
+        main_data = get_school_structure_snapshot(
+            school_code,
+            year_main
+        )
 
-        comparison_data = get_school_structure_snapshot(comparison_code, year_comparison)
+        comparison_data = get_school_structure_snapshot(
+            comparison_code,
+            year_comparison
+        )
 
+        # Verifica se existem dados para a escola principal.
         if main_data is None:
             return jsonify({
                 "erro":
@@ -731,6 +847,7 @@ def comparison_structure(
                     "para a escola principal."
             }), 404
 
+        # Verifica se existem dados para a escola comparada.
         if comparison_data is None:
             return jsonify({
                 "erro":
@@ -748,6 +865,8 @@ def comparison_structure(
 
     except Exception as e:
 
+        # Registra o erro no servidor e retorna uma resposta genérica
+        # com a mensagem da exceção.
         print(
             "Erro ao carregar estrutura da comparação:",
             e
@@ -771,11 +890,29 @@ def generate_comparison_chart(
     categoria,
     indicador
 ):
+    """
+    Gera a URL de incorporação de um gráfico do Metabase para a
+    comparação entre duas escolas.
+
+    Args:
+        school_code: Código da escola principal.
+        comparison_code: Código da escola comparada.
+        categoria: Categoria do gráfico.
+        indicador: Indicador do gráfico.
+
+    Returns:
+        Uma resposta JSON contendo a URL assinada do Metabase ou
+        uma mensagem de erro.
+    """
+
     try:
+        # Obtém o filtro adicional utilizado por indicadores específicos.
         filtro = request.args.get(
             "filtro"
         )
 
+        # Relaciona cada categoria e indicador à pergunta correspondente
+        # existente no Metabase.
         questions = {
             "matriculas": {
                 "total": 75,
@@ -803,6 +940,7 @@ def generate_comparison_chart(
             }
         }
 
+        # Valida a categoria informada.
         if categoria not in questions:
             return jsonify({
                 "sucesso": False,
@@ -810,6 +948,7 @@ def generate_comparison_chart(
                     "Categoria inválida."
             }), 400
 
+        # Valida o indicador dentro da categoria informada.
         if indicador not in questions[categoria]:
             return jsonify({
                 "sucesso": False,
@@ -819,6 +958,7 @@ def generate_comparison_chart(
 
         question_id = questions[categoria][indicador]
 
+        # Define os valores permitidos para filtros específicos.
         filter_options = {
             "modalidade": [
                 "Educação Infantil - Creche",
@@ -846,6 +986,8 @@ def generate_comparison_chart(
             ]
         }
 
+        # Indicadores que possuem filtro exigem que ele seja informado
+        # e que pertença à lista de opções válidas.
         if indicador in filter_options:
 
             if not filtro:
@@ -863,12 +1005,15 @@ def generate_comparison_chart(
                         "Filtro inválido."
                 }), 400
 
+        # Parâmetros enviados ao questionário do Metabase.
         params = {
             "escola": school_code,
             "escola_comparacao":
                 comparison_code
         }
 
+        # Associa o filtro recebido ao parâmetro correspondente
+        # utilizado pelo questionário.
         if indicador == "modalidade":
 
             params["modalidade"] = filtro
@@ -881,6 +1026,7 @@ def generate_comparison_chart(
 
             params["raca"] = filtro
 
+        # Monta o payload utilizado para gerar o token JWT.
         payload = {
             "resource": {
                 "question": question_id
@@ -888,6 +1034,7 @@ def generate_comparison_chart(
 
             "params": params,
 
+            # Define a expiração do token para 30 minutos.
             "exp": round(
                 (
                     datetime.datetime.now(
@@ -900,12 +1047,14 @@ def generate_comparison_chart(
             )
         }
 
+        # Gera o token assinado utilizado pelo Metabase.
         token = jwt.encode(
             payload,
             METABASE_SECRET_KEY,
             algorithm="HS256"
         )
 
+        # Monta a URL final de incorporação do gráfico.
         url = (
             f"{METABASE_SITE_URL}/embed/question/"
             f"{token}"
@@ -933,7 +1082,21 @@ def generate_division_comparison_chart(
     categoria,
     indicador
 ):
+    """
+    Gera a URL de incorporação de um gráfico do Metabase para a
+    comparação entre duas divisões administrativas.
+
+    Args:
+        categoria: Categoria do indicador.
+        indicador: Indicador solicitado.
+
+    Returns:
+        Uma resposta JSON contendo a URL assinada do Metabase ou
+        uma mensagem de erro.
+    """
+
     try:
+        # Obtém os parâmetros da divisão principal e da comparação.
         tipo = request.args.get(
             "tipo"
         )
@@ -956,6 +1119,7 @@ def generate_division_comparison_chart(
             "filtro"
         )
 
+        # Tipos de divisão administrativa aceitos pela API.
         tipos_validos = {
             "pais",
             "regiao",
@@ -963,6 +1127,7 @@ def generate_division_comparison_chart(
             "municipio"
         }
 
+        # Valida o tipo da divisão principal.
         if tipo not in tipos_validos:
             return jsonify({
                 "sucesso": False,
@@ -970,6 +1135,7 @@ def generate_division_comparison_chart(
                     "Tipo de divisão administrativa inválido."
             }), 400
 
+        # Valida o tipo da divisão comparada.
         if tipo_comparacao not in tipos_validos:
             return jsonify({
                 "sucesso": False,
@@ -978,6 +1144,7 @@ def generate_division_comparison_chart(
                     "da comparação inválido."
             }), 400
 
+        # O código da divisão principal é obrigatório.
         if codigo is None:
             return jsonify({
                 "sucesso": False,
@@ -985,6 +1152,7 @@ def generate_division_comparison_chart(
                     "Código da divisão é obrigatório."
             }), 400
 
+        # O código da divisão comparada é obrigatório.
         if codigo_comparacao is None:
             return jsonify({
                 "sucesso": False,
@@ -993,6 +1161,8 @@ def generate_division_comparison_chart(
                     "é obrigatório."
             }), 400
 
+        # Relaciona as categorias e indicadores aos questionários
+        # correspondentes no Metabase.
         questions = {
             "matriculas": {
                 "total": 115,
@@ -1012,6 +1182,7 @@ def generate_division_comparison_chart(
             }
         }
 
+        # Valida a categoria informada.
         if categoria not in questions:
             return jsonify({
                 "sucesso": False,
@@ -1019,6 +1190,7 @@ def generate_division_comparison_chart(
                     "Categoria inválida."
             }), 400
 
+        # Valida o indicador dentro da categoria.
         if indicador not in questions[categoria]:
             return jsonify({
                 "sucesso": False,
@@ -1028,6 +1200,7 @@ def generate_division_comparison_chart(
 
         question_id = questions[categoria][indicador]
 
+        # Define as opções aceitas para os filtros dos indicadores.
         filter_options = {
             "modalidade": [
                 "Educação Infantil - Creche",
@@ -1055,6 +1228,7 @@ def generate_division_comparison_chart(
             ]
         }
 
+        # Valida a obrigatoriedade e o conteúdo dos filtros.
         if indicador in filter_options:
 
             if not filtro:
@@ -1072,6 +1246,7 @@ def generate_division_comparison_chart(
                         "Filtro inválido."
                 }), 400
 
+        # Parâmetros utilizados pelo questionário do Metabase.
         params = {
             "tipo": tipo,
             "codigo": codigo,
@@ -1081,6 +1256,7 @@ def generate_division_comparison_chart(
                 codigo_comparacao
         }
 
+        # Define o parâmetro correspondente ao filtro escolhido.
         if indicador == "modalidade":
 
             params["modalidade"] = filtro
@@ -1093,6 +1269,7 @@ def generate_division_comparison_chart(
 
             params["raca"] = filtro
 
+        # Monta o payload do token de incorporação.
         payload = {
             "resource": {
                 "question": question_id
@@ -1100,6 +1277,7 @@ def generate_division_comparison_chart(
 
             "params": params,
 
+            # Mantém o token válido por 30 minutos.
             "exp": round(
                 (
                     datetime.datetime.now(
@@ -1112,12 +1290,14 @@ def generate_division_comparison_chart(
             )
         }
 
+        # Gera o JWT assinado para o Metabase.
         token = jwt.encode(
             payload,
             METABASE_SECRET_KEY,
             algorithm="HS256"
         )
 
+        # Monta a URL de incorporação do gráfico.
         url = (
             f"{METABASE_SITE_URL}/embed/question/"
             f"{token}"
@@ -1145,6 +1325,20 @@ def division_comparison_data(
     categoria,
     indicador
 ):
+    """
+    Retorna os dados históricos utilizados na comparação entre duas
+    divisões administrativas.
+
+    Args:
+        categoria: Categoria do indicador.
+        indicador: Indicador solicitado.
+
+    Returns:
+        Uma resposta JSON com os dados das duas divisões ou um erro
+        HTTP 400/404 conforme a validação dos parâmetros.
+    """
+
+    # Obtém os parâmetros das duas divisões administrativas.
     tipo = request.args.get(
         "tipo"
     )
@@ -1167,6 +1361,7 @@ def division_comparison_data(
         "filtro"
     )
 
+    # Tipos de divisão administrativa suportados.
     tipos_validos = {
         "pais",
         "regiao",
@@ -1174,6 +1369,7 @@ def division_comparison_data(
         "municipio"
     }
 
+    # Valida os parâmetros obrigatórios.
     if (
         tipo not in tipos_validos
         or tipo_comparacao not in tipos_validos
@@ -1185,6 +1381,8 @@ def division_comparison_data(
                 "Parâmetros de divisão inválidos."
         }), 400
 
+    # A comparação deve ocorrer entre divisões do mesmo nível
+    # administrativo.
     if tipo != tipo_comparacao:
         return jsonify({
             "erro":
@@ -1192,6 +1390,7 @@ def division_comparison_data(
                 "divisões do mesmo tipo."
         }), 400
 
+    # Consulta os dados das duas divisões.
     data = get_division_comparison_data(
         tipo,
         codigo,
@@ -1202,6 +1401,7 @@ def division_comparison_data(
         filtro
     )
 
+    # Retorna erro quando a categoria ou indicador não são válidos.
     if data is None:
         return jsonify({
             "erro":

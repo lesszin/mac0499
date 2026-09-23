@@ -1,5 +1,7 @@
 let schoolsInitialized = false;
 
+
+// Configura os filtros e seus valores utilizados na listagem de escolas.
 const schoolFilters = {
     modalidades: [
         {
@@ -71,15 +73,25 @@ const schoolFilters = {
     ]
 };
 
+
 window.initializeSchools = function () {
+    /**
+     * Inicializa a seção de escolas da ficha administrativa.
+     *
+     * A inicialização ocorre somente uma vez durante a vida da página.
+     */
+
+    // Evita renderizações repetidas da seção.
     if (schoolsInitialized) {
         return;
     }
 
     schoolsInitialized = true;
 
+    // Constrói os blocos de categorias e configura seus eventos.
     renderSchoolBlocks();
 };
+
 
 function calculateDistanceKm(
     lat1,
@@ -87,20 +99,35 @@ function calculateDistanceKm(
     lat2,
     lng2
 ) {
+    /**
+     * Calcula a distância aproximada, em quilômetros, entre duas
+     * coordenadas geográficas utilizando a fórmula de Haversine.
+     *
+     * @param {number} lat1 Latitude do primeiro ponto.
+     * @param {number} lng1 Longitude do primeiro ponto.
+     * @param {number} lat2 Latitude do segundo ponto.
+     * @param {number} lng2 Longitude do segundo ponto.
+     * @returns {number} Distância entre os pontos em quilômetros.
+     */
+
+    // Raio médio da Terra em quilômetros.
     const R = 6371;
 
+    // Converte as diferenças de latitude e longitude para radianos.
     const dLat =
         (lat2 - lat1) * Math.PI / 180;
 
     const dLng =
         (lng2 - lng1) * Math.PI / 180;
 
+    // Calcula o valor intermediário da fórmula de Haversine.
     const a =
         Math.sin(dLat / 2) ** 2 +
         Math.cos(lat1 * Math.PI / 180) *
         Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLng / 2) ** 2;
 
+    // Obtém o ângulo central entre os dois pontos.
     const c =
         2 * Math.atan2(
             Math.sqrt(a),
@@ -110,12 +137,30 @@ function calculateDistanceKm(
     return R * c;
 }
 
+
 function getSchoolLocationText(school) {
+    /**
+     * Monta o texto de localização de uma escola.
+     *
+     * Quando a localização do usuário está disponível e a escola
+     * possui coordenadas, acrescenta também a distância aproximada
+     * até a escola.
+     *
+     * @param {Object} school Dados da escola.
+     * @returns {string} Texto com município, estado e, quando possível,
+     * a distância até a localização do usuário.
+     */
+
     let locationText =
         `${school.cidade} - ${school.estado}`;
 
+
+    // Recupera a localização do usuário armazenada localmente.
     const savedLocation = localStorage.getItem("userLocation");
 
+
+    // Calcula a distância quando existem coordenadas válidas
+    // tanto para o usuário quanto para a escola.
     if (
         savedLocation &&
         school.lat != null &&
@@ -147,7 +192,15 @@ function getSchoolLocationText(school) {
     return locationText;
 }
 
+
 function renderSchoolBlocks() {
+    /**
+     * Renderiza os blocos de categorias de escolas na ficha administrativa.
+     *
+     * As categorias são agrupadas em modalidades, dependência administrativa
+     * e localização.
+     */
+
     const schoolsSheet =
         document.getElementById(
             "schoolsSheet"
@@ -157,6 +210,8 @@ function renderSchoolBlocks() {
         return;
     }
 
+
+    // Constrói os três grupos principais de filtros.
     schoolsSheet.innerHTML = `
         ${createSchoolCategory(
             "Modalidades",
@@ -177,14 +232,26 @@ function renderSchoolBlocks() {
         )}
     `;
 
+
+    // Registra os eventos de abertura e fechamento dos filtros.
     setupSchoolCategoryEvents();
 }
+
 
 function createSchoolCategory(
     title,
     category,
     filters
 ) {
+    /**
+     * Cria o HTML de uma categoria de filtros de escolas.
+     *
+     * @param {string} title Título exibido para a categoria.
+     * @param {string} category Identificador da categoria.
+     * @param {Object[]} filters Itens disponíveis na categoria.
+     * @returns {string} HTML completo da categoria.
+     */
+
     const itemsHtml =
         filters
             .map(
@@ -238,6 +305,7 @@ function createSchoolCategory(
             )
             .join("");
 
+
     return `
         <div class="card shadow-sm border-0 rounded-3 mb-4">
 
@@ -255,7 +323,15 @@ function createSchoolCategory(
     `;
 }
 
+
 function setupSchoolCategoryEvents() {
+    /**
+     * Configura os eventos dos botões das categorias de escolas.
+     *
+     * Ao abrir uma categoria, carrega os dados correspondentes.
+     * Ao fechá-la, apenas oculta seu conteúdo.
+     */
+
     document
         .querySelectorAll(
             ".school-filter-button"
@@ -287,6 +363,8 @@ function setupSchoolCategoryEvents() {
                             "d-none"
                         );
 
+
+                    // Abre o conteúdo da categoria e carrega suas escolas.
                     if (isHidden) {
 
                         container.classList.remove(
@@ -307,6 +385,8 @@ function setupSchoolCategoryEvents() {
                             container
                         );
 
+
+                    // Fecha o conteúdo quando a categoria já está aberta.
                     } else {
 
                         container.classList.add(
@@ -326,11 +406,22 @@ function setupSchoolCategoryEvents() {
         });
 }
 
+
 async function loadSchools(
     category,
     filtro,
     container
 ) {
+    /**
+     * Carrega as escolas de uma categoria e filtro específicos.
+     *
+     * @param {string} category Categoria do filtro.
+     * @param {string} filtro Valor específico selecionado.
+     * @param {HTMLElement} container Elemento onde os resultados serão
+     * renderizados.
+     */
+
+    // Exibe o indicador de carregamento enquanto a consulta é realizada.
     container.innerHTML = `
         <div class="px-3 py-3 text-center">
             <div
@@ -340,7 +431,9 @@ async function loadSchools(
         </div>
     `;
 
+
     try {
+        // Monta os parâmetros da consulta paginada.
         const params =
             new URLSearchParams({
                 tipo: DIVISION_TYPE,
@@ -354,6 +447,8 @@ async function loadSchools(
                 offset: 0
             });
 
+
+        // Consulta as escolas pertencentes à divisão administrativa.
         const response =
             await fetch(
                 `/api/divisoes/escolas?${params.toString()}`
@@ -374,6 +469,8 @@ async function loadSchools(
             );
         }
 
+
+        // Renderiza os resultados obtidos.
         renderSchoolList(
             container,
             data.escolas,
@@ -392,6 +489,8 @@ async function loadSchools(
             error
         );
 
+
+        // Exibe uma mensagem de erro no bloco correspondente.
         container.innerHTML = `
             <div class="px-3 py-3">
                 <div class="alert alert-danger mb-0">
@@ -401,6 +500,7 @@ async function loadSchools(
         `;
     }
 }
+
 
 function renderSchoolList(
     container,
@@ -412,16 +512,33 @@ function renderSchoolList(
     quantidade,
     total
 ) {
+    /**
+     * Renderiza uma página de escolas dentro de uma categoria.
+     *
+     * @param {HTMLElement} container Elemento onde a lista será exibida.
+     * @param {Object[]} schools Escolas retornadas pela API.
+     * @param {string} category Categoria do filtro.
+     * @param {string} filtro Filtro selecionado.
+     * @param {number} limite Quantidade máxima de registros por página.
+     * @param {number} offset Deslocamento da paginação.
+     * @param {number} quantidade Quantidade efetivamente retornada.
+     * @param {number} total Quantidade total de escolas encontradas.
+     */
+
     const countElement =
         document.querySelector(
             `.school-filter-count[data-category="${category}"][data-filtro="${filtro}"]`
         );
 
+
+    // Atualiza o contador exibido ao lado da categoria.
     if (countElement) {
         countElement.textContent =
             total.toLocaleString("pt-BR");
     }
 
+
+    // Exibe mensagem quando não existem escolas para o filtro.
     if (!schools.length) {
         container.innerHTML = `
             <div class="px-3 py-3">
@@ -434,6 +551,8 @@ function renderSchoolList(
         return;
     }
 
+
+    // Cria o HTML das escolas retornadas.
     const schoolsHtml =
         schools
             .map(
@@ -455,9 +574,13 @@ function renderSchoolList(
             )
             .join("");
 
+
+    // Calcula o próximo deslocamento da paginação.
     const nextOffset =
         offset + quantidade;
 
+
+    // Exibe o botão de carregamento quando a página foi preenchida.
     const loadMoreHtml =
         quantidade === limite
             ? `
@@ -474,6 +597,7 @@ function renderSchoolList(
             `
             : "";
 
+
     container.innerHTML = `
         <div class="px-3 py-2">
 
@@ -486,6 +610,8 @@ function renderSchoolList(
         </div>
     `;
 
+
+    // Configura o carregamento da próxima página, quando disponível.
     setupLoadMoreButton(
         container,
         category,
@@ -494,25 +620,38 @@ function renderSchoolList(
     );
 }
 
+
 function setupLoadMoreButton(
     container,
     category,
     filtro,
     offset
 ) {
+    /**
+     * Configura o botão responsável pelo carregamento de mais escolas.
+     *
+     * @param {HTMLElement} container Elemento que contém a lista.
+     * @param {string} category Categoria do filtro.
+     * @param {string} filtro Filtro selecionado.
+     * @param {number} offset Deslocamento utilizado na próxima consulta.
+     */
+
     const button =
         container.querySelector(
             ".load-more-schools"
         );
 
+
     if (!button) {
         return;
     }
+
 
     button.addEventListener(
         "click",
         async () => {
 
+            // Desabilita o botão enquanto a próxima página é carregada.
             button.disabled = true;
 
             button.innerHTML = `
@@ -523,7 +662,9 @@ function setupLoadMoreButton(
                 Carregando...
             `;
 
+
             try {
+                // Monta os parâmetros da próxima página.
                 const params =
                     new URLSearchParams({
                         tipo: DIVISION_TYPE,
@@ -536,6 +677,7 @@ function setupLoadMoreButton(
                         limite: 10,
                         offset: offset
                     });
+
 
                 const response =
                     await fetch(
@@ -557,6 +699,8 @@ function setupLoadMoreButton(
                     );
                 }
 
+
+                // Adiciona a nova página ao conteúdo já existente.
                 appendSchools(
                     container,
                     data.escolas,
@@ -574,6 +718,8 @@ function setupLoadMoreButton(
                     error
                 );
 
+
+                // Reabilita o botão caso ocorra um erro.
                 button.disabled = false;
 
                 button.innerHTML =
@@ -582,6 +728,7 @@ function setupLoadMoreButton(
         }
     );
 }
+
 
 function appendSchools(
     container,
@@ -592,6 +739,21 @@ function appendSchools(
     offset,
     quantidade
 ) {
+    /**
+     * Adiciona uma nova página de escolas à lista já renderizada.
+     *
+     * Remove o botão atual de carregamento, acrescenta os novos registros
+     * e cria um novo botão quando existem mais resultados disponíveis.
+     *
+     * @param {HTMLElement} container Elemento que contém a lista.
+     * @param {Object[]} schools Nova página de escolas.
+     * @param {string} category Categoria do filtro.
+     * @param {string} filtro Filtro selecionado.
+     * @param {number} limite Quantidade máxima de registros por página.
+     * @param {number} offset Deslocamento utilizado na consulta atual.
+     * @param {number} quantidade Quantidade efetivamente retornada.
+     */
+
     const list =
         container.querySelector(
             ".school-list"
@@ -602,10 +764,14 @@ function appendSchools(
             ".load-more-schools"
         );
 
+
+    // Remove o botão anterior antes de inserir os novos resultados.
     if (oldButton) {
         oldButton.parentElement.remove();
     }
 
+
+    // Constrói o HTML dos novos registros.
     const schoolsHtml =
         schools
             .map(
@@ -627,14 +793,21 @@ function appendSchools(
             )
             .join("");
 
+
+    // Acrescenta as novas escolas ao final da lista existente.
     list.insertAdjacentHTML(
         "beforeend",
         schoolsHtml
     );
 
+
+    // Calcula o deslocamento para a próxima página.
     const nextOffset =
         offset + quantidade;
 
+
+    // Cria um novo botão quando a página foi preenchida
+    // e pode haver mais resultados.
     if (quantidade === limite) {
 
         list.insertAdjacentHTML(
@@ -653,6 +826,8 @@ function appendSchools(
             `
         );
 
+
+        // Configura o novo botão para a página seguinte.
         setupLoadMoreButton(
             container,
             category,

@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import geopandas as gpd
 
+# Carrega as variáveis definidas no arquivo de ambiente.
 load_dotenv()
 
 division_bp = Blueprint(
@@ -13,11 +14,13 @@ division_bp = Blueprint(
     __name__
 )
 
+# Configurações utilizadas na geração dos links de incorporação do Metabase.
 METABASE_SITE_URL = "http://localhost:3000"
 METABASE_SECRET_KEY = os.getenv(
     "METABASE_SECRET_KEY"
 )
 
+# Configurações de acesso ao banco de dados.
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
@@ -27,6 +30,7 @@ DB_PORT = os.getenv(
     "5432"
 )
 
+# Cria a conexão com o banco de dados PostgreSQL.
 engine = create_engine(
     f"postgresql://{DB_USER}:{DB_PASS}@"
     f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -35,6 +39,17 @@ engine = create_engine(
 
 @division_bp.route('/api/divisoes/ficha')
 def get_division_sheet():
+    """
+    Retorna os dados cadastrais de uma divisão administrativa.
+
+    A divisão pode ser um país, região, unidade federativa ou
+    município. O tipo informado determina qual tabela e qual
+    coluna são utilizadas na consulta ao banco de dados.
+
+    Returns:
+        JSON contendo o tipo, o código e os dados da divisão.
+    """
+
     try:
         tipo = request.args.get(
             "tipo",
@@ -46,6 +61,8 @@ def get_division_sheet():
             ""
         ).strip()
 
+        # Define a tabela e a coluna identificadora de acordo
+        # com o tipo de divisão administrativa solicitado.
         config = {
             "pais": {
                 "table": "dim_pais",
@@ -129,6 +146,17 @@ def get_division_sheet():
 
 @division_bp.route('/api/divisoes/graficos')
 def generate_division_charts():
+    """
+    Gera URLs de incorporação dos gráficos da ficha de uma
+    divisão administrativa no Metabase.
+
+    Os gráficos são organizados por categoria e utilizam os
+    identificadores das perguntas configuradas no Metabase.
+
+    Returns:
+        JSON contendo as URLs dos gráficos agrupadas por categoria.
+    """
+
     try:
         tipo = request.args.get("tipo")
         codigo = request.args.get(
@@ -157,6 +185,8 @@ def generate_division_charts():
                     "Tipo de divisão administrativa inválido."
             }), 400
 
+        # Associa cada categoria e indicador ao ID da pergunta
+        # correspondente no Metabase.
         questions = {
             "matriculas": {
                 "modalidade": 89,
@@ -227,7 +257,24 @@ def generate_division_charts():
     '/api/busca-divisao/<string:tipo>/<string:text_query>'
 )
 def search_divisions(tipo, text_query):
+    """
+    Pesquisa divisões administrativas pelo nome.
+
+    A busca pode ser realizada sobre regiões, unidades federativas
+    ou municípios. O texto informado é dividido em palavras, e
+    todas as palavras devem aparecer no nome da divisão.
+
+    Args:
+        tipo: Tipo da divisão administrativa a ser pesquisada.
+        text_query: Texto utilizado na busca.
+
+    Returns:
+        Lista de divisões administrativas encontradas.
+    """
+
     try:
+        # Define as tabelas e colunas utilizadas para cada tipo
+        # de divisão administrativa.
         configs = {
             "regiao": {
                 "table": "dim_regiao",
@@ -324,6 +371,8 @@ def search_divisions(tipo, text_query):
             for i, word in enumerate(words)
         }
 
+        # Exclui da busca a própria divisão atualmente selecionada,
+        # quando seu código é informado.
         if codigo_atual is not None:
 
             query_string += f"""
@@ -378,6 +427,19 @@ def search_divisions(tipo, text_query):
 
 @division_bp.route('/api/divisoes/escolas')
 def get_division_schools():
+    """
+    Retorna as escolas pertencentes a uma divisão administrativa
+    de acordo com os filtros selecionados.
+
+    A rota permite filtrar as escolas por modalidade, dependência
+    administrativa ou localização e utiliza paginação para limitar
+    a quantidade de registros retornados.
+
+    Returns:
+        JSON contendo a lista de escolas, a quantidade total de
+        resultados e informações de paginação.
+    """
+
     try:
         dependencia_map = {
             "federal": 1,
@@ -470,6 +532,8 @@ def get_division_schools():
             "offset": offset
         }
 
+        # Adiciona à consulta a condição correspondente ao tipo
+        # de divisão administrativa selecionado.
         if tipo == "regiao":
 
             query += """
@@ -592,6 +656,7 @@ def get_division_schools():
                         "Modalidade inválida."
                 }), 400
 
+        # Aplica a ordenação e a paginação aos resultados.
         query += """
             ORDER BY e."NO_ENTIDADE"
             LIMIT :limite
@@ -654,6 +719,17 @@ def get_division_schools():
 
 @division_bp.route('/divisao/<tipo>/<int:codigo>')
 def division_page(tipo, codigo):
+    """
+    Renderiza a página de uma divisão administrativa.
+
+    Args:
+        tipo: Tipo da divisão administrativa.
+        codigo: Código da divisão administrativa.
+
+    Returns:
+        Página HTML division.html ou uma resposta 404 quando
+        o tipo de divisão não é válido.
+    """
 
     tipos_validos = {
         "pais",
@@ -677,6 +753,18 @@ def division_page(tipo, codigo):
 
 @division_bp.route('/api/divisoes/filhas')
 def get_child_divisions():
+    """
+    Retorna as divisões administrativas filhas de uma divisão
+    selecionada.
+
+    A hierarquia utilizada é país → região → UF → município.
+    Municípios não possuem divisões filhas.
+
+    Returns:
+        JSON contendo as divisões filhas e as informações
+        de paginação.
+    """
+
     try:
         tipo = request.args.get(
             "tipo",
@@ -715,6 +803,7 @@ def get_child_divisions():
         if offset < 0:
             offset = 0
 
+        # Define a relação entre uma divisão e suas divisões filhas.
         config = {
             "pais": {
                 "table": "dim_regiao",
@@ -738,6 +827,8 @@ def get_child_divisions():
             }
         }
 
+        # Municípios não possuem divisões administrativas abaixo
+        # deles na hierarquia utilizada pela aplicação.
         if tipo == "municipio":
 
             return jsonify({
@@ -887,6 +978,17 @@ def get_child_divisions():
 
 @division_bp.route('/api/divisoes/indicadores')
 def get_division_indicators():
+    """
+    Retorna os principais indicadores educacionais de uma divisão
+    administrativa para o ano configurado.
+
+    Os indicadores incluem matrículas, docentes e turmas, além
+    de suas subdivisões por modalidade, gênero e raça/cor.
+
+    Returns:
+        JSON contendo os indicadores agregados da divisão.
+    """
+
     try:
         tipo = request.args.get(
             "tipo",
@@ -943,6 +1045,9 @@ def get_division_indicators():
             "codigo": codigo_int
         }
 
+        # Para o país não é necessário aplicar um filtro adicional.
+        # Para as demais divisões, o filtro usa a coluna correspondente
+        # na dimensão de escolas.
         if config["column"] is None:
             school_filter = ""
 
@@ -1253,6 +1358,13 @@ def get_division_indicators():
 
 @division_bp.route('/api/divisoes/pais')
 def get_country():
+    """
+    Retorna os países cadastrados no Data Warehouse.
+
+    Returns:
+        Lista com código, nome e área de cada país.
+    """
+
     try:
         query = """
             SELECT
@@ -1293,6 +1405,13 @@ def get_country():
 
 @division_bp.route('/api/divisoes/regioes')
 def get_regions():
+    """
+    Retorna todas as grandes regiões cadastradas.
+
+    Returns:
+        Lista com código, nome e sigla de cada região.
+    """
+
     try:
         query = """
             SELECT
@@ -1333,6 +1452,16 @@ def get_regions():
 
 @division_bp.route('/api/divisoes/ufs')
 def get_ufs():
+    """
+    Retorna as unidades federativas pertencentes a uma grande
+    região.
+
+    O código da região é utilizado para filtrar a dimensão de UFs.
+
+    Returns:
+        Lista com código, nome e sigla das UFs selecionadas.
+    """
+
     try:
         regiao = request.args.get(
             "regiao",
@@ -1397,6 +1526,16 @@ def get_ufs():
 
 @division_bp.route('/api/divisoes/municipios')
 def get_municipios():
+    """
+    Retorna os municípios pertencentes a uma unidade federativa.
+
+    O código da UF é utilizado para filtrar a dimensão de
+    municípios.
+
+    Returns:
+        Lista com código e nome dos municípios.
+    """
+
     try:
         uf = request.args.get(
             "uf",
@@ -1459,6 +1598,21 @@ def get_municipios():
 
 @division_bp.route('/api/divisoes/geometria')
 def get_division_geometry():
+    """
+    Retorna a geometria geográfica de uma divisão administrativa.
+
+    A geometria é carregada a partir do shapefile correspondente
+    ao tipo de divisão solicitado.
+
+    Args:
+        tipo: Tipo da divisão administrativa informado na requisição.
+        codigo: Código da divisão administrativa informado na requisição.
+
+    Returns:
+        GeoJSON contendo a geometria encontrada ou uma mensagem
+        de erro caso a divisão não exista.
+    """
+
     try:
         tipo = request.args.get(
             "tipo",
@@ -1470,6 +1624,8 @@ def get_division_geometry():
             ""
         ).strip()
 
+        # Define o shapefile e a coluna utilizada para localizar
+        # a geometria de cada tipo de divisão.
         shapefile_map = {
             "regiao": {
                 "path":
@@ -1515,6 +1671,8 @@ def get_division_geometry():
             config["path"]
         )
 
+        # O shapefile do país utiliza seu próprio identificador,
+        # por isso o caso é tratado separadamente.
         if tipo == "pais":
 
             if codigo != "1":
@@ -1531,6 +1689,8 @@ def get_division_geometry():
 
             return gdf.to_json()
 
+        # Converte os identificadores para string antes da comparação
+        # com o código recebido pela requisição.
         gdf[config["column"]] = (
             gdf[config["column"]]
             .astype(str)

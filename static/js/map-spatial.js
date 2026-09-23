@@ -8,20 +8,29 @@ function initializeMapSpatial({
     setSelectedSchoolCode
 }) {
 
+    // Camada utilizada pela análise espacial baseada em mapa de calor.
     let spatialAnalysisLayer = null;
+
+    // Indica se o mapa está atualmente no modo de análise espacial.
     let spatialAnalysisMode = false;
+
+    // Camada utilizada pela visualização de símbolos proporcionais.
     let proportionalSymbolLayer = null;
 
+
+    // Filtro de modalidade utilizado na análise espacial por mapa de calor.
     const spatialModalityFilter =
         document.getElementById(
             "spatialModalityFilter"
         );
 
+    // Filtro de dependência administrativa utilizado na análise espacial.
     const spatialDependencyFilter =
         document.getElementById(
             "spatialDependencyFilter"
         );
 
+    // Filtros utilizados na visualização por símbolos proporcionais.
     const spatialProportionalModalityFilter =
         document.getElementById(
             "spatialProportionalModalityFilter"
@@ -37,13 +46,21 @@ function initializeMapSpatial({
             "spatialProportionalRaceFilter"
         );
 
+
+    // Agrupa os filtros de símbolos proporcionais para facilitar
+    // o controle de exclusividade entre eles.
     const proportionalFilters = [
         spatialProportionalModalityFilter,
         spatialProportionalGenderFilter,
         spatialProportionalRaceFilter
     ];
 
+
     function resetSpatialFilters() {
+        /**
+         * Restaura todos os filtros da análise espacial para o estado
+         * inicial, sem nenhum indicador selecionado.
+         */
 
         if (spatialModalityFilter) {
             spatialModalityFilter.value = "";
@@ -66,10 +83,21 @@ function initializeMapSpatial({
         }
     }
 
+
     function handleProportionalFilterChange(
         selectedFilter
     ) {
+        /**
+         * Trata a seleção de um filtro de símbolos proporcionais.
+         *
+         * Garante que apenas um indicador proporcional permaneça
+         * selecionado e recarrega a visualização correspondente.
+         *
+         * @param {HTMLElement} selectedFilter
+         * Filtro proporcional que foi alterado.
+         */
 
+        // Remove uma eventual camada anterior da análise espacial.
         if (spatialAnalysisLayer) {
             map.removeLayer(
                 spatialAnalysisLayer
@@ -78,6 +106,7 @@ function initializeMapSpatial({
             spatialAnalysisLayer = null;
         }
 
+        // Limpa os filtros utilizados no mapa de calor.
         if (spatialModalityFilter) {
             spatialModalityFilter.value = "";
         }
@@ -86,6 +115,7 @@ function initializeMapSpatial({
             spatialDependencyFilter.value = "";
         }
 
+        // Mantém somente o filtro proporcional selecionado.
         proportionalFilters.forEach(filter => {
             if (
                 filter &&
@@ -95,11 +125,22 @@ function initializeMapSpatial({
             }
         });
 
+        // Atualiza o mapa com o novo indicador.
         loadProportionalSymbolMap();
     }
 
+
     async function loadSpatialAnalysis() {
+        /**
+         * Carrega as escolas correspondentes aos filtros de análise
+         * espacial e as apresenta como um mapa de calor.
+         *
+         * A consulta considera dependência administrativa ou modalidade
+         * e utiliza as coordenadas geográficas das escolas.
+         */
+
         try {
+            // Recupera os filtros atualmente selecionados.
             const dependency =
                 spatialDependencyFilter
                     ? spatialDependencyFilter.value
@@ -110,6 +151,8 @@ function initializeMapSpatial({
                     ? spatialModalityFilter.value
                     : "";
 
+
+            // Sem nenhum filtro, remove a camada existente e encerra.
             if (!dependency && !modality) {
 
                 if (spatialAnalysisLayer) {
@@ -123,6 +166,9 @@ function initializeMapSpatial({
                 return;
             }
 
+
+            // Remove uma eventual visualização de símbolos proporcionais,
+            // pois somente uma análise espacial deve permanecer ativa.
             if (proportionalSymbolLayer) {
                 map.removeLayer(
                     proportionalSymbolLayer
@@ -135,12 +181,16 @@ function initializeMapSpatial({
                 spatialProportionalModalityFilter.value = "";
             }
 
+
+            // Define a rota da API responsável pelos dados espaciais.
             let url =
                 "/api/analise-espacial/escolas";
 
             const params =
                 new URLSearchParams();
 
+
+            // Adiciona o filtro de dependência quando necessário.
             if (
                 dependency &&
                 dependency !== "todas"
@@ -151,6 +201,8 @@ function initializeMapSpatial({
                 );
             }
 
+
+            // Adiciona o filtro de modalidade quando necessário.
             if (
                 modality &&
                 modality !== "todas"
@@ -161,6 +213,7 @@ function initializeMapSpatial({
                 );
             }
 
+
             const queryString =
                 params.toString();
 
@@ -168,6 +221,8 @@ function initializeMapSpatial({
                 url += `?${queryString}`;
             }
 
+
+            // Solicita os dados filtrados ao backend.
             const response =
                 await fetch(url);
 
@@ -177,9 +232,12 @@ function initializeMapSpatial({
                 );
             }
 
+
             const schools =
                 await response.json();
 
+
+            // Converte cada escola em um ponto para o mapa de calor.
             const points =
                 schools.map(school => [
                     school.lat,
@@ -187,6 +245,8 @@ function initializeMapSpatial({
                     1
                 ]);
 
+
+            // Remove uma camada anterior antes de criar a nova.
             if (spatialAnalysisLayer) {
                 map.removeLayer(
                     spatialAnalysisLayer
@@ -195,6 +255,8 @@ function initializeMapSpatial({
                 spatialAnalysisLayer = null;
             }
 
+
+            // Cria o mapa de calor com os pontos encontrados.
             spatialAnalysisLayer =
                 L.heatLayer(
                     points,
@@ -205,12 +267,14 @@ function initializeMapSpatial({
                     }
                 ).addTo(map);
 
+
             console.log(
                 `Análise espacial: ${points.length} escolas encontradas`
             );
 
         } catch (error) {
 
+            // Registra o erro e remove uma eventual camada incompleta.
             console.error(
                 "Erro na análise espacial:",
                 error
@@ -226,9 +290,19 @@ function initializeMapSpatial({
         }
     }
 
+
     async function loadProportionalSymbolMap() {
+        /**
+         * Carrega os dados de matrículas do indicador selecionado
+         * e os representa no mapa por meio de símbolos proporcionais.
+         *
+         * O tamanho de cada símbolo é determinado pelo valor do
+         * indicador associado à escola.
+         */
+
         try {
 
+            // Recupera os filtros disponíveis para a visualização.
             const modality =
                 spatialProportionalModalityFilter
                     ? spatialProportionalModalityFilter.value
@@ -244,9 +318,12 @@ function initializeMapSpatial({
                     ? spatialProportionalRaceFilter.value
                     : "";
 
+
             let tipo = "";
             let indicador = "";
 
+
+            // Determina o tipo e o indicador a partir do filtro selecionado.
             if (modality) {
                 tipo = "modalidade";
                 indicador = modality;
@@ -260,6 +337,8 @@ function initializeMapSpatial({
                 indicador = race;
             }
 
+
+            // Sem indicador selecionado, remove a camada e encerra.
             if (!tipo || !indicador) {
 
                 if (proportionalSymbolLayer) {
@@ -273,11 +352,15 @@ function initializeMapSpatial({
                 return;
             }
 
+
+            // Obtém a área atualmente visível do mapa para limitar
+            // a consulta aos estabelecimentos presentes nessa região.
             const bounds =
                 map.getBounds();
 
             const params =
                 new URLSearchParams();
+
 
             params.set(
                 "tipo",
@@ -309,6 +392,8 @@ function initializeMapSpatial({
                 bounds.getEast()
             );
 
+
+            // Monta a URL da API com os filtros selecionados.
             const url =
                 `/api/analise-espacial/matriculas?${params.toString()}`;
 
@@ -321,9 +406,13 @@ function initializeMapSpatial({
                 );
             }
 
+
             const schools =
                 await response.json();
 
+
+            // Remove uma camada anterior antes de reconstruir
+            // os símbolos proporcionais.
             if (proportionalSymbolLayer) {
                 map.removeLayer(
                     proportionalSymbolLayer
@@ -332,6 +421,9 @@ function initializeMapSpatial({
                 proportionalSymbolLayer = null;
             }
 
+
+            // Não cria uma camada quando não existem escolas
+            // com valores para o indicador selecionado.
             if (schools.length === 0) {
                 console.log(
                     "Nenhuma escola encontrada para o indicador selecionado."
@@ -340,6 +432,9 @@ function initializeMapSpatial({
                 return;
             }
 
+
+            // Obtém o maior valor da série para servir de referência
+            // na definição dos tamanhos dos símbolos.
             const maxValue =
                 Math.max(
                     ...schools.map(
@@ -347,12 +442,16 @@ function initializeMapSpatial({
                     )
                 );
 
+
             const radiusMin = 4;
             const radiusMax = 30;
+
 
             proportionalSymbolLayer =
                 L.layerGroup();
 
+
+            // Cria um símbolo proporcional para cada escola.
             schools.forEach(school => {
 
                 const value =
@@ -361,6 +460,8 @@ function initializeMapSpatial({
                 let radius =
                     radiusMin;
 
+
+                // Calcula o raio proporcional ao valor do indicador.
                 if (
                     maxValue > 0 &&
                     value > 0
@@ -377,6 +478,8 @@ function initializeMapSpatial({
                         );
                 }
 
+
+                // Cria o círculo que representa a escola.
                 const marker =
                     L.circleMarker(
                         [
@@ -393,14 +496,18 @@ function initializeMapSpatial({
                         }
                     );
 
+
                 proportionalSymbolLayer.addLayer(
                     marker
                 );
             });
 
+
+            // Adiciona a camada completa ao mapa.
             proportionalSymbolLayer.addTo(
                 map
             );
+
 
             console.log(
                 `Mapa proporcional: tipo=${tipo}, indicador=${indicador}, escolas=${schools.length}, valor máximo=${maxValue}`
@@ -408,6 +515,7 @@ function initializeMapSpatial({
 
         } catch (error) {
 
+            // Registra o erro e remove a camada proporcional atual.
             console.error(
                 "Erro no mapa de símbolo proporcional:",
                 error
@@ -423,7 +531,15 @@ function initializeMapSpatial({
         }
     }
 
+
     function enterSpatialAnalysisMode() {
+        /**
+         * Ativa o modo de análise espacial do mapa.
+         *
+         * Oculta os controles e cartões utilizados pelo modo normal
+         * do mapa, apresenta as opções específicas de análise espacial
+         * e limpa as camadas e seleções anteriores.
+         */
 
         if (spatialAnalysisMode) {
             return;
@@ -431,8 +547,12 @@ function initializeMapSpatial({
 
         spatialAnalysisMode = true;
 
+
+        // Remove qualquer divisão administrativa desenhada no mapa.
         mapAdministrative.clearAdministrativeDivisionLayer();
 
+
+        // Recupera os elementos da interface que serão alternados.
         const filtersPanel =
             document.querySelector(
                 ".filters-panel"
@@ -478,12 +598,16 @@ function initializeMapSpatial({
                 "mapContainer"
             );
 
+
+        // Limpa a interface utilizada para busca e seleção de escolas.
         mapSearch.clearSuggestions();
 
         mapSearch.hideSchoolCard();
 
         mapAdministrative.hideAdministrativeDivisionCard();
 
+
+        // Oculta os painéis que pertencem ao modo normal.
         if (filtersPanel) {
             filtersPanel.classList.add(
                 "d-none"
@@ -496,12 +620,16 @@ function initializeMapSpatial({
             );
         }
 
+
+        // Exibe o painel específico da análise espacial.
         if (spatialOptionsPanel) {
             spatialOptionsPanel.classList.remove(
                 "d-none"
             );
         }
 
+
+        // Oculta o campo de busca e os cartões do modo normal.
         if (searchBox) {
             searchBox.classList.add(
                 "d-none"
@@ -520,6 +648,9 @@ function initializeMapSpatial({
             );
         }
 
+
+        // Oculta a entrada para análise espacial e apresenta
+        // o botão utilizado para sair desse modo.
         if (analysisEntry) {
             analysisEntry.classList.add(
                 "d-none"
@@ -532,12 +663,17 @@ function initializeMapSpatial({
             );
         }
 
+
+        // Marca visualmente o contêiner do mapa como pertencente
+        // ao modo de análise espacial.
         if (mapContainer) {
             mapContainer.classList.add(
                 "spatial-analysis-mode"
             );
         }
 
+
+        // Limpa marcadores e escola selecionada do modo anterior.
         schoolLayer.clearLayers();
 
         selectedLayer.clearLayers();
@@ -546,6 +682,8 @@ function initializeMapSpatial({
 
         setSelectedSchoolCode(null);
 
+
+        // Remove uma eventual camada de análise anterior.
         if (spatialAnalysisLayer) {
             map.removeLayer(
                 spatialAnalysisLayer
@@ -554,6 +692,8 @@ function initializeMapSpatial({
             spatialAnalysisLayer = null;
         }
 
+
+        // Reinicia a exibição das opções do mapa de calor.
         const heatmapOptions =
             document.getElementById(
                 "heatmapOptions"
@@ -565,12 +705,23 @@ function initializeMapSpatial({
             );
         }
 
+
+        // Limpa o filtro de dependência administrativa.
         if (spatialDependencyFilter) {
             spatialDependencyFilter.value = "";
         }
     }
 
+
     function exitSpatialAnalysisMode() {
+        /**
+         * Encerra o modo de análise espacial e restaura o estado
+         * normal do mapa.
+         *
+         * Remove as camadas específicas da análise espacial,
+         * restaura os painéis da interface e limpa os filtros e
+         * seleções utilizados durante a análise.
+         */
 
         if (!spatialAnalysisMode) {
             return;
@@ -578,8 +729,12 @@ function initializeMapSpatial({
 
         spatialAnalysisMode = false;
 
+
+        // Remove qualquer camada de divisão administrativa.
         mapAdministrative.clearAdministrativeDivisionLayer();
 
+
+        // Recupera os elementos da interface que serão restaurados.
         const filtersPanel =
             document.querySelector(
                 ".filters-panel"
@@ -615,6 +770,8 @@ function initializeMapSpatial({
                 "mapContainer"
             );
 
+
+        // Remove as camadas específicas da análise espacial.
         if (spatialAnalysisLayer) {
             map.removeLayer(
                 spatialAnalysisLayer
@@ -631,18 +788,24 @@ function initializeMapSpatial({
             proportionalSymbolLayer = null;
         }
 
+
+        // Remove a indicação visual do modo de análise espacial.
         if (mapContainer) {
             mapContainer.classList.remove(
                 "spatial-analysis-mode"
             );
         }
 
+
+        // Oculta novamente o painel de opções espaciais.
         if (spatialOptionsPanel) {
             spatialOptionsPanel.classList.add(
                 "d-none"
             );
         }
 
+
+        // Restaura os painéis utilizados pelo modo normal do mapa.
         if (filtersPanel) {
             filtersPanel.classList.remove(
                 "d-none"
@@ -661,6 +824,9 @@ function initializeMapSpatial({
             );
         }
 
+
+        // Restaura a entrada da análise espacial e oculta
+        // o botão utilizado para retornar ao mapa normal.
         if (analysisEntry) {
             analysisEntry.classList.remove(
                 "d-none"
@@ -673,6 +839,8 @@ function initializeMapSpatial({
             );
         }
 
+
+        // Limpa os filtros gerais do mapa.
         document
             .querySelectorAll(
                 ".modality-filter, " +
@@ -684,6 +852,8 @@ function initializeMapSpatial({
                 filter.checked = false;
             });
 
+
+        // Limpa busca, cartões, marcadores e escola selecionada.
         mapSearch.hideSchoolCard();
 
         mapSearch.clearSuggestions();
@@ -696,8 +866,12 @@ function initializeMapSpatial({
 
         setSelectedSchoolCode(null);
 
+
+        // Reinicia todos os filtros específicos da análise espacial.
         resetSpatialFilters();
 
+
+        // Recupera os filtros administrativos utilizados no modo normal.
         const administrativeCountryFilter =
             document.getElementById(
                 "administrativeCountryFilter"
@@ -718,10 +892,14 @@ function initializeMapSpatial({
                 "administrativeMunicipalityFilter"
             );
 
+
+        // Reinicia o filtro de país.
         if (administrativeCountryFilter) {
             administrativeCountryFilter.value = "";
         }
 
+
+        // Reinicia e desabilita o filtro de região.
         if (administrativeRegionFilter) {
             administrativeRegionFilter.innerHTML = `
                 <option value="" selected disabled>
@@ -734,6 +912,8 @@ function initializeMapSpatial({
             administrativeRegionFilter.disabled = true;
         }
 
+
+        // Reinicia e desabilita o filtro de UF.
         if (administrativeUfFilter) {
             administrativeUfFilter.innerHTML = `
                 <option value="" selected disabled>
@@ -746,6 +926,8 @@ function initializeMapSpatial({
             administrativeUfFilter.disabled = true;
         }
 
+
+        // Reinicia e desabilita o filtro de município.
         if (administrativeMunicipalityFilter) {
             administrativeMunicipalityFilter.innerHTML = `
                 <option value="" selected disabled>
@@ -758,10 +940,21 @@ function initializeMapSpatial({
             administrativeMunicipalityFilter.disabled = true;
         }
 
+
+        // Atualiza o estado do botão de confirmação administrativo.
         mapAdministrative.updateAdministrativeConfirmButton();
     }
 
+
     function handleMapMoveEnd() {
+        /**
+         * Atualiza a análise espacial quando o mapa termina
+         * de se movimentar.
+         *
+         * Quando existe um filtro proporcional ativo, atualiza
+         * os símbolos proporcionais. Caso contrário, recarrega
+         * o mapa de calor.
+         */
 
         const proportionalModalityFilter =
             document.getElementById(
@@ -778,6 +971,8 @@ function initializeMapSpatial({
                 "spatialProportionalRaceFilter"
             );
 
+
+        // Verifica se algum dos filtros proporcionais está ativo.
         const proportionalFilterSelected =
             (
                 proportionalModalityFilter &&
@@ -792,6 +987,8 @@ function initializeMapSpatial({
                 proportionalRaceFilter.value
             );
 
+
+        // Atualiza o tipo de análise correspondente ao estado atual.
         if (proportionalFilterSelected) {
             loadProportionalSymbolMap();
             return;
@@ -800,6 +997,8 @@ function initializeMapSpatial({
         loadSpatialAnalysis();
     }
 
+
+    // Atualiza os filtros do mapa de calor mantendo a seleção exclusiva.
     if (
         spatialModalityFilter &&
         spatialDependencyFilter
@@ -825,6 +1024,8 @@ function initializeMapSpatial({
         );
     }
 
+
+    // Registra os eventos dos filtros de símbolos proporcionais.
     proportionalFilters.forEach(filter => {
 
         if (!filter) {
@@ -841,6 +1042,8 @@ function initializeMapSpatial({
         );
     });
 
+
+    // Entrada para ativar o modo de análise espacial.
     const spatialAnalysisEntry =
         document.getElementById(
             "spatialAnalysisEntry"
@@ -853,6 +1056,8 @@ function initializeMapSpatial({
         );
     }
 
+
+    // Botão utilizado para retornar ao modo normal do mapa.
     const spatialAnalysisBackButton =
         document.getElementById(
             "spatialAnalysisBackButton"
@@ -865,11 +1070,17 @@ function initializeMapSpatial({
         );
     }
 
+
+    // Garante que os filtros espaciais sejam reiniciados
+    // quando a página for carregada.
     window.addEventListener(
         "load",
         resetSpatialFilters
     );
 
+
+    // Expõe apenas as operações que precisam ser utilizadas
+    // por outros módulos do mapa.
     return {
         enterSpatialAnalysisMode,
         exitSpatialAnalysisMode,
@@ -880,6 +1091,7 @@ function initializeMapSpatial({
             spatialAnalysisMode
     };
 }
+
 
 export {
     initializeMapSpatial

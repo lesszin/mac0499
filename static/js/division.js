@@ -3,8 +3,19 @@ import "./division/school.js";
 import "./division/evolution.js";
 import "./division/comparison.js";
 
-function switchTab(tabName) {
 
+function switchTab(tabName) {
+    /**
+     * Alterna entre as abas disponíveis na ficha da divisão administrativa.
+     *
+     * Oculta todos os conteúdos e remove o estado ativo dos botões antes
+     * de exibir a aba solicitada. Algumas abas também inicializam seus
+     * respectivos módulos quando são selecionadas.
+     *
+     * @param {string} tabName Nome da aba que deve ser exibida.
+     */
+
+    // Oculta todos os conteúdos das abas.
     document.getElementById(
         "contentSheet"
     ).style.display = "none";
@@ -21,6 +32,8 @@ function switchTab(tabName) {
         "contentSchools"
     ).style.display = "none";
 
+
+    // Remove o estado ativo de todos os botões.
     document.getElementById(
         "btnSheet"
     ).classList.remove("active");
@@ -38,6 +51,7 @@ function switchTab(tabName) {
     ).classList.remove("active");
 
 
+    // Exibe a aba da ficha técnica.
     if (tabName === "sheet") {
 
         document.getElementById(
@@ -49,6 +63,7 @@ function switchTab(tabName) {
         ).classList.add("active");
 
 
+    // Exibe e inicializa a aba de evolução.
     } else if (tabName === "evolution") {
 
         document.getElementById(
@@ -59,11 +74,14 @@ function switchTab(tabName) {
             "btnEvolution"
         ).classList.add("active");
 
+
+        // Inicializa o módulo de evolução quando disponível.
         if (window.initializeEvolution) {
             window.initializeEvolution();
         }
 
 
+    // Exibe e inicializa a aba de comparação.
     } else if (tabName === "comparison") {
 
         document.getElementById(
@@ -74,11 +92,14 @@ function switchTab(tabName) {
             "btnComparison"
         ).classList.add("active");
 
+
+        // Inicializa o módulo de comparação quando disponível.
         if (window.initializeComparison) {
             window.initializeComparison();
         }
 
 
+    // Exibe e inicializa a aba de escolas.
     } else if (tabName === "schools") {
 
         document.getElementById(
@@ -89,6 +110,8 @@ function switchTab(tabName) {
             "btnSchools"
         ).classList.add("active");
 
+
+        // Inicializa o módulo de escolas quando disponível.
         if (window.initializeSchools) {
             window.initializeSchools();
         }
@@ -96,6 +119,7 @@ function switchTab(tabName) {
 }
 
 
+// Para a ficha do país, a aba de comparação não é disponibilizada.
 if (window.DIVISION_TYPE === "pais") {
 
     const comparisonTab =
@@ -111,4 +135,5 @@ if (window.DIVISION_TYPE === "pais") {
 }
 
 
+// Disponibiliza a função para ser utilizada pelos elementos da interface.
 window.switchTab = switchTab;

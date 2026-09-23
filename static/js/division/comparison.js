@@ -3,12 +3,16 @@ let selectedComparisonCategory = null;
 let selectedComparisonSubcategory = null;
 let selectedComparisonFilter = null;
 
+
+// Define a ordem das categorias principais disponíveis para comparação.
 const comparisonCategoryOrder = [
     "matriculas",
     "docentes",
     "turmas"
 ];
 
+
+// Organiza os indicadores disponíveis para cada categoria de comparação.
 const comparisonIndicators = {
     matriculas: [
         {
@@ -52,6 +56,8 @@ const comparisonIndicators = {
     ]
 };
 
+
+// Define as opções válidas dos filtros dos indicadores comparativos.
 const comparisonFilterOptions = {
     modalidade: [
         "Educação Infantil - Creche",
@@ -79,12 +85,25 @@ const comparisonFilterOptions = {
     ]
 };
 
+
 function renderComparisonSummary(data) {
+    /**
+     * Renderiza o resumo numérico da comparação entre duas divisões.
+     *
+     * Exibe os valores da divisão atual, da divisão comparada e
+     * a diferença entre elas para o último ano comum disponível.
+     *
+     * @param {Object|null} data Dados retornados pela API de comparação.
+     */
+
     const container =
         document.getElementById(
             "comparisonSummary"
         );
 
+
+    // Sem dados de comparação ou sem divisão selecionada,
+    // oculta e limpa o resumo.
     if (
         !data ||
         !data.comparacao ||
@@ -95,9 +114,12 @@ function renderComparisonSummary(data) {
         return;
     }
 
+
     const comparison =
         data.comparacao;
 
+
+    // Obtém os nomes das duas divisões que participam da comparação.
     const divisionName =
         document.getElementById(
             "divisionName"
@@ -106,6 +128,8 @@ function renderComparisonSummary(data) {
     const comparisonName =
         selectedComparisonDivision.nome;
 
+
+    // Monta os cartões com os valores comparados.
     container.innerHTML = `
         <div class="row g-3">
 
@@ -186,10 +210,23 @@ function renderComparisonSummary(data) {
         </div>
     `;
 
+
+    // Torna o resumo visível.
     container.classList.remove("d-none");
 }
 
+
 function searchComparisonDivisions(term) {
+    /**
+     * Busca divisões administrativas para utilização na comparação.
+     *
+     * A busca é realizada considerando o tipo da divisão administrativa
+     * atual e seu código, para limitar os resultados ao contexto apropriado.
+     *
+     * @param {string} term Termo informado para a busca.
+     * @returns {Promise<Object[]>} Divisões retornadas pela API.
+     */
+
     const encodedTerm =
         encodeURIComponent(term);
 
@@ -201,7 +238,15 @@ function searchComparisonDivisions(term) {
         .then(response => response.json());
 }
 
+
 function createComparisonSuggestion(division) {
+    /**
+     * Cria um botão de sugestão para uma divisão administrativa encontrada.
+     *
+     * @param {Object} division Dados da divisão administrativa.
+     * @returns {HTMLButtonElement} Botão criado para a sugestão.
+     */
+
     const button =
         document.createElement("button");
 
@@ -210,6 +255,8 @@ function createComparisonSuggestion(division) {
     button.className =
         "list-group-item list-group-item-action text-start py-2";
 
+
+    // Define o nome e a descrição da divisão exibida na sugestão.
     button.innerHTML = `
         <div class="fw-bold text-dark">
             ${division.nome}
@@ -222,10 +269,14 @@ function createComparisonSuggestion(division) {
         </div>
     `;
 
+
+    // Seleciona a divisão quando a sugestão é acionada.
     button.onclick = () => {
         selectedComparisonDivision =
             division;
 
+
+        // Alterna da busca para o estado da divisão selecionada.
         document
             .getElementById("comparisonSearchState")
             .classList.add("d-none");
@@ -238,6 +289,8 @@ function createComparisonSuggestion(division) {
             .getElementById("comparisonIndicators")
             .classList.remove("d-none");
 
+
+        // Atualiza as informações da divisão escolhida.
         document.getElementById(
             "comparisonSelectedName"
         ).textContent =
@@ -248,6 +301,8 @@ function createComparisonSuggestion(division) {
         ).textContent =
             division.descricao;
 
+
+        // Limpa e oculta as sugestões da busca.
         document
             .getElementById("comparisonSuggestions")
             .classList.add("d-none");
@@ -256,13 +311,22 @@ function createComparisonSuggestion(division) {
             "comparisonSearchInput"
         ).value = "";
 
+
+        // Exibe as categorias disponíveis para comparação.
         renderComparisonMainButtons();
     };
 
     return button;
 }
 
+
 function showComparisonSuggestions(divisions) {
+    /**
+     * Renderiza a lista de sugestões de divisões administrativas.
+     *
+     * @param {Object[]} divisions Divisões retornadas pela busca.
+     */
+
     const container =
         document.getElementById(
             "comparisonSuggestions"
@@ -270,6 +334,8 @@ function showComparisonSuggestions(divisions) {
 
     container.innerHTML = "";
 
+
+    // Informa quando nenhuma divisão correspondente foi encontrada.
     if (!divisions || divisions.length === 0) {
         container.innerHTML = `
             <div class="list-group-item text-muted">
@@ -282,6 +348,8 @@ function showComparisonSuggestions(divisions) {
         return;
     }
 
+
+    // Cria uma sugestão para cada divisão retornada.
     divisions.forEach(division => {
         container.appendChild(
             createComparisonSuggestion(division)
@@ -291,7 +359,15 @@ function showComparisonSuggestions(divisions) {
     container.classList.remove("d-none");
 }
 
+
 function onComparisonSearchInput() {
+    /**
+     * Processa a entrada de texto utilizada para buscar uma divisão
+     * administrativa para comparação.
+     *
+     * Consultas com menos de três caracteres não são realizadas.
+     */
+
     const input =
         document.getElementById(
             "comparisonSearchInput"
@@ -300,6 +376,8 @@ function onComparisonSearchInput() {
     const term =
         input.value.trim();
 
+
+    // Aguarda uma quantidade mínima de caracteres antes da busca.
     if (term.length < 3) {
         document
             .getElementById("comparisonSuggestions")
@@ -308,6 +386,8 @@ function onComparisonSearchInput() {
         return;
     }
 
+
+    // Executa a busca e atualiza as sugestões.
     searchComparisonDivisions(term)
         .then(data => {
             console.log(
@@ -327,11 +407,26 @@ function onComparisonSearchInput() {
         });
 }
 
+
 function changeComparisonDivision() {
+    /**
+     * Reinicia a seleção atual para permitir a escolha de outra divisão
+     * administrativa para comparação.
+     */
+
     resetComparisonView();
 }
 
+
 function formatComparisonCategoryName(category) {
+    /**
+     * Converte o identificador interno de uma categoria para o nome
+     * apresentado na interface.
+     *
+     * @param {string} category Identificador interno da categoria.
+     * @returns {string} Nome formatado da categoria.
+     */
+
     const names = {
         matriculas: "Matrículas",
         docentes: "Docentes",
@@ -341,7 +436,16 @@ function formatComparisonCategoryName(category) {
     return names[category] || category;
 }
 
+
 function formatComparisonIndicatorName(indicator) {
+    /**
+     * Converte o identificador interno de um indicador para o nome
+     * apresentado na interface.
+     *
+     * @param {string} indicator Identificador interno do indicador.
+     * @returns {string} Nome formatado do indicador.
+     */
+
     const names = {
         total: "Total",
         modalidade: "Evolução por Modalidade",
@@ -352,14 +456,32 @@ function formatComparisonIndicatorName(indicator) {
     return names[indicator] || indicator;
 }
 
+
 function getComparisonFilterOptions(
     category,
     indicator
 ) {
+    /**
+     * Retorna as opções de filtro disponíveis para um indicador.
+     *
+     * @param {string} category Categoria da comparação.
+     * @param {string} indicator Indicador selecionado.
+     * @returns {string[]} Lista de opções de filtro.
+     */
+
     return comparisonFilterOptions[indicator] || [];
 }
 
+
 function updateComparisonIndicatorMessage() {
+    /**
+     * Atualiza o texto de orientação apresentado acima dos indicadores
+     * de comparação.
+     *
+     * Quando nenhuma categoria foi selecionada, exibe uma orientação
+     * inicial. Depois da seleção, informa qual categoria deve ser detalhada.
+     */
+
     const container =
         document.getElementById(
             "comparisonIndicatorMessage"
@@ -371,6 +493,8 @@ function updateComparisonIndicatorMessage() {
     const text =
         container.querySelector("p");
 
+
+    // Define a mensagem inicial quando nenhuma categoria foi selecionada.
     if (!selectedComparisonCategory) {
         title.textContent =
             "O que deseja comparar?";
@@ -380,6 +504,7 @@ function updateComparisonIndicatorMessage() {
 
         return;
     }
+
 
     const name =
         formatComparisonCategoryName(
@@ -392,7 +517,13 @@ function updateComparisonIndicatorMessage() {
         `Agora escolha um indicador de ${name}.`;
 }
 
+
 function clearDynamicComparisonFilters() {
+    /**
+     * Remove os filtros dinâmicos criados para indicadores que
+     * possuem uma dimensão adicional de seleção.
+     */
+
     document
         .querySelectorAll(
             ".comparison-dynamic-filter"
@@ -402,13 +533,20 @@ function clearDynamicComparisonFilters() {
         });
 }
 
+
 function renderComparisonMainButtons() {
+    /**
+     * Renderiza os botões das categorias principais disponíveis
+     * para comparação.
+     */
+
     const container =
         document.getElementById(
             "comparisonMainCategoryButtons"
         );
 
     container.innerHTML = "";
+
 
     comparisonCategoryOrder.forEach(category => {
         const button =
@@ -424,6 +562,8 @@ function renderComparisonMainButtons() {
                 category
             );
 
+
+        // Destaca visualmente a categoria atualmente selecionada.
         if (
             selectedComparisonCategory === category
         ) {
@@ -436,6 +576,8 @@ function renderComparisonMainButtons() {
             );
         }
 
+
+        // Seleciona a categoria e reinicia o indicador anterior.
         button.onclick = () => {
             selectedComparisonCategory =
                 category;
@@ -446,6 +588,8 @@ function renderComparisonMainButtons() {
             selectedComparisonFilter =
                 null;
 
+
+            // Limpa qualquer resultado ou filtro da seleção anterior.
             clearComparisonChart();
 
             clearDynamicComparisonFilters();
@@ -456,22 +600,34 @@ function renderComparisonMainButtons() {
                 )
                 .innerHTML = "";
 
+
             updateComparisonIndicatorMessage();
 
+            // Atualiza o estado visual dos botões.
             renderComparisonMainButtons();
 
+            // Exibe os indicadores da categoria escolhida.
             renderComparisonSubButtons(
                 category
             );
         };
 
+
         container.appendChild(button);
     });
 }
 
+
 function renderComparisonSubButtons(
     category
 ) {
+    /**
+     * Renderiza os indicadores disponíveis para uma categoria
+     * de comparação.
+     *
+     * @param {string} category Categoria selecionada.
+     */
+
     const container =
         document.getElementById(
             "comparisonSubCategoryButtons"
@@ -479,9 +635,12 @@ function renderComparisonSubButtons(
 
     container.innerHTML = "";
 
+
+    // Interrompe quando a categoria não possui indicadores configurados.
     if (!comparisonIndicators[category]) {
         return;
     }
+
 
     comparisonIndicators[category].forEach(
         group => {
@@ -492,6 +651,8 @@ function renderComparisonSubButtons(
             groupContainer.className =
                 "card border bg-light-subtle mb-3";
 
+
+            // Cria o cabeçalho do grupo de indicadores.
             const header =
                 document.createElement("div");
 
@@ -501,17 +662,20 @@ function renderComparisonSubButtons(
             header.textContent =
                 group.title;
 
+
             const body =
                 document.createElement("div");
 
             body.className =
                 "card-body";
 
+
             const buttonRow =
                 document.createElement("div");
 
             buttonRow.className =
                 "d-flex gap-2 flex-wrap";
+
 
             group.items.forEach(indicator => {
 
@@ -530,6 +694,8 @@ function renderComparisonSubButtons(
                         indicator
                     );
 
+
+                // Destaca o indicador atualmente selecionado.
                 if (
                     selectedComparisonSubcategory ===
                     indicator
@@ -543,8 +709,10 @@ function renderComparisonSubButtons(
                     );
                 }
 
+
                 button.onclick = () => {
 
+                    // Remove qualquer filtro dinâmico criado anteriormente.
                     clearDynamicComparisonFilters();
 
                     selectedComparisonSubcategory =
@@ -553,8 +721,11 @@ function renderComparisonSubButtons(
                     selectedComparisonFilter =
                         null;
 
+
                     clearComparisonChart();
 
+
+                    // Atualiza o destaque do indicador selecionado.
                     container
                         .querySelectorAll(
                             "button.btn-secondary"
@@ -570,6 +741,7 @@ function renderComparisonSubButtons(
                             );
                         });
 
+
                     button.classList.remove(
                         "btn-outline-secondary"
                     );
@@ -578,6 +750,8 @@ function renderComparisonSubButtons(
                         "btn-secondary"
                     );
 
+
+                    // O indicador total não necessita de filtro adicional.
                     if (
                         indicator === "total"
                     ) {
@@ -589,6 +763,8 @@ function renderComparisonSubButtons(
                         return;
                     }
 
+
+                    // Cria o seletor de filtro adicional para os demais indicadores.
                     const select =
                         document.createElement(
                             "select"
@@ -599,6 +775,7 @@ function renderComparisonSubButtons(
 
                     select.style.width =
                         "280px";
+
 
                     const placeholder =
                         document.createElement(
@@ -617,6 +794,8 @@ function renderComparisonSubButtons(
                         placeholder
                     );
 
+
+                    // Adiciona as opções válidas do indicador.
                     getComparisonFilterOptions(
                         selectedComparisonCategory,
                         indicator
@@ -638,11 +817,15 @@ function renderComparisonSubButtons(
                         );
                     });
 
+
+                    // Insere o seletor logo após o botão do indicador.
                     button.insertAdjacentElement(
                         "afterend",
                         select
                     );
 
+
+                    // Atualiza a comparação conforme a opção é selecionada.
                     select.addEventListener(
                         "change",
                         () => {
@@ -668,10 +851,12 @@ function renderComparisonSubButtons(
                     );
                 };
 
+
                 buttonRow.appendChild(
                     button
                 );
             });
+
 
             body.appendChild(
                 buttonRow
@@ -692,7 +877,12 @@ function renderComparisonSubButtons(
     );
 }
 
+
 function clearComparisonSummary() {
+    /**
+     * Remove e oculta o resumo numérico da comparação.
+     */
+
     const container =
         document.getElementById(
             "comparisonSummary"
@@ -706,7 +896,12 @@ function clearComparisonSummary() {
     container.classList.add("d-none");
 }
 
+
 function clearComparisonChart() {
+    /**
+     * Limpa o gráfico e o resumo da comparação atualmente exibidos.
+     */
+
     const iframe =
         document.getElementById(
             "comparisonMetabasePlayer"
@@ -717,6 +912,7 @@ function clearComparisonChart() {
         iframe.classList.add("d-none");
     }
 
+
     const separator =
         document.getElementById(
             "comparisonResultSeparator"
@@ -726,23 +922,39 @@ function clearComparisonChart() {
         separator.classList.add("d-none");
     }
 
+
     clearComparisonSummary();
 }
+
 
 function showComparisonChart(
     categoria,
     indicador,
     filtro = null
 ) {
+    /**
+     * Carrega o resumo e o gráfico correspondentes à comparação
+     * entre a divisão atual e a divisão selecionada.
+     *
+     * @param {string} categoria Categoria do indicador.
+     * @param {string} indicador Indicador selecionado.
+     * @param {string|null} filtro Filtro adicional, quando necessário.
+     */
+
+    // Sem divisão selecionada, não é possível realizar a comparação.
     if (!selectedComparisonDivision) {
         return;
     }
 
+
     clearComparisonChart();
+
 
     const params =
         new URLSearchParams();
 
+
+    // Define os dados da divisão principal.
     params.set(
         "tipo",
         window.DIVISION_TYPE
@@ -753,6 +965,8 @@ function showComparisonChart(
         window.DIVISION_CODE
     );
 
+
+    // Define os dados da divisão comparada.
     params.set(
         "tipo_comparacao",
         window.DIVISION_TYPE
@@ -763,6 +977,8 @@ function showComparisonChart(
         selectedComparisonDivision.codigo
     );
 
+
+    // Adiciona o filtro específico quando informado.
     if (filtro) {
         params.set(
             "filtro",
@@ -770,9 +986,12 @@ function showComparisonChart(
         );
     }
 
+
     const query =
         `?${params.toString()}`;
 
+
+    // Solicita o resumo numérico da comparação.
     fetch(
         `/api/divisoes/comparacao/` +
         `${encodeURIComponent(categoria)}/` +
@@ -800,11 +1019,14 @@ function showComparisonChart(
             clearComparisonSummary();
         });
 
+
+    // Monta a URL do endpoint responsável pela geração do gráfico.
     const url =
         `/api/divisoes/comparacao/grafico/` +
         `${encodeURIComponent(categoria)}/` +
         `${encodeURIComponent(indicador)}` +
         query;
+
 
     const separator =
         document.getElementById(
@@ -816,10 +1038,14 @@ function showComparisonChart(
             "comparisonMetabasePlayer"
         );
 
+
+    // Exibe a área de resultado antes de carregar o gráfico.
     separator.classList.remove(
         "d-none"
     );
 
+
+    // Solicita ao backend a URL de incorporação do Metabase.
     fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -859,12 +1085,23 @@ function showComparisonChart(
         });
 }
 
+
 function resetComparisonView() {
+    /**
+     * Restaura a interface da comparação para seu estado inicial.
+     *
+     * Remove a divisão selecionada, indicadores, filtros dinâmicos,
+     * resumo, gráfico e sugestões anteriormente exibidas.
+     */
+
+    // Limpa todo o estado da comparação.
     selectedComparisonDivision = null;
     selectedComparisonCategory = null;
     selectedComparisonSubcategory = null;
     selectedComparisonFilter = null;
 
+
+    // Retorna para o estado de busca de uma divisão.
     document
         .getElementById("comparisonSelectedState")
         .classList.add("d-none");
@@ -873,6 +1110,8 @@ function resetComparisonView() {
         .getElementById("comparisonSearchState")
         .classList.remove("d-none");
 
+
+    // Limpa o campo e as sugestões de busca.
     document
         .getElementById("comparisonSearchInput")
         .value = "";
@@ -885,10 +1124,14 @@ function resetComparisonView() {
         .getElementById("comparisonSuggestions")
         .classList.add("d-none");
 
+
+    // Oculta os indicadores até que uma nova divisão seja selecionada.
     document
         .getElementById("comparisonIndicators")
         .classList.add("d-none");
 
+
+    // Limpa as categorias e indicadores atuais.
     document
         .getElementById("comparisonMainCategoryButtons")
         .innerHTML = "";
@@ -899,6 +1142,8 @@ function resetComparisonView() {
         .getElementById("comparisonSubCategoryButtons")
         .innerHTML = "";
 
+
+    // Remove o resultado gráfico e o resumo da comparação.
     document
         .getElementById("comparisonResultSeparator")
         .classList.add("d-none");
@@ -911,6 +1156,7 @@ function resetComparisonView() {
         .getElementById("comparisonSummary")
         .classList.add("d-none");
 
+
     const iframe =
         document.getElementById(
             "comparisonMetabasePlayer"
@@ -919,6 +1165,8 @@ function resetComparisonView() {
     iframe.src = "";
     iframe.classList.add("d-none");
 
+
+    // Restaura a mensagem inicial da seção de comparação.
     document
         .getElementById("comparisonIndicatorMessage")
         .querySelector("h5")
@@ -932,7 +1180,13 @@ function resetComparisonView() {
             "Selecione um indicador para comparar.";
 }
 
+
 function setupComparisonSearch() {
+    /**
+     * Configura os eventos da interface de busca e seleção
+     * da divisão administrativa comparada.
+     */
+
     const input =
         document.getElementById(
             "comparisonSearchInput"
@@ -948,6 +1202,8 @@ function setupComparisonSearch() {
             "clearComparisonSearchInput"
         );
 
+
+    // Inicia a busca conforme o usuário digita.
     if (input) {
         input.addEventListener(
             "input",
@@ -955,6 +1211,8 @@ function setupComparisonSearch() {
         );
     }
 
+
+    // Permite trocar a divisão comparada.
     if (changeButton) {
         changeButton.addEventListener(
             "click",
@@ -962,6 +1220,8 @@ function setupComparisonSearch() {
         );
     }
 
+
+    // Configura o botão de limpeza do campo de busca.
     if (input && clearButton) {
         const updateClearButton = () => {
             clearButton.classList.toggle(
@@ -970,10 +1230,12 @@ function setupComparisonSearch() {
             );
         };
 
+
         input.addEventListener(
             "input",
             updateClearButton
         );
+
 
         clearButton.addEventListener(
             "click",
@@ -990,11 +1252,21 @@ function setupComparisonSearch() {
             }
         );
 
+
         updateClearButton();
     }
 }
 
+
 function initializeComparison() {
+    /**
+     * Inicializa o módulo de comparação da divisão administrativa.
+     *
+     * A comparação não é disponibilizada para a ficha do país.
+     * Nos demais níveis administrativos, configura os eventos da busca.
+     */
+
+    // O nível de país não possui comparação nesta interface.
     if (window.DIVISION_TYPE === "pais") {
         return;
     }
@@ -1002,5 +1274,7 @@ function initializeComparison() {
     setupComparisonSearch();
 }
 
+
+// Disponibiliza a inicialização para o módulo principal da ficha.
 window.initializeComparison =
     initializeComparison;

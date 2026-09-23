@@ -6,17 +6,28 @@ const DIVISION_CODE =
 
 const CHILD_LIMIT = 10;
 
+
+// Controle da paginação das divisões administrativas filhas.
 let childDivisionOffset = 0;
 let childDivisionTotal = 0;
 let childDivisionLoading = false;
 
+
 async function loadDivisionCharts() {
+    /**
+     * Carrega as URLs dos gráficos associados à divisão administrativa.
+     *
+     * @returns {Promise<Object|null>} URLs dos gráficos retornadas pela API,
+     * ou null quando ocorre algum erro informado pelo backend.
+     */
+
     const response = await fetch(
         `/api/divisoes/graficos?tipo=${encodeURIComponent(DIVISION_TYPE)}&codigo=${encodeURIComponent(DIVISION_CODE)}`
     );
 
     const data = await response.json();
 
+    // Interrompe o processamento quando a API informa uma falha.
     if (!data.sucesso) {
         console.error(data.erro);
         return null;
@@ -25,7 +36,18 @@ async function loadDivisionCharts() {
     return data.urls;
 }
 
+
 function updateDivisionHeader(data) {
+    /**
+     * Atualiza o nome e a descrição exibidos no cabeçalho da ficha
+     * da divisão administrativa.
+     *
+     * O conteúdo apresentado depende do nível administrativo da divisão:
+     * país, grande região, unidade federativa ou município.
+     *
+     * @param {Object} data Dados da divisão administrativa.
+     */
+
     const nameText =
         document.getElementById(
             "divisionName"
@@ -46,6 +68,8 @@ function updateDivisionHeader(data) {
     let description =
         "Brasil";
 
+
+    // Define o nome e a descrição de acordo com o nível administrativo.
     switch (DIVISION_TYPE) {
 
         case "pais":
@@ -101,6 +125,12 @@ function updateDivisionHeader(data) {
 
 
 function getDivisionTypeLabel() {
+    /**
+     * Retorna o rótulo correspondente ao tipo da divisão administrativa.
+     *
+     * @returns {string} Nome do nível administrativo.
+     */
+
     const labels = {
         pais: "País",
         regiao: "Grande Região",
@@ -116,6 +146,14 @@ function getDivisionTypeLabel() {
 
 
 function getChildDivisionType() {
+    /**
+     * Determina o tipo de divisão administrativa imediatamente abaixo
+     * da divisão atual na hierarquia.
+     *
+     * @returns {string|null} Tipo da divisão filha ou null quando
+     * a divisão atual não possui um nível inferior.
+     */
+
     const types = {
         pais: "regiao",
         regiao: "uf",
@@ -129,6 +167,14 @@ function getChildDivisionType() {
 function createIdentificationSection(
     data
 ) {
+    /**
+     * Cria a estrutura de dados utilizada para renderizar a seção
+     * de identificação da divisão administrativa.
+     *
+     * @param {Object} data Dados da divisão administrativa.
+     * @returns {Object} Configuração da seção de identificação.
+     */
+
     const rows = [
         {
             label: "Divisão Administrativa:",
@@ -154,6 +200,8 @@ function createIdentificationSection(
     const childType =
         getChildDivisionType();
 
+
+    // Adiciona à seção o bloco que permite consultar as divisões filhas.
     if (childType) {
         rows.push({
             custom: true,
@@ -173,6 +221,14 @@ function createIdentificationSection(
 function createChildDivisionBlock(
     childType
 ) {
+    /**
+     * Cria o bloco HTML utilizado para listar as divisões administrativas
+     * que compõem a divisão atual.
+     *
+     * @param {string} childType Tipo da divisão filha.
+     * @returns {string} HTML do bloco de divisões filhas.
+     */
+
     const labelMap = {
         regiao: "Grande Regiões",
         uf: "Unidades Federativas",
@@ -182,6 +238,7 @@ function createChildDivisionBlock(
     const label =
         labelMap[childType] ||
         "Divisões";
+
 
     return `
         <div
@@ -232,6 +289,13 @@ function createChildDivisionBlock(
 
 
 function setupChildDivisionEvents() {
+    /**
+     * Configura os eventos do bloco de divisões administrativas filhas.
+     *
+     * Controla a abertura e o fechamento da lista e configura o botão
+     * responsável pelo carregamento de páginas adicionais.
+     */
+
     const toggle =
         document.getElementById(
             "childDivisionToggle"
@@ -251,6 +315,8 @@ function setupChildDivisionEvents() {
         return;
     }
 
+
+    // Alterna a visibilidade da lista de divisões filhas.
     toggle.addEventListener(
         "click",
         async () => {
@@ -275,6 +341,8 @@ function setupChildDivisionEvents() {
                 isHidden
             );
 
+
+            // Carrega a primeira página somente na abertura inicial da lista.
             if (
                 isHidden &&
                 childDivisionOffset === 0
@@ -283,6 +351,7 @@ function setupChildDivisionEvents() {
             }
         }
     );
+
 
     const loadMoreButton =
         document.getElementById(
@@ -299,6 +368,16 @@ function setupChildDivisionEvents() {
 
 
 async function loadChildDivisions() {
+    /**
+     * Carrega uma página de divisões administrativas filhas e adiciona
+     * os resultados à lista existente.
+     *
+     * A função utiliza paginação para limitar a quantidade de registros
+     * carregados por vez e evita chamadas simultâneas enquanto uma
+     * requisição está em andamento.
+     */
+
+    // Evita requisições simultâneas.
     if (
         childDivisionLoading
     ) {
@@ -308,6 +387,7 @@ async function loadChildDivisions() {
     const childType =
         getChildDivisionType();
 
+    // Não existem divisões filhas para o nível atual.
     if (!childType) {
         return;
     }
@@ -329,13 +409,17 @@ async function loadChildDivisions() {
         return;
     }
 
+
+    // Atualiza o estado visual do botão durante o carregamento.
     if (loadMoreButton) {
         loadMoreButton.disabled = true;
         loadMoreButton.textContent =
             "Carregando...";
     }
 
+
     try {
+        // Monta a consulta paginada para a API.
         const url =
             `/api/divisoes/filhas?tipo=${encodeURIComponent(DIVISION_TYPE)}&codigo=${encodeURIComponent(DIVISION_CODE)}&limite=${CHILD_LIMIT}&offset=${childDivisionOffset}`;
 
@@ -357,9 +441,13 @@ async function loadChildDivisions() {
             );
         }
 
+
+        // Atualiza o total conhecido de divisões filhas.
         childDivisionTotal =
             result.total;
 
+
+        // Adiciona cada divisão retornada à lista.
         result.divisoes.forEach(division => {
 
             const row =
@@ -379,8 +467,12 @@ async function loadChildDivisions() {
             list.appendChild(row);
         });
 
+
+        // Avança o deslocamento de paginação de acordo com
+        // a quantidade efetivamente retornada.
         childDivisionOffset +=
             result.divisoes.length;
+
 
         if (
             loadMoreButton
@@ -388,6 +480,7 @@ async function loadChildDivisions() {
             const hasMore =
                 result.tem_mais;
 
+            // Exibe o botão somente quando existem mais resultados.
             loadMoreButton.classList.toggle(
                 "d-none",
                 !hasMore
@@ -407,6 +500,7 @@ async function loadChildDivisions() {
             error
         );
 
+        // Oculta o botão quando ocorre erro no carregamento.
         if (
             loadMoreButton
         ) {
@@ -421,14 +515,28 @@ async function loadChildDivisions() {
     }
 }
 
+
 function createEnrollmentSection(
     matriculas,
     charts
 ) {
+    /**
+     * Cria a seção de matrículas da ficha administrativa.
+     *
+     * Organiza os indicadores de matrícula por modalidade, gênero
+     * e raça/cor, associando também os gráficos correspondentes.
+     *
+     * @param {Object|null} matriculas Indicadores de matrícula.
+     * @param {Object} charts URLs dos gráficos de matrícula.
+     * @returns {Object} Configuração da seção de matrículas.
+     */
+
     const modalityRows = [];
     const genderRows = [];
     const raceRows = [];
 
+
+    // Sem dados, retorna uma seção vazia com mensagem apropriada.
     if (!matriculas) {
         return {
             title: "Matrículas",
@@ -438,6 +546,8 @@ function createEnrollmentSection(
         };
     }
 
+
+    // Adiciona os indicadores de matrícula com valores positivos.
     if (matriculas.basica > 0) {
         modalityRows.push({
             label: "Número Total de Matrículas",
@@ -493,6 +603,8 @@ function createEnrollmentSection(
         });
     }
 
+
+    // Consolida as modalidades de EJA em um único indicador.
     const eja =
         Number(matriculas.eja_fund || 0) +
         Number(matriculas.eja_med || 0);
@@ -513,6 +625,8 @@ function createEnrollmentSection(
         });
     }
 
+
+    // Organiza os indicadores por gênero.
     if (matriculas.masculino > 0) {
         genderRows.push({
             label: "Número de Matrículas Masculino",
@@ -527,6 +641,8 @@ function createEnrollmentSection(
         });
     }
 
+
+    // Organiza os indicadores por raça/cor.
     if (matriculas.nao_declarado > 0) {
         raceRows.push({
             label: "Número de Matrículas Não Declarada",
@@ -569,6 +685,7 @@ function createEnrollmentSection(
         });
     }
 
+
     return {
         title: "Matrículas",
         rows: [
@@ -596,14 +713,28 @@ function createEnrollmentSection(
     };
 }
 
+
 function createTeachersSection(
     docentes,
     charts
 ) {
+    /**
+     * Cria a seção de docentes da ficha administrativa.
+     *
+     * Organiza os dados por modalidade, gênero e raça/cor e associa
+     * os gráficos correspondentes.
+     *
+     * @param {Object|null} docentes Indicadores de docentes.
+     * @param {Object} charts URLs dos gráficos de docentes.
+     * @returns {Object} Configuração da seção de docentes.
+     */
+
     const modalityRows = [];
     const genderRows = [];
     const raceRows = [];
 
+
+    // Sem dados, retorna uma seção vazia com mensagem apropriada.
     if (!docentes) {
         return {
             title: "Docentes",
@@ -613,6 +744,8 @@ function createTeachersSection(
         };
     }
 
+
+    // Adiciona os indicadores de docentes com valores positivos.
     if (docentes.basica > 0) {
         modalityRows.push({
             label:
@@ -685,6 +818,8 @@ function createTeachersSection(
         });
     }
 
+
+    // Organiza os indicadores de docentes por gênero.
     if (docentes.masculino > 0) {
         genderRows.push({
             label: "Número de Docentes Masculino",
@@ -699,6 +834,8 @@ function createTeachersSection(
         });
     }
 
+
+    // Organiza os indicadores de docentes por raça/cor.
     if (docentes.nao_declarado > 0) {
         raceRows.push({
             label: "Número de Docentes Não Declarada",
@@ -741,6 +878,7 @@ function createTeachersSection(
         });
     }
 
+
     return {
         title: "Docentes",
         rows: [
@@ -768,12 +906,26 @@ function createTeachersSection(
     };
 }
 
+
 function createClassesSection(
     turmas,
     charts
 ) {
+    /**
+     * Cria a seção de turmas da ficha administrativa.
+     *
+     * Organiza as turmas por modalidade de ensino e associa
+     * o gráfico correspondente.
+     *
+     * @param {Object|null} turmas Indicadores de turmas.
+     * @param {Object} charts URLs dos gráficos de turmas.
+     * @returns {Object} Configuração da seção de turmas.
+     */
+
     const rows = [];
 
+
+    // Sem dados, retorna uma seção vazia com mensagem apropriada.
     if (!turmas) {
         return {
             title: "Turmas",
@@ -783,6 +935,8 @@ function createClassesSection(
         };
     }
 
+
+    // Adiciona as modalidades que possuem turmas registradas.
     if (turmas.creche > 0) {
         rows.push({
             label:
@@ -847,6 +1001,7 @@ function createClassesSection(
         });
     }
 
+
     return {
         title: "Turmas",
         rows: [
@@ -861,11 +1016,21 @@ function createClassesSection(
     };
 }
 
+
 function buildSections(
     data,
     indicadores,
     charts
 ) {
+    /**
+     * Monta, em ordem, as seções exibidas na ficha administrativa.
+     *
+     * @param {Object} data Dados cadastrais da divisão.
+     * @param {Object} indicadores Indicadores estatísticos da divisão.
+     * @param {Object} charts URLs dos gráficos disponíveis.
+     * @returns {Object[]} Lista de seções prontas para renderização.
+     */
+
     return [
         createIdentificationSection(
             data
@@ -885,10 +1050,18 @@ function buildSections(
     ].filter(Boolean);
 }
 
+
 function renderSections(
     dataDiv,
     sections
 ) {
+    /**
+     * Renderiza no DOM as seções construídas da ficha administrativa.
+     *
+     * @param {HTMLElement} dataDiv Elemento que receberá o conteúdo.
+     * @param {Object[]} sections Seções preparadas por buildSections().
+     */
+
     dataDiv.classList.remove(
         "text-center",
         "py-5"
@@ -900,130 +1073,140 @@ function renderSections(
 
                 let rowsHtml = "";
 
-                section.rows.forEach(
-                    (row, index) => {
 
-                        if (row.custom) {
-                            rowsHtml += `
-                                <div class="py-2">
-                                    ${row.value}
-                                </div>
-                            `;
+                // Constrói o HTML das linhas pertencentes à seção.
+                section.rows.forEach((row, index) => {
 
+                    // Linhas personalizadas recebem seu próprio HTML.
+                    if (row.custom) {
+                        rowsHtml += `
+                            <div class="py-2">
+                                ${row.value}
+                            </div>
+                        `;
+
+                        return;
+                    }
+
+
+                    // Subgrupos são renderizados em cartões internos
+                    // com suas respectivas linhas e gráficos.
+                    if (row.subgroup) {
+                        const subgroupRows =
+                            row.rows || [];
+
+                        if (
+                            subgroupRows.length === 0
+                        ) {
                             return;
                         }
 
-                        if (row.subgroup) {
-                            const subgroupRows =
-                                row.rows || [];
+                        let subgroupHtml =
+                            subgroupRows
+                                .map(
+                                    (
+                                        subgroupRow,
+                                        subgroupIndex
+                                    ) => {
 
-                            if (
-                                subgroupRows.length === 0
-                            ) {
-                                return;
-                            }
+                                        const borderClass =
+                                            subgroupIndex ===
+                                            subgroupRows.length - 1
+                                                ? ""
+                                                : "border-bottom";
 
-                            let subgroupHtml =
-                                subgroupRows
-                                    .map(
-                                        (
-                                            subgroupRow,
-                                            subgroupIndex
-                                        ) => {
+                                        return `
+                                            <div
+                                                class="row py-2 ${borderClass}">
 
-                                            const borderClass =
-                                                subgroupIndex ===
-                                                subgroupRows.length - 1
-                                                    ? ""
-                                                    : "border-bottom";
-
-                                            return `
                                                 <div
-                                                    class="row py-2 ${borderClass}">
-
-                                                    <div
-                                                        class="col-sm-5 fw-bold">
-                                                        ${subgroupRow.label}
-                                                    </div>
-
-                                                    <div
-                                                        class="col-sm-7">
-                                                        ${subgroupRow.value}
-                                                    </div>
-
+                                                    class="col-sm-5 fw-bold">
+                                                    ${subgroupRow.label}
                                                 </div>
-                                            `;
-                                        }
-                                    )
-                                    .join("");
 
-                            rowsHtml += `
-                                <div
-                                    class="card border bg-light-subtle rounded-3 overflow-hidden mb-3">
+                                                <div
+                                                    class="col-sm-7">
+                                                    ${subgroupRow.value}
+                                                </div>
 
-                                    <div
-                                        class="card-header fw-semibold">
-                                        ${row.subgroup}
-                                    </div>
+                                            </div>
+                                        `;
+                                    }
+                                )
+                                .join("");
 
-                                    <div
-                                        class="card-body py-2">
-
-                                        ${subgroupHtml}
-
-                                        ${
-                                            row.chart
-                                                ? `
-                                                    <div class="mt-3 pt-3 border-top">
-                                                        <iframe
-                                                            src="${row.chart}"
-                                                            frameborder="0"
-                                                            width="100%"
-                                                            height="420"
-                                                            allowtransparency="true"
-                                                            loading="lazy">
-                                                        </iframe>
-                                                    </div>
-                                                `
-                                                : ""
-                                        }
-
-                                    </div>
-
-                                </div>
-                            `;
-
-                            return;
-                        }
-
-                        const nextRow =
-                            section.rows[index + 1];
-
-                        const borderClass =
-                            nextRow &&
-                            !nextRow.custom
-                                ? "border-bottom"
-                                : "";
 
                         rowsHtml += `
                             <div
-                                class="row py-2 ${borderClass}">
+                                class="card border bg-light-subtle rounded-3 overflow-hidden mb-3">
 
                                 <div
-                                    class="col-sm-5 fw-bold">
-                                    ${row.label}
+                                    class="card-header fw-semibold">
+                                    ${row.subgroup}
                                 </div>
 
                                 <div
-                                    class="col-sm-7">
-                                    ${row.value}
+                                    class="card-body py-2">
+
+                                    ${subgroupHtml}
+
+                                    ${
+                                        row.chart
+                                            ? `
+                                                <div class="mt-3 pt-3 border-top">
+                                                    <iframe
+                                                        src="${row.chart}"
+                                                        frameborder="0"
+                                                        width="100%"
+                                                        height="420"
+                                                        allowtransparency="true"
+                                                        loading="lazy">
+                                                    </iframe>
+                                                </div>
+                                            `
+                                            : ""
+                                    }
+
                                 </div>
 
                             </div>
                         `;
-                    }
-                );
 
+                        return;
+                    }
+
+
+                    // Determina se a linha deve possuir uma borda inferior.
+                    const nextRow =
+                        section.rows[index + 1];
+
+                    const borderClass =
+                        nextRow &&
+                        !nextRow.custom
+                            ? "border-bottom"
+                            : "";
+
+
+                    rowsHtml += `
+                        <div
+                            class="row py-2 ${borderClass}">
+
+                            <div
+                                class="col-sm-5 fw-bold">
+                                ${row.label}
+                            </div>
+
+                            <div
+                                class="col-sm-7">
+                                ${row.value}
+                            </div>
+
+                        </div>
+                    `;
+                });
+
+
+                // Monta o cartão externo da seção.
                 return `
                     <div
                         class="card shadow-sm border-0 rounded-3 mb-4">
@@ -1050,10 +1233,22 @@ function renderSections(
             })
             .join("");
 
+
+    // Configura os eventos do bloco de divisões filhas
+    // depois que seu HTML foi inserido no documento.
     setupChildDivisionEvents();
 }
 
+
 async function loadDivisionSheet() {
+    /**
+     * Carrega todos os dados necessários para montar a ficha administrativa.
+     *
+     * A função realiza simultaneamente as consultas da ficha, dos
+     * indicadores e dos gráficos, atualiza o cabeçalho e renderiza
+     * as seções correspondentes.
+     */
+
     const dataDiv =
         document.getElementById(
             "dataSheet"
@@ -1069,7 +1264,9 @@ async function loadDivisionSheet() {
             "divisionDescription"
         );
 
+
     try {
+        // Carrega em paralelo os dados cadastrais, indicadores e gráficos.
         const [
             divisionResponse,
             indicatorsResponse,
@@ -1084,17 +1281,22 @@ async function loadDivisionSheet() {
             loadDivisionCharts()
         ]);
 
+
+        // Valida a resposta dos dados cadastrais.
         if (!divisionResponse.ok) {
             throw new Error(
                 `Erro ao carregar ficha: ${divisionResponse.status}`
             );
         }
 
+
+        // Valida a resposta dos indicadores.
         if (!indicatorsResponse.ok) {
             throw new Error(
                 `Erro ao carregar indicadores: ${indicatorsResponse.status}`
             );
         }
+
 
         const result =
             await divisionResponse.json();
@@ -1102,6 +1304,8 @@ async function loadDivisionSheet() {
         const indicadores =
             await indicatorsResponse.json();
 
+
+        // Trata erros informados pelas APIs.
         if (result.erro) {
             throw new Error(
                 result.erro
@@ -1114,10 +1318,14 @@ async function loadDivisionSheet() {
             );
         }
 
+
+        // Atualiza o cabeçalho da ficha.
         updateDivisionHeader(
             result.dados
         );
 
+
+        // Constrói as seções com os dados obtidos.
         const sections =
             buildSections(
                 result.dados,
@@ -1125,6 +1333,8 @@ async function loadDivisionSheet() {
                 charts
             );
 
+
+        // Renderiza as seções no documento.
         renderSections(
             dataDiv,
             sections
@@ -1136,6 +1346,8 @@ async function loadDivisionSheet() {
             error
         );
 
+
+        // Atualiza o cabeçalho para indicar que a divisão não foi encontrada.
         if (nameText) {
             nameText.innerText =
                 "Divisão não encontrada";
@@ -1146,6 +1358,8 @@ async function loadDivisionSheet() {
                 "Erro ao carregar os dados.";
         }
 
+
+        // Exibe a mensagem de erro na área principal da ficha.
         if (dataDiv) {
             dataDiv.innerHTML = `
                 <div class="alert alert-danger">
@@ -1156,7 +1370,15 @@ async function loadDivisionSheet() {
     }
 }
 
+
 function setupBackToMap() {
+    /**
+     * Configura o retorno da ficha administrativa para o mapa.
+     *
+     * Antes de retornar, armazena na sessão o tipo e o código da divisão
+     * para que o mapa possa restaurar a seleção anterior.
+     */
+
     const button =
         document.getElementById(
             "backToMapButton"
@@ -1166,9 +1388,11 @@ function setupBackToMap() {
         return;
     }
 
+
     button.addEventListener(
         "click",
         () => {
+            // Salva o estado necessário para restaurar a divisão no mapa.
             sessionStorage.setItem(
                 "returnToAdministrativeMap",
                 JSON.stringify({
@@ -1181,5 +1405,6 @@ function setupBackToMap() {
 }
 
 
+// Configura o retorno ao mapa e carrega a ficha administrativa.
 setupBackToMap();
 loadDivisionSheet();

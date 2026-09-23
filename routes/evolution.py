@@ -7,18 +7,25 @@ from sqlalchemy import create_engine, text
 
 from routes.school import get_school_structure_snapshot
 
+
+# Carrega as variáveis definidas no arquivo de ambiente.
 load_dotenv()
+
 
 evolution_bp = Blueprint(
     "evolution",
     __name__
 )
 
+
+# Configurações utilizadas na geração dos links de incorporação do Metabase.
 METABASE_SITE_URL = "http://localhost:3000"
 METABASE_SECRET_KEY = os.getenv(
     "METABASE_SECRET_KEY"
 )
 
+
+# Configurações de acesso ao banco de dados.
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
@@ -28,6 +35,8 @@ DB_PORT = os.getenv(
     "5432"
 )
 
+
+# Cria a conexão com o banco de dados PostgreSQL.
 engine = create_engine(
     f"postgresql://{DB_USER}:{DB_PASS}@"
     f"{DB_HOST}:{DB_PORT}/{DB_NAME}"
@@ -35,17 +44,39 @@ engine = create_engine(
 
 
 def calculate_time_series_summary(data):
+    """
+    Calcula um resumo estatístico de uma série temporal.
+
+    O resumo considera o primeiro e o último registro, o crescimento
+    absoluto e percentual, a maior alta, a maior queda, a quantidade
+    de anos com crescimento, queda ou estabilidade e os valores máximo
+    e mínimo observados.
+
+    Args:
+        data: Lista de registros contendo os campos "ano" e "valor",
+            ordenados cronologicamente.
+
+    Returns:
+        Um dicionário com os principais indicadores da série temporal.
+        Retorna None quando a série possui menos de dois registros.
+    """
+
+    # Uma série com menos de dois pontos não permite calcular
+    # variações entre períodos.
     if len(data) < 2:
         return None
 
     inicio = data[0]
     fim = data[-1]
 
+    # Calcula o crescimento absoluto entre o início e o fim da série.
     crescimento = (
         fim["valor"] -
         inicio["valor"]
     )
 
+    # Calcula o crescimento percentual somente quando o valor inicial
+    # é diferente de zero.
     if inicio["valor"] == 0:
         crescimento_percentual = None
 
@@ -64,9 +95,11 @@ def calculate_time_series_summary(data):
     anos_queda = 0
     anos_estavel = 0
 
+    # Inicializa máximo e mínimo com o primeiro elemento da série.
     maximo = inicio
     minimo = inicio
 
+    # Analisa a variação entre cada par de anos consecutivos.
     for i in range(1, len(data)):
 
         anterior = data[i - 1]
@@ -77,6 +110,7 @@ def calculate_time_series_summary(data):
             anterior["valor"]
         )
 
+        # Classifica a evolução do indicador no período.
         if diferenca > 0:
             anos_crescimento += 1
 
@@ -86,6 +120,7 @@ def calculate_time_series_summary(data):
         else:
             anos_estavel += 1
 
+        # Atualiza a maior alta encontrada na série.
         if (
             maior_alta is None or
             diferenca > maior_alta["valor"]
@@ -96,6 +131,7 @@ def calculate_time_series_summary(data):
                 "valor": diferenca
             }
 
+        # Atualiza a maior queda encontrada na série.
         if (
             maior_queda is None or
             diferenca < maior_queda["valor"]
@@ -106,9 +142,11 @@ def calculate_time_series_summary(data):
                 "valor": diferenca
             }
 
+        # Atualiza o maior valor observado.
         if atual["valor"] > maximo["valor"]:
             maximo = atual
 
+        # Atualiza o menor valor observado.
         if atual["valor"] < minimo["valor"]:
             minimo = atual
 
@@ -140,6 +178,23 @@ def get_evolution_summary(
     categoria,
     indicador
 ):
+    """
+    Obtém a série histórica de um indicador de uma escola e gera
+    o resumo correspondente.
+
+    Args:
+        school_code: Código da escola.
+        categoria: Categoria do indicador, como matrículas, docentes
+            ou turmas.
+        indicador: Indicador solicitado dentro da categoria.
+
+    Returns:
+        O resumo da série temporal calculado por
+        calculate_time_series_summary(). Retorna None quando a categoria
+        ou o indicador não são suportados.
+    """
+
+    # Define as consultas disponíveis para os indicadores de evolução.
     queries = {
         "matriculas": {
             "total": text("""
@@ -175,12 +230,14 @@ def get_evolution_summary(
         }
     }
 
+    # Valida a categoria e o indicador solicitados.
     if categoria not in queries:
         return None
 
     if indicador not in queries[categoria]:
         return None
 
+    # Executa a consulta histórica da escola.
     with engine.connect() as connection:
 
         result = connection.execute(
@@ -190,6 +247,7 @@ def get_evolution_summary(
             }
         ).fetchall()
 
+    # Converte os registros para o formato utilizado pelo resumo.
     data = [
         {
             "ano": row.ano,
@@ -209,6 +267,23 @@ def get_division_evolution_summary(
     categoria,
     indicador
 ):
+    """
+    Obtém a série histórica agregada de um indicador para uma divisão
+    administrativa e calcula seu resumo temporal.
+
+    Args:
+        tipo: Tipo da divisão administrativa, como país, região, UF
+            ou município.
+        codigo: Código da divisão administrativa.
+        categoria: Categoria do indicador.
+        indicador: Indicador solicitado.
+
+    Returns:
+        O resumo da série temporal da divisão administrativa.
+        Retorna None quando a categoria ou o indicador não são suportados.
+    """
+
+    # Define as consultas de evolução agregada para cada categoria.
     queries = {
         "matriculas": {
             "total": text("""
@@ -355,12 +430,14 @@ def get_division_evolution_summary(
         }
     }
 
+    # Valida a categoria e o indicador solicitados.
     if categoria not in queries:
         return None
 
     if indicador not in queries[categoria]:
         return None
 
+    # Executa a consulta para a divisão administrativa selecionada.
     with engine.connect() as connection:
 
         result = connection.execute(
@@ -371,6 +448,7 @@ def get_division_evolution_summary(
             }
         ).fetchall()
 
+    # Converte os registros para o formato utilizado pelo resumo.
     data = [
         {
             "ano": row.ano,
@@ -386,13 +464,27 @@ def get_division_evolution_summary(
 
 @evolution_bp.route('/api/divisoes/evolucao')
 def generate_division_evolution_charts():
+    """
+    Gera URLs de incorporação do Metabase para os gráficos de evolução
+    de uma divisão administrativa.
+
+    Os questionários do Metabase são organizados por categoria e nome
+    do gráfico, e cada URL recebe os parâmetros da divisão selecionada.
+
+    Returns:
+        Uma resposta JSON contendo as URLs dos gráficos ou uma mensagem
+        de erro.
+    """
+
     try:
+        # Obtém os parâmetros da divisão administrativa.
         tipo = request.args.get("tipo")
         codigo = request.args.get(
             "codigo",
             type=int
         )
 
+        # Verifica se os parâmetros obrigatórios foram fornecidos.
         if not tipo or codigo is None:
             return jsonify({
                 "sucesso": False,
@@ -401,6 +493,7 @@ def generate_division_evolution_charts():
                     "são obrigatórios."
             }), 400
 
+        # Tipos de divisão administrativa aceitos pela API.
         tipos_validos = {
             "pais",
             "regiao",
@@ -408,6 +501,7 @@ def generate_division_evolution_charts():
             "municipio"
         }
 
+        # Valida o tipo informado.
         if tipo not in tipos_validos:
             return jsonify({
                 "sucesso": False,
@@ -415,6 +509,7 @@ def generate_division_evolution_charts():
                     "Tipo de divisão administrativa inválido."
             }), 400
 
+        # Relaciona cada gráfico à pergunta correspondente no Metabase.
         questions = {
             "matriculas": {
                 "total": 95,
@@ -448,12 +543,15 @@ def generate_division_evolution_charts():
 
         urls = {}
 
+        # Percorre as categorias e seus respectivos questionários
+        # para gerar uma URL para cada gráfico.
         for categoria, perguntas in questions.items():
 
             urls[categoria] = {}
 
             for nome, question_id in perguntas.items():
 
+                # Monta os parâmetros utilizados pelo questionário.
                 payload = {
                     "resource": {
                         "question": question_id
@@ -464,6 +562,7 @@ def generate_division_evolution_charts():
                         "codigo": codigo
                     },
 
+                    # Define a validade do token em 30 minutos.
                     "exp": round(
                         (
                             datetime.datetime.now(
@@ -476,12 +575,14 @@ def generate_division_evolution_charts():
                     )
                 }
 
+                # Gera o token JWT utilizado na incorporação.
                 token = jwt.encode(
                     payload,
                     METABASE_SECRET_KEY,
                     algorithm="HS256"
                 )
 
+                # Armazena a URL correspondente ao gráfico.
                 urls[categoria][nome] = (
                     f"{METABASE_SITE_URL}/embed/"
                     f"question/{token}"
@@ -503,7 +604,21 @@ def generate_division_evolution_charts():
 
 @evolution_bp.route('/api/evolucao/<int:school_code>')
 def generate_evolution_charts(school_code):
+    """
+    Gera URLs de incorporação do Metabase para os gráficos de evolução
+    de uma escola.
+
+    Args:
+        school_code: Código da escola recebido pela URL.
+
+    Returns:
+        Uma resposta JSON contendo as URLs organizadas por categoria
+        e indicador ou uma mensagem de erro.
+    """
+
     try:
+        # Relaciona cada gráfico da ficha escolar à pergunta correspondente
+        # configurada no Metabase.
         questions = {
             "matriculas": {
                 "total": 54,
@@ -545,12 +660,14 @@ def generate_evolution_charts(school_code):
 
         urls = {}
 
+        # Gera individualmente as URLs para cada pergunta configurada.
         for categoria, perguntas in questions.items():
 
             urls[categoria] = {}
 
             for nome, question_id in perguntas.items():
 
+                # Define a pergunta e os parâmetros da escola no payload.
                 payload = {
                     "resource": {
                         "question": question_id
@@ -560,6 +677,7 @@ def generate_evolution_charts(school_code):
                         "escola": school_code
                     },
 
+                    # Mantém o token válido por 30 minutos.
                     "exp": round(
                         (
                             datetime.datetime.now(
@@ -572,12 +690,14 @@ def generate_evolution_charts(school_code):
                     )
                 }
 
+                # Gera o token assinado para o Metabase.
                 token = jwt.encode(
                     payload,
                     METABASE_SECRET_KEY,
                     algorithm="HS256"
                 )
 
+                # Armazena a URL de incorporação do gráfico.
                 urls[categoria][nome] = (
                     f"{METABASE_SITE_URL}/embed/"
                     f"question/{token}"
@@ -605,12 +725,27 @@ def evolution_summary(
     categoria,
     indicador
 ):
+    """
+    Retorna o resumo temporal de um indicador de uma escola.
+
+    Args:
+        school_code: Código da escola.
+        categoria: Categoria do indicador.
+        indicador: Indicador solicitado.
+
+    Returns:
+        Uma resposta JSON com o resumo da série temporal ou um erro
+        HTTP 404 quando a categoria ou o indicador são inválidos.
+    """
+
+    # Obtém o resumo calculado para a escola.
     summary = get_evolution_summary(
         school_code,
         categoria,
         indicador
     )
 
+    # Retorna erro quando a categoria ou o indicador não são suportados.
     if summary is None:
         return jsonify({
             "erro":
@@ -627,7 +762,21 @@ def division_evolution_summary(
     categoria,
     indicador
 ):
+    """
+    Retorna o resumo temporal de um indicador de uma divisão
+    administrativa.
+
+    Args:
+        categoria: Categoria do indicador.
+        indicador: Indicador solicitado.
+
+    Returns:
+        Uma resposta JSON com o resumo da série temporal ou uma
+        mensagem de erro.
+    """
+
     try:
+        # Obtém o tipo e o código da divisão administrativa.
         tipo = request.args.get("tipo")
 
         codigo = request.args.get(
@@ -635,6 +784,7 @@ def division_evolution_summary(
             type=int
         )
 
+        # Tipos de divisão administrativa aceitos.
         tipos_validos = {
             "pais",
             "regiao",
@@ -642,18 +792,21 @@ def division_evolution_summary(
             "municipio"
         }
 
+        # Valida o tipo da divisão.
         if tipo not in tipos_validos:
             return jsonify({
                 "erro":
                     "Tipo de divisão administrativa inválido."
             }), 400
 
+        # O código da divisão é obrigatório.
         if codigo is None:
             return jsonify({
                 "erro":
                     "Código da divisão é obrigatório."
             }), 400
 
+        # Calcula o resumo da série temporal da divisão.
         summary = get_division_evolution_summary(
             tipo,
             codigo,
@@ -661,6 +814,7 @@ def division_evolution_summary(
             indicador
         )
 
+        # Retorna erro quando a categoria ou o indicador são inválidos.
         if summary is None:
             return jsonify({
                 "erro":
@@ -680,11 +834,27 @@ def division_evolution_summary(
     '/api/evolucao/estrutura/<int:school_code>'
 )
 def evolution_structure(school_code):
+    """
+    Retorna o snapshot estrutural de uma escola para um determinado ano.
+
+    O ano é opcional. Quando não informado, a função utilizada para
+    obter o snapshot determina o ano de referência.
+
+    Args:
+        school_code: Código da escola.
+
+    Returns:
+        Uma resposta JSON com os dados estruturais da escola ou uma
+        mensagem de erro.
+    """
+
     try:
+        # Obtém o ano opcional enviado na requisição.
         year_param = request.args.get(
             "ano"
         )
 
+        # Converte o ano para inteiro quando informado.
         if year_param:
 
             try:
@@ -702,11 +872,13 @@ def evolution_structure(school_code):
         else:
             year = None
 
+        # Obtém o snapshot estrutural da escola.
         data = get_school_structure_snapshot(
             school_code,
             year
         )
 
+        # Retorna erro quando não existem dados para a escola.
         if data is None:
             return jsonify({
                 "erro":
@@ -718,6 +890,7 @@ def evolution_structure(school_code):
 
     except Exception as e:
 
+        # Registra o erro no servidor para facilitar o diagnóstico.
         print(
             f"Error fetching structure evolution "
             f"for {school_code}: {e}"

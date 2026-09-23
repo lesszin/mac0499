@@ -1,7 +1,10 @@
+// Estado da escola selecionada para comparação e dos filtros de indicadores.
 let selectedComparisonSchool = null;
 let selectedComparisonCategory = null;
 let selectedComparisonSubcategory = null;
 let selectedComparisonFilter = null;
+
+// Ordem de exibição das categorias disponíveis para comparação.
 const comparisonCategoryOrder = [
     "matriculas",
     "docentes",
@@ -9,6 +12,8 @@ const comparisonCategoryOrder = [
     "dependencias",
     "acessibilidade"
 ];
+
+// Indicadores disponíveis dentro de cada categoria de comparação.
 const comparisonIndicators = {
     matriculas: [
         {
@@ -52,6 +57,7 @@ const comparisonIndicators = {
     ]
 };
 
+// Opções apresentadas ao usuário para os indicadores que possuem filtro adicional.
 const comparisonFilterOptions = {
     modalidade: [
         "Educação Infantil - Creche",
@@ -79,6 +85,7 @@ const comparisonFilterOptions = {
     ]
 };
 
+// Configuração das comparações estruturais que não utilizam indicadores subordinados.
 const comparisonStructureSnapshotConfig = {
     acessibilidade: {
         title: "Recursos de Acessibilidade",
@@ -193,6 +200,18 @@ const comparisonStructureSnapshotConfig = {
     }
 };
 
+/**
+ * Calcula a distância, em quilômetros, entre duas coordenadas geográficas.
+ *
+ * Utiliza a fórmula de Haversine para determinar a distância sobre a
+ * superfície terrestre a partir das latitudes e longitudes informadas.
+ *
+ * @param {number} lat1 Latitude do primeiro ponto.
+ * @param {number} lng1 Longitude do primeiro ponto.
+ * @param {number} lat2 Latitude do segundo ponto.
+ * @param {number} lng2 Longitude do segundo ponto.
+ * @returns {number} Distância entre os dois pontos em quilômetros.
+ */
 function calculateDistanceKm(lat1, lng1, lat2, lng2) {
     const R = 6371;
 
@@ -217,11 +236,30 @@ function calculateDistanceKm(lat1, lng1, lat2, lng2) {
     return R * c;
 }
 
+/**
+ * Busca escolas disponíveis para comparação a partir de um termo de pesquisa.
+ *
+ * Encaminha o termo para o endpoint responsável pela busca de escolas.
+ *
+ * @param {string} term Termo digitado pelo usuário.
+ * @returns {Promise<Object[]>} Lista de escolas retornada pela API.
+ */
 function searchComparisonSchools(term) {
     return fetch(`/api/busca/${term}`)
         .then(response => response.json());
 }
 
+/**
+ * Cria o botão de uma escola apresentada nas sugestões de comparação.
+ *
+ * Além dos dados básicos da escola, exibe a distância até a localização
+ * previamente armazenada do usuário quando essa informação estiver disponível.
+ *
+ * Ao selecionar a escola, atualiza o estado da comparação e exibe as categorias.
+ *
+ * @param {Object} school Dados da escola apresentada na sugestão.
+ * @returns {HTMLButtonElement} Botão configurado para a sugestão.
+ */
 function createComparisonSuggestion(school) {
     const button = document.createElement("button");
 
@@ -311,6 +349,14 @@ function createComparisonSuggestion(school) {
     return button;
 }
 
+/**
+ * Exibe as escolas encontradas na área de sugestões de comparação.
+ *
+ * Quando nenhuma escola é encontrada, apresenta uma mensagem informativa.
+ *
+ * @param {Object[]} schools Lista de escolas retornada pela busca.
+ * @returns {void}
+ */
 function showComparisonSuggestions(schools) {
     const box = document.getElementById(
         "comparisonSuggestions"
@@ -338,6 +384,14 @@ function showComparisonSuggestions(schools) {
     box.classList.remove("d-none");
 }
 
+/**
+ * Processa a alteração do campo de busca da escola comparada.
+ *
+ * A consulta à API só é realizada quando o termo possui pelo menos
+ * três caracteres.
+ *
+ * @returns {void}
+ */
 function onComparisonSearchInput() {
     const input = document.getElementById(
         "comparisonSearchInput"
@@ -358,10 +412,23 @@ function onComparisonSearchInput() {
         .catch(console.error);
 }
 
+/**
+ * Inicia o fluxo para selecionar outra escola de comparação.
+ *
+ * Reseta a visualização atual e retorna ao estado de seleção da escola.
+ *
+ * @returns {void}
+ */
 function changeComparisonSchool() {
     resetComparisonView();
 }
 
+/**
+ * Converte o identificador interno de uma categoria para o nome apresentado na interface.
+ *
+ * @param {string} category Identificador da categoria.
+ * @returns {string} Nome formatado da categoria.
+ */
 function formatComparisonCategoryName(category) {
     const names = {
         matriculas: "Matrículas",
@@ -374,6 +441,14 @@ function formatComparisonCategoryName(category) {
     return names[category] || category;
 }
 
+/**
+ * Renderiza os botões principais das categorias disponíveis para comparação.
+ *
+ * Dependências e acessibilidade são tratadas como categorias diretas,
+ * enquanto as demais podem possuir indicadores subordinados.
+ *
+ * @returns {void}
+ */
 function renderComparisonMainButtons() {
     const container = document.getElementById(
         "comparisonMainCategoryButtons"
@@ -446,6 +521,14 @@ function renderComparisonMainButtons() {
     });
 }
 
+/**
+ * Configura o botão responsável por limpar o campo de busca da escola comparada.
+ *
+ * Mantém a visibilidade do botão sincronizada com o conteúdo do campo
+ * e devolve o foco para o campo após a limpeza.
+ *
+ * @returns {void}
+ */
 function setupClearComparisonSearchInput() {
     const input = document.getElementById("comparisonSearchInput");
     const button = document.getElementById("clearComparisonSearchInput");
@@ -478,6 +561,16 @@ function setupClearComparisonSearchInput() {
     updateButton();
 }
 
+/**
+ * Renderiza os indicadores disponíveis para a categoria selecionada.
+ *
+ * Cada grupo é apresentado como um card e os indicadores são exibidos
+ * como botões. Indicadores diferentes de "total" recebem posteriormente
+ * um seletor adicional para o filtro correspondente.
+ *
+ * @param {string} category Categoria atualmente selecionada.
+ * @returns {void}
+ */
 function renderComparisonSubButtons(category) {
     const container = document.getElementById(
         "comparisonSubCategoryButtons"
@@ -539,6 +632,8 @@ function renderComparisonSubButtons(category) {
             }
 
             button.onclick = () => {
+                // Remove seletores anteriores antes de construir
+                // o filtro correspondente ao novo indicador.
                 container
                     .querySelectorAll("select")
                     .forEach(select =>
@@ -582,6 +677,8 @@ function renderComparisonSubButtons(category) {
                     return;
                 }
 
+                // Indicadores específicos precisam de uma opção
+                // adicional para definir o recorte da comparação.
                 const select =
                     document.createElement("select");
 
@@ -657,10 +754,23 @@ function renderComparisonSubButtons(category) {
     });
 }
 
+/**
+ * Obtém as opções de filtro disponíveis para um indicador.
+ *
+ * @param {string} category Categoria do indicador.
+ * @param {string} indicator Indicador selecionado.
+ * @returns {string[]} Opções disponíveis para o filtro.
+ */
 function getComparisonFilterOptions(category, indicator) {
     return comparisonFilterOptions[indicator] || [];
 }
 
+/**
+ * Converte o identificador interno de um indicador para o nome exibido na interface.
+ *
+ * @param {string} indicator Identificador do indicador.
+ * @returns {string} Nome formatado do indicador.
+ */
 function formatComparisonIndicatorName(indicator) {
     const names = {
         total: "Total",
@@ -672,6 +782,18 @@ function formatComparisonIndicatorName(indicator) {
     return names[indicator] || indicator;
 }
 
+/**
+ * Carrega e exibe os dados e o gráfico da comparação entre as duas escolas.
+ *
+ * O resumo numérico e o gráfico do Metabase são carregados separadamente.
+ * Para acessibilidade e dependências, também é carregado o recorte estrutural
+ * correspondente às duas escolas.
+ *
+ * @param {string} categoria Categoria selecionada.
+ * @param {string} indicador Indicador selecionado.
+ * @param {string|null} filtro Filtro adicional do indicador, quando aplicável.
+ * @returns {void}
+ */
 function showComparisonChart(
     categoria,
     indicador,
@@ -708,6 +830,8 @@ function showComparisonChart(
     let chartUrl =
         `/api/comparacao/grafico/${schoolCode}/${comparisonCode}/${categoria}/${indicador}`;
 
+    // O mesmo filtro é enviado tanto para o resumo quanto para o gráfico,
+    // garantindo que as duas representações utilizem o mesmo recorte.
     if (filtro) {
         const encodedFilter =
             encodeURIComponent(filtro);
@@ -739,6 +863,8 @@ function showComparisonChart(
             iframe.src = data.url;
             iframe.classList.remove("d-none");
 
+            // Categorias estruturais utilizam, além do gráfico,
+            // uma comparação direta dos recursos das duas escolas.
             if (
                 categoria === "acessibilidade" ||
                 categoria === "dependencias"
@@ -767,6 +893,14 @@ function showComparisonChart(
         });
 }
 
+/**
+ * Reseta completamente o estado da área de comparação.
+ *
+ * Remove a escola selecionada, indicadores, filtros, resultados,
+ * sugestões de busca e elementos visuais associados à comparação.
+ *
+ * @returns {void}
+ */
 function resetComparisonView() {
     selectedComparisonSchool = null;
     selectedComparisonCategory = null;
@@ -818,6 +952,11 @@ function resetComparisonView() {
     ).classList.add("d-none");
 }
 
+/**
+ * Remove o gráfico atualmente exibido na área de comparação.
+ *
+ * @returns {void}
+ */
 function clearComparisonChart() {
     const iframe =
         document.getElementById(
@@ -834,6 +973,11 @@ function clearComparisonChart() {
         .classList.add("d-none");
 }
 
+/**
+ * Remove o resumo numérico atualmente exibido.
+ *
+ * @returns {void}
+ */
 function clearComparisonSummary() {
     const container =
         document.getElementById(
@@ -844,6 +988,15 @@ function clearComparisonSummary() {
     container.classList.add("d-none");
 }
 
+/**
+ * Renderiza os cartões com os valores da comparação entre as escolas.
+ *
+ * São exibidos o valor da escola principal, o valor da escola comparada
+ * e a diferença entre ambos.
+ *
+ * @param {Object} data Dados retornados pelo endpoint de comparação.
+ * @returns {void}
+ */
 function renderComparisonSummary(data) {
     const container =
         document.getElementById(
@@ -936,6 +1089,14 @@ function renderComparisonSummary(data) {
     container.classList.remove("d-none");
 }
 
+/**
+ * Atualiza a mensagem orientadora exibida acima dos indicadores de comparação.
+ *
+ * Quando nenhuma categoria foi escolhida, orienta o usuário a iniciar a seleção.
+ * Após a escolha da categoria, informa que um indicador deve ser selecionado.
+ *
+ * @returns {void}
+ */
 function updateComparisonIndicatorMessage() {
     const title =
         document.querySelector(
@@ -975,6 +1136,14 @@ function updateComparisonIndicatorMessage() {
         `Agora escolha um indicador de ${name}.`;
 }
 
+/**
+ * Recupera a escola de comparação armazenada temporariamente na sessão.
+ *
+ * Esse mecanismo permite retornar ao mapa para selecionar uma escola
+ * e depois restaurar automaticamente a escola escolhida na tela de comparação.
+ *
+ * @returns {void}
+ */
 function loadSavedComparisonSchool() {
     const savedSchool =
         sessionStorage.getItem(
@@ -1021,6 +1190,8 @@ function loadSavedComparisonSchool() {
             "comparisonSearchInput"
         ).value = "";
 
+        // Entra diretamente na aba de comparação sem disparar
+        // uma nova inicialização das demais abas.
         window.switchTab(
             "comparison",
             false
@@ -1044,6 +1215,15 @@ function loadSavedComparisonSchool() {
     }
 }
 
+/**
+ * Inicializa os eventos e o estado inicial da área de comparação.
+ *
+ * Configura a busca de escolas, os botões de troca e seleção pelo mapa,
+ * o botão de limpeza do campo de busca e a restauração de uma escola
+ * previamente selecionada.
+ *
+ * @returns {void}
+ */
 function initializeComparison() {
     const searchInput =
         document.getElementById(
@@ -1078,6 +1258,8 @@ function initializeComparison() {
         mapButton.addEventListener(
             "click",
             () => {
+                // Armazena o contexto necessário para retornar do mapa
+                // para a comparação da escola atualmente aberta.
                 sessionStorage.setItem(
                     "comparisonMapMode",
                     "true"
@@ -1103,12 +1285,23 @@ function initializeComparison() {
     loadSavedComparisonSchool();
 }
 
+/**
+ * Retorna o ícone correspondente a um valor booleano da estrutura escolar.
+ *
+ * @param {number} value Valor utilizado pela API para indicar presença ou ausência.
+ * @returns {string} HTML do ícone correspondente.
+ */
 function getComparisonStructureBooleanIcon(value) {
     return value === 1
         ? `<i class="bi bi-check-circle-fill text-success fs-5"></i>`
         : `<i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
 }
 
+/**
+ * Limpa e oculta o recorte estrutural da comparação.
+ *
+ * @returns {void}
+ */
 function clearComparisonStructureSnapshot() {
     const container =
         document.getElementById(
@@ -1123,6 +1316,16 @@ function clearComparisonStructureSnapshot() {
     container.classList.add("d-none");
 }
 
+/**
+ * Carrega os dados estruturais das duas escolas comparadas.
+ *
+ * Quando informados, os anos desejados são enviados para cada escola
+ * por meio dos parâmetros correspondentes da requisição.
+ *
+ * @param {number|string|null} yearPrincipal Ano da escola principal.
+ * @param {number|string|null} yearComparada Ano da escola comparada.
+ * @returns {Promise<Object>} Dados estruturais retornados pela API.
+ */
 function loadComparisonStructureSnapshot(
     yearPrincipal = null,
     yearComparada = null
@@ -1170,6 +1373,18 @@ function loadComparisonStructureSnapshot(
         });
 }
 
+/**
+ * Renderiza a comparação estrutural lado a lado entre as duas escolas.
+ *
+ * Os recursos estruturais são apresentados uma única vez à esquerda,
+ * enquanto cada escola possui sua própria coluna com o respectivo ano.
+ * Os anos disponíveis são organizados em ordem decrescente.
+ *
+ * @param {string} category Categoria estrutural comparada.
+ * @param {Object} mainData Dados estruturais da escola principal.
+ * @param {Object} comparisonData Dados estruturais da escola comparada.
+ * @returns {void}
+ */
 function renderComparisonStructureSnapshot(
     category,
     mainData,
@@ -1225,6 +1440,8 @@ function renderComparisonStructureSnapshot(
     const comparisonSchoolName =
         selectedComparisonSchool.nome;
 
+    // Constrói cada linha do quadro com o mesmo recurso
+    // sendo exibido nas duas escolas.
     const rows =
         config.fields
             .map(field => {
@@ -1393,6 +1610,11 @@ function renderComparisonStructureSnapshot(
     container.classList.remove("d-none");
 }
 
+/**
+ * Remove os botões e controles dos indicadores subordinados.
+ *
+ * @returns {void}
+ */
 function clearComparisonSubButtons() {
     const container =
         document.getElementById(
@@ -1406,5 +1628,6 @@ function clearComparisonSubButtons() {
     container.innerHTML = "";
 }
 
+// Expõe a inicialização para ser chamada pelo carregamento da ficha escolar.
 window.initializeComparison =
     initializeComparison;
