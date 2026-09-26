@@ -623,18 +623,6 @@ function initializeMapSearch({
                 return;
             }
 
-            // Restaura o nome da escola no campo de busca.
-            searchInput.value =
-                school.nome || "";
-            
-            // Dispara o evento de entrada para atualizar os elementos
-            // associados ao campo, como o botão de limpeza.
-            searchInput.dispatchEvent(
-                new Event("input", {
-                    bubbles: true
-                })
-            );
-
             // Restaura a escola selecionada e centraliza o mapa.
             selectSchool(
                 school

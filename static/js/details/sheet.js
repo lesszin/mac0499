@@ -1267,7 +1267,7 @@ function createTeachersSection(
             {
                 subgroup: "Modalidades",
                 rows: modalityRows,
-                chart: charts.docentes
+                chart: charts.modalidade
             },
             {
                 subgroup: "Gênero",

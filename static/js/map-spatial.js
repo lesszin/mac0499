@@ -267,11 +267,6 @@ function initializeMapSpatial({
                     }
                 ).addTo(map);
 
-
-            console.log(
-                `Análise espacial: ${points.length} escolas encontradas`
-            );
-
         } catch (error) {
 
             // Registra o erro e remove uma eventual camada incompleta.
@@ -506,11 +501,6 @@ function initializeMapSpatial({
             // Adiciona a camada completa ao mapa.
             proportionalSymbolLayer.addTo(
                 map
-            );
-
-
-            console.log(
-                `Mapa proporcional: tipo=${tipo}, indicador=${indicador}, escolas=${schools.length}, valor máximo=${maxValue}`
             );
 
         } catch (error) {

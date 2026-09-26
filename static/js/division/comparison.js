@@ -390,11 +390,6 @@ function onComparisonSearchInput() {
     // Executa a busca e atualiza as sugestões.
     searchComparisonDivisions(term)
         .then(data => {
-            console.log(
-                "Resposta da busca de divisão:",
-                data
-            );
-
             showComparisonSuggestions(data);
         })
         .catch(error => {

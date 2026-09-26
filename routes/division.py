@@ -435,6 +435,11 @@ def get_division_schools():
     administrativa ou localização e utiliza paginação para limitar
     a quantidade de registros retornados.
 
+    Para filtros por modalidade, o total de resultados é calculado
+    separadamente da consulta paginada, evitando o uso de
+    COUNT(*) OVER() junto a consultas correlacionadas sobre as
+    tabelas de fatos.
+
     Returns:
         JSON contendo a lista de escolas, a quantidade total de
         resultados e informações de paginação.
@@ -514,29 +519,20 @@ def get_division_schools():
                     "Filtro escolar é obrigatório."
             }), 400
 
-        query = """
-            SELECT
-                e."CO_ENTIDADE",
-                e."NO_ENTIDADE",
-                e."NO_MUNICIPIO",
-                e."SG_UF",
-                e."LATITUDE",
-                e."LONGITUDE",
-                COUNT(*) OVER() AS total
+        # Monta a parte comum da consulta, contendo a origem
+        # dos dados e os filtros administrativos.
+        from_where = """
             FROM dim_escola e
             WHERE e."TP_SITUACAO_FUNCIONAMENTO" = 1
         """
 
-        params = {
-            "limite": limite,
-            "offset": offset
-        }
+        params = {}
 
         # Adiciona à consulta a condição correspondente ao tipo
         # de divisão administrativa selecionado.
         if tipo == "regiao":
 
-            query += """
+            from_where += """
                 AND e."CO_REGIAO" = :codigo
             """
 
@@ -544,7 +540,7 @@ def get_division_schools():
 
         elif tipo == "uf":
 
-            query += """
+            from_where += """
                 AND e."CO_UF" = :codigo
             """
 
@@ -552,7 +548,7 @@ def get_division_schools():
 
         elif tipo == "municipio":
 
-            query += """
+            from_where += """
                 AND e."CO_MUNICIPIO" = :codigo
             """
 
@@ -571,7 +567,7 @@ def get_division_schools():
                         "Dependência administrativa inválida."
                 }), 400
 
-            query += """
+            from_where += """
                 AND e."TP_DEPENDENCIA" = :dependencia
             """
 
@@ -590,7 +586,7 @@ def get_division_schools():
                         "Localização inválida."
                 }), 400
 
-            query += """
+            from_where += """
                 AND e."TP_LOCALIZACAO" = :localizacao
             """
 
@@ -626,7 +622,7 @@ def get_division_schools():
 
             if filtro == "tecnico":
 
-                query += """
+                from_where += """
                     AND EXISTS (
                         SELECT 1
                         FROM fato_curso c
@@ -638,7 +634,7 @@ def get_division_schools():
 
             elif filtro in filter_map:
 
-                query += f"""
+                from_where += f"""
                     AND EXISTS (
                         SELECT 1
                         FROM fato_turma t
@@ -656,25 +652,72 @@ def get_division_schools():
                         "Modalidade inválida."
                 }), 400
 
-        # Aplica a ordenação e a paginação aos resultados.
-        query += """
+        select_query = """
+            SELECT
+                e."CO_ENTIDADE",
+                e."NO_ENTIDADE",
+                e."NO_MUNICIPIO",
+                e."SG_UF",
+                e."LATITUDE",
+                e."LONGITUDE"
+        """ + from_where + """
             ORDER BY e."NO_ENTIDADE"
             LIMIT :limite
             OFFSET :offset
         """
 
+        data_params = {
+            **params,
+            "limite": limite,
+            "offset": offset
+        }
+
         with engine.connect() as connection:
 
-            results = connection.execute(
-                text(query),
-                params
-            ).fetchall()
+            if categoria == "modalidade":
 
-        total = (
-            int(results[0][6])
-            if results
-            else 0
-        )
+                count_query = """
+                    SELECT COUNT(*)
+                """ + from_where
+
+                total = int(
+                    connection.execute(
+                        text(count_query),
+                        params
+                    ).scalar_one()
+                )
+
+                results = connection.execute(
+                    text(select_query),
+                    data_params
+                ).fetchall()
+
+            else:
+                query = """
+                    SELECT
+                        e."CO_ENTIDADE",
+                        e."NO_ENTIDADE",
+                        e."NO_MUNICIPIO",
+                        e."SG_UF",
+                        e."LATITUDE",
+                        e."LONGITUDE",
+                        COUNT(*) OVER() AS total
+                """ + from_where + """
+                    ORDER BY e."NO_ENTIDADE"
+                    LIMIT :limite
+                    OFFSET :offset
+                """
+
+                results = connection.execute(
+                    text(query),
+                    data_params
+                ).fetchall()
+
+                total = (
+                    int(results[0][6])
+                    if results
+                    else 0
+                )
 
         escolas = [
             {
@@ -715,7 +758,6 @@ def get_division_schools():
             "sucesso": False,
             "erro": str(e)
         }), 500
-
 
 @division_bp.route('/divisao/<tipo>/<int:codigo>')
 def division_page(tipo, codigo):
