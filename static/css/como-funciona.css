@@ -1,0 +1,358 @@
+.how-page {
+    min-height: calc(100vh - 50px);
+    padding: 80px 24px;
+    background-color: #f8f9fa;
+    background-image:
+        linear-gradient(
+            rgba(13, 110, 253, 0.035) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(13, 110, 253, 0.035) 1px,
+            transparent 1px
+        );
+
+    background-size: 40px 40px;
+}
+
+.how-content {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.how-intro {
+    margin-bottom: 90px;
+    text-align: center;
+}
+
+.how-title {
+    margin: 0;
+    color: #0d6efd;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.how-subtitle {
+    width: 100%;
+    max-width: 760px;
+    margin: 18px auto 0;
+    color: #6c757d;
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.how-section {
+    margin-bottom: 90px;
+}
+
+.how-section-title {
+    margin: 0;
+    color: #212529;
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.how-section-intro {
+    width: 100%;
+    max-width: 760px;
+    margin: 16px auto 44px;
+    color: #6c757d;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    text-align: center;
+}
+
+.how-card-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.how-card-grid-small {
+    max-width: 760px;
+    margin: 0 auto;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+}
+
+.how-school-grid .how-card-centered {
+    grid-column: 2;
+}
+
+
+.how-card {
+    height: 100%;
+    padding: 30px 24px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.04);
+    text-align: center;
+}
+
+.how-card-icon {
+    margin-bottom: 18px;
+    color: #0d6efd;
+    font-size: 2rem;
+}
+
+.how-card-title {
+    margin-bottom: 10px;
+    color: #212529;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.how-card-text {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
+.how-flow {
+    display: flex;
+    flex-direction: column;
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+.how-flow-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+}
+
+.how-flow-item + .how-flow-item {
+    margin-top: 12px;
+}
+
+.how-flow-number {
+    flex: 0 0 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: #0d6efd;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.how-flow-title {
+    margin: 0 0 4px;
+    color: #212529;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.how-flow-text {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.how-highlight {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.how-highlight-icon {
+    flex: 0 0 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 12px;
+    background-color: rgba(13, 110, 253, 0.08);
+    color: #0d6efd;
+    font-size: 1.7rem;
+}
+
+.how-highlight-title {
+    margin: 0 0 8px;
+    color: #212529;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.how-highlight-text {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+
+.how-journey {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.how-journey-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+}
+
+.how-journey-icon {
+    color: #0d6efd;
+    font-size: 1.1rem;
+}
+
+.how-journey-label {
+    color: #212529;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.how-journey-arrow {
+    color: #6c757d;
+    font-size: 1.1rem;
+}
+
+.how-feedback {
+    max-width: 820px;
+    margin: 110px auto 30px;
+    padding: 44px 32px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 14px;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.04);
+    text-align: center;
+}
+
+.how-feedback-icon {
+    margin-bottom: 18px;
+    color: #0d6efd;
+    font-size: 2rem;
+}
+
+
+.how-feedback-title {
+    margin: 0;
+    color: #212529;
+    font-size: 1.7rem;
+    font-weight: 600;
+}
+
+.how-feedback-text {
+    width: 100%;
+    max-width: 650px;
+    margin: 14px auto 26px;
+    color: #6c757d;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.how-feedback-button {
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+@media (max-width: 900px) {
+
+    .how-card-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .how-school-grid .how-card-centered {
+        grid-column: 1 / -1;
+        width: 50%;
+        margin: 0 auto;
+    }
+
+    .how-card-grid-small {
+        grid-template-columns:
+            1fr;
+    }
+
+    .how-journey-arrow {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .how-page {
+        padding: 60px 18px;
+    }
+
+    .how-intro {
+        margin-bottom: 70px;
+    }
+
+    .how-section {
+        margin-bottom: 70px;
+    }
+
+    .how-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .how-school-grid .how-card-centered {
+        grid-column: auto;
+        width: 100%;
+    }
+
+    .how-card {
+        padding: 26px 22px;
+    }
+
+    .how-flow-item {
+        padding: 18px;
+    }
+
+    .how-highlight {
+        align-items: flex-start;
+        padding: 24px;
+    }
+
+    .how-journey {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .how-journey-item {
+        justify-content: center;
+    }
+
+    .how-feedback {
+        margin-top: 80px;
+        padding: 36px 24px;
+    }
+}

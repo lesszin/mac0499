@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>MAC0499</title>
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+        rel="stylesheet"
+    >
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/plataform.css') }}"
+    >
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/como-funciona.css') }}"
+    >
+</head>
+<body>
+<header class="platform-header">
+    <a
+        href="/"
+        class="platform-header-brand"
+    >
+        MAC0499
+    </a>
+    <nav class="platform-header-nav">
+        <a
+            href="/como-funciona"
+            class="platform-header-link"
+        >
+            Como funciona
+        </a>
+    </nav>
+</header>
+<main class="how-page">
+    <div class="how-content">
+        <section class="how-intro">
+            <h1 class="how-title">
+                Como funciona a plataforma?
+            </h1>
+            <p class="how-subtitle">
+                Explore os dados educacionais de forma simples,
+                visualizando escolas, divisões administrativas,
+                evolução temporal e relações espaciais.
+            </p>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Encontre uma escola
+            </h2>
+            <p class="how-section-intro">
+                Comece pelo mapa para localizar uma escola e
+                consultar suas informações. Utilize a busca ou
+                os filtros disponíveis para encontrar instituições
+                de acordo com diferentes características.
+            </p>
+            <div class="how-card-grid">
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-search"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Busca
+                    </h3>
+                    <p class="how-card-text">
+                        Pesquise uma escola pelo nome ou utilize
+                        o código da instituição para localizá-la
+                        diretamente no mapa.
+                    </p>
+                </article>
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-funnel"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Filtros
+                    </h3>
+                    <p class="how-card-text">
+                        Refine os resultados utilizando informações
+                        como dependência administrativa, localização
+                        e modalidades de ensino.
+                    </p>
+                </article>
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Mapa
+                    </h3>
+                    <p class="how-card-text">
+                        Visualize a distribuição das escolas
+                        geograficamente e explore diferentes regiões
+                        diretamente pelo mapa.
+                    </p>
+                </article>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Explore uma divisão administrativa
+            </h2>
+            <p class="how-section-intro">
+                Além da análise individual de escolas, a plataforma
+                permite explorar os dados de diferentes níveis
+                administrativos.
+            </p>
+            <div class="how-flow">
+                <div class="how-flow-item">
+                    <span class="how-flow-number">
+                        1
+                    </span>
+                    <div>
+                        <h3 class="how-flow-title">
+                            Brasil
+                        </h3>
+                        <p class="how-flow-text">
+                            Visualize as informações de todo o país.
+                        </p>
+                    </div>
+                </div>
+                <div class="how-flow-item">
+                    <span class="how-flow-number">
+                        2
+                    </span>
+                    <div>
+                        <h3 class="how-flow-title">
+                            Região
+                        </h3>
+                        <p class="how-flow-text">
+                            Explore uma das regiões brasileiras.
+                        </p>
+                    </div>
+                </div>
+                <div class="how-flow-item">
+                    <span class="how-flow-number">
+                        3
+                    </span>
+                    <div>
+                        <h3 class="how-flow-title">
+                            Estado
+                        </h3>
+                        <p class="how-flow-text">
+                            Analise os dados de uma unidade federativa.
+                        </p>
+                    </div>
+                </div>
+                <div class="how-flow-item">
+                    <span class="how-flow-number">
+                        4
+                    </span>
+                    <div>
+                        <h3 class="how-flow-title">
+                            Município
+                        </h3>
+                        <p class="how-flow-text">
+                            Consulte as escolas e indicadores de
+                            um município específico.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Consulte a ficha da escola
+            </h2>
+            <p class="how-section-intro">
+                Ao selecionar uma escola, você pode acessar uma
+                ficha com informações organizadas em diferentes
+                categorias.
+            </p>
+            <div class="how-card-grid how-school-grid">
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-mortarboard"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Matrículas
+                    </h3>
+                    <p class="how-card-text">
+                        Consulte informações sobre matrículas,
+                        modalidades e distribuição dos estudantes.
+                    </p>
+                </article>
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Docentes
+                    </h3>
+                    <p class="how-card-text">
+                        Explore informações relacionadas aos
+                        profissionais que atuam na escola.
+                    </p>
+                </article>
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Turmas
+                    </h3>
+                    <p class="how-card-text">
+                        Visualize a distribuição das turmas e
+                        suas diferentes modalidades de ensino.
+                    </p>
+                </article>
+                <article class="how-card how-card-centered">
+                    <div class="how-card-icon">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Estrutura
+                    </h3>
+                    <p class="how-card-text">
+                        Consulte informações sobre infraestrutura,
+                        acessibilidade, tecnologia e materiais.
+                    </p>
+                </article>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Analise a evolução ao longo do tempo
+            </h2>
+            <p class="how-section-intro">
+                Os dados podem ser analisados historicamente para
+                acompanhar mudanças nos indicadores educacionais
+                de uma escola ou divisão administrativa.
+            </p>
+            <div class="how-highlight">
+                <div class="how-highlight-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <div>
+                    <h3 class="how-highlight-title">
+                        Evolução temporal
+                    </h3>
+                    <p class="how-highlight-text">
+                        Observe como os indicadores se comportam
+                        ao longo dos anos, identificando crescimento,
+                        redução e mudanças na composição dos dados.
+                    </p>
+                </div>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Sobre os gráficos
+            </h2>
+            <p class="how-section-intro">
+                Algumas das visualizações apresentadas na plataforma
+                são disponibilizadas por meio de uma ferramenta externa
+                de visualização de dados.
+            </p>
+            <div class="how-highlight">
+                <div class="how-highlight-icon">
+                    <i class="bi bi-bar-chart-line"></i>
+                </div>
+                <div>
+                    <h3 class="how-highlight-title">
+                        Gráficos e visualizações
+                    </h3>
+                    <p class="how-highlight-text">
+                        Os gráficos são apresentados com o auxílio do
+                        <strong>Metabase</strong>. Por isso, ocasionalmente
+                        uma visualização pode levar mais tempo para carregar
+                        ou não aparecer imediatamente. Caso isso aconteça,
+                        recarregar a página pode fazer com que o gráfico
+                        seja carregado normalmente.
+                    </p>
+                </div>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Compare diferentes contextos
+            </h2>
+            <p class="how-section-intro">
+                Utilize as ferramentas de comparação para observar
+                diferenças entre escolas, municípios e outros
+                contextos educacionais.
+            </p>
+            <div class="how-highlight">
+                <div class="how-highlight-icon">
+                    <i class="bi bi-bar-chart"></i>
+                </div>
+                <div>
+                    <h3 class="how-highlight-title">
+                        Comparação
+                    </h3>
+                    <p class="how-highlight-text">
+                        Coloque diferentes contextos lado a lado
+                        para facilitar a interpretação dos indicadores
+                        apresentados pela plataforma.
+                    </p>
+                </div>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Analise espacialmente
+            </h2>
+            <p class="how-section-intro">
+                O mapa também pode ser utilizado para observar a
+                distribuição espacial das escolas e identificar
+                padrões relacionados à localização.
+            </p>
+            <div class="how-card-grid how-card-grid-small">
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-map"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Distribuição
+                    </h3>
+                    <p class="how-card-text">
+                        Observe onde as escolas estão localizadas
+                        dentro de um determinado território.
+                    </p>
+                </article>
+                <article class="how-card">
+                    <div class="how-card-icon">
+                        <i class="bi bi-bounding-box"></i>
+                    </div>
+                    <h3 class="how-card-title">
+                        Contexto espacial
+                    </h3>
+                    <p class="how-card-text">
+                        Relacione a localização das escolas com
+                        diferentes divisões administrativas.
+                    </p>
+                </article>
+            </div>
+        </section>
+        <section class="how-section">
+            <h2 class="how-section-title">
+                Jornada de exploração
+            </h2>
+            <p class="how-section-intro">
+                A plataforma foi organizada para permitir uma
+                exploração progressiva dos dados.
+            </p>
+            <div class="how-journey">
+                <div class="how-journey-item">
+                    <span class="how-journey-icon">
+                        <i class="bi bi-geo-alt"></i>
+                    </span>
+                    <span class="how-journey-label">
+                        Escola
+                    </span>
+                </div>
+                <span class="how-journey-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </span>
+                <div class="how-journey-item">
+                    <span class="how-journey-icon">
+                        <i class="bi bi-file-text"></i>
+                    </span>
+                    <span class="how-journey-label">
+                        Ficha
+                    </span>
+                </div>
+                <span class="how-journey-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </span>
+                <div class="how-journey-item">
+                    <span class="how-journey-icon">
+                        <i class="bi bi-graph-up"></i>
+                    </span>
+                    <span class="how-journey-label">
+                        Evolução
+                    </span>
+                </div>
+                <span class="how-journey-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </span>
+                <div class="how-journey-item">
+                    <span class="how-journey-icon">
+                        <i class="bi bi-bar-chart"></i>
+                    </span>
+                    <span class="how-journey-label">
+                        Comparação
+                    </span>
+                </div>
+                <span class="how-journey-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </span>
+                <div class="how-journey-item">
+                    <span class="how-journey-icon">
+                        <i class="bi bi-map"></i>
+                    </span>
+                    <span class="how-journey-label">
+                        Análise espacial
+                    </span>
+                </div>
+            </div>
+        </section>
+        <section class="how-feedback">
+            <div class="how-feedback-icon">
+                <i class="bi bi-chat-heart"></i>
+            </div>
+            <h2 class="how-feedback-title">
+                Sua opinião é importante
+            </h2>
+            <p class="how-feedback-text">
+                Teste a plataforma, explore as visualizações e
+                compartilhe sua experiência. Seu feedback contribui
+                para a avaliação e o aprimoramento deste trabalho.
+            </p>
+            <a
+                href="https://forms.gle/ZAP7jBesCEAX7wzPA"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary how-feedback-button"
+            >
+                Enviar feedback
+            </a>
+        </section>
+    </div>
+</main>
+</body>
+</html>

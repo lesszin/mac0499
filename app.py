@@ -47,6 +47,15 @@ def map():
     """
     return render_template("map.html")
 
+@app.route('/como-funciona')
+def render_how_it_works():
+    """
+    Renderiza a página de informações sobre como a plataforma funciona.
+
+    Returns:
+        Página HTML contendo informações sobre o funcionamento da plataforma.
+    """
+    return render_template('como-funciona.html')
 
 if __name__ == '__main__':
     # Inicia o servidor Flask localmente.

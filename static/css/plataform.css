@@ -8,6 +8,7 @@
     border-bottom: 1px solid #dee2e6;
 }
 
+
 .platform-header-brand {
     display: inline-flex;
     align-items: center;
@@ -19,6 +20,32 @@
     font-size: 1.05rem;
 }
 
+
 .platform-header-brand:hover {
+    color: #0a58ca;
+}
+
+
+.platform-header-nav {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-left: auto;
+    margin-right: 24px;
+}
+
+
+.platform-header-link {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    color: #0d6efd;
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+
+.platform-header-link:hover {
     color: #0a58ca;
 }
