@@ -45,6 +45,10 @@ A interface utiliza:
 
 Os gráficos utilizados na aplicação são produzidos com **Metabase** e incorporados à interface web.
 
+### Infraestrutura
+
+A plataforma utiliza **Docker Compose** para executar e integrar seus principais componentes, incluindo a aplicação Flask, o PostgreSQL e o Metabase. A utilização de containers permite reproduzir o ambiente de execução da plataforma sem a necessidade de instalar manualmente essas dependências na máquina.
+
 ## Funcionalidades
 
 ### Busca de escolas
@@ -167,7 +171,7 @@ routes/
 └── spatial.py
 ```
 
-O arquivo `app.py` funciona como ponto de entrada da aplicação e é responsável pela configuração principal e pelo registro dos módulos de rotas.
+O arquivo `app.py` funciona como ponto de entrada da aplicação e é responsável pela configuração principal e pelo registro dos módulos de rotas. A execução da plataforma é organizada por meio de **Docker Compose**, que integra os containers responsáveis pela aplicação, pelo banco de dados PostgreSQL e pelo Metabase.
 
 No frontend, a lógica também é dividida de acordo com as responsabilidades da aplicação. A funcionalidade do mapa, por exemplo, é organizada em módulos específicos para busca, filtros, análise administrativa, análise espacial e comparação.
 
@@ -192,6 +196,13 @@ A estrutura principal do repositório é organizada aproximadamente da seguinte 
 │   ├── css/
 │   └── js/
 ├── shapefiles/
+├── docker/
+│   └── postgres/
+│       └── init/
+├── scripts/
+│   └── install.sh
+├── Dockerfile
+├── compose.yaml
 ├── requirements.txt
 ├── LICENSE
 ├── .gitignore
