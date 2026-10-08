@@ -1,0 +1,102 @@
+# INSTALAÇÃO DA PLATAFORMA
+
+1. REQUISITOS
+
+É necessário ter:
+
+* Docker
+* Docker Compose
+
+Não é necessário instalar Python, PostgreSQL ou Metabase separadamente.
+
+2. PREPARAÇÃO
+
+Extraia o arquivo tcc-entrega.tar.gz.
+
+Entre na pasta do projeto:
+
+cd tcc-entrega/tcc
+
+Confirme que o arquivo .env está presente.
+
+3. INSTALAÇÃO
+
+Execute:
+
+chmod +x scripts/install.sh
+./scripts/install.sh
+
+O script irá:
+
+* criar o PostgreSQL
+* criar os bancos necessários
+* restaurar os dados
+* iniciar a aplicação
+* iniciar o Metabase
+
+A instalação deve ser realizada apenas na primeira configuração da máquina.
+
+4. ACESSO
+
+Plataforma:
+http://localhost:5000
+
+Metabase:
+http://localhost:3000
+
+5. USO NO DIA A DIA
+
+Após a instalação inicial, não é necessário executar comandos para iniciar a plataforma.
+
+Os containers são configurados para reiniciar automaticamente quando o Docker for iniciado.
+
+Assim, após desligar e ligar o computador novamente, a plataforma deverá voltar a funcionar automaticamente.
+
+Para verificar o estado dos containers:
+
+docker compose ps
+
+6. PARAR A PLATAFORMA MANUALMENTE
+
+Para parar os containers:
+
+docker compose stop
+
+7. INICIAR A PLATAFORMA NOVAMENTE
+
+Caso os containers tenham sido parados manualmente:
+
+docker compose start
+
+8. ERROS COMUNS
+
+Porta 5000 em uso:
+verifique se outro serviço está utilizando a porta 5000.
+
+Porta 3000 em uso:
+verifique se outro serviço ou outra instância do Metabase está utilizando a porta 3000.
+
+Porta 5433 em uso:
+verifique se outro PostgreSQL está utilizando a porta 5433.
+
+Caso algum container não esteja funcionando, verifique o estado:
+
+docker compose ps
+
+Para consultar os logs da aplicação:
+
+docker compose logs app
+
+Para consultar os logs do PostgreSQL:
+
+docker compose logs postgres
+
+Para consultar os logs do Metabase:
+
+docker compose logs metabase
+
+9. IMPORTANTE
+
+Não execute o script scripts/install.sh novamente em uma instalação já configurada.
+
+Não utilize "docker compose down -v" durante o uso normal da plataforma, pois esse comando remove os volumes e pode apagar os dados persistidos do PostgreSQL.

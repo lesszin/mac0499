@@ -60,4 +60,4 @@ def render_how_it_works():
 if __name__ == '__main__':
     # Inicia o servidor Flask localmente.
     print("Flask server running at http://localhost:5000")
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0",debug=True, port=5000)

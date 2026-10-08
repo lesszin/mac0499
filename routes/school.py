@@ -14,7 +14,10 @@ school_bp = Blueprint(
 )
 
 # Configurações utilizadas na geração dos links de incorporação do Metabase.
-METABASE_SITE_URL = "http://localhost:3000"
+METABASE_SITE_URL = os.getenv(
+    "METABASE_SITE_URL",
+    "http://localhost:3000"
+)
 METABASE_SECRET_KEY = os.getenv(
     "METABASE_SECRET_KEY"
 )
