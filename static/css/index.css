@@ -191,3 +191,187 @@ body {
 .search-panel.comparison-map-mode {
     width: 400px;
 }
+
+@media (max-width: 768px) {
+
+    .main-wrapper {
+        width: 100%;
+        height: calc(100vh - 50px);
+        height: calc(100dvh - 50px);
+        min-height: 0;
+    }
+
+    .search-panel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: none;
+        z-index: 1200;
+    }
+
+    .search-panel > .d-flex {
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+
+    .search-panel > .d-flex > .card.flex-grow-1 {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #schoolSearchBox {
+        position: relative;
+        padding: 6px !important;
+    }
+
+    #schoolSearchBox .input-group,
+    #schoolSearchBox .form-control {
+        min-width: 0;
+    }
+
+    #searchSuggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        max-width: 100%;
+        max-height: 40vh;
+        max-height: 40dvh;
+        overflow-y: auto;
+        box-sizing: border-box;
+        z-index: 1300;
+    }
+
+    #schoolCard,
+    #administrativeDivisionCard {
+        max-height: 55vh;
+        max-height: 55dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    #spatialAnalysisEntry {
+        flex: 0 0 122px;
+        min-width: 0;
+        align-self: flex-start;
+        height: auto;
+        cursor: pointer;
+    }
+
+    #spatialAnalysisEntry .card-body {
+        min-height: 40px;
+        height: auto;
+        padding: 8px 6px !important;
+        gap: 4px !important;
+        justify-content: center;
+        flex-wrap: nowrap;
+    }
+
+    #spatialAnalysisEntry .fw-bold {
+        font-size: 0.72rem;
+        line-height: 1.2;
+        white-space: normal;
+    }
+
+    .filters-panel,
+    .administrative-filter-panel {
+        position: absolute;
+        left: auto;
+        right: 10px;
+        width: 122px;
+        max-width: calc(100vw - 20px);
+        font-size: 0.8rem;
+        z-index: 1400 !important;
+        pointer-events: auto;
+    }
+
+    .filters-panel {
+        top: 68px;
+    }
+
+    .administrative-filter-panel {
+        top: 116px;
+    }
+
+    .filters-panel .card-header,
+    .administrative-filter-panel .card-header {
+        min-height: 40px;
+        padding: 8px !important;
+        gap: 5px;
+    }
+
+    .filters-panel .card-header span,
+    .administrative-filter-panel .card-header span {
+        font-size: 0.78rem;
+    }
+
+    #filtersBody,
+    #administrativeFilterBody {
+        max-height: 55vh;
+        max-height: 55dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .filters-panel .card-body,
+    .administrative-filter-panel .card-body {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .filters-panel:has(#filtersBody.show),
+    .administrative-filter-panel:has(#administrativeFilterBody.show) {
+        z-index: 1501 !important;
+    }
+
+    #administrativeFilterBody .card-body {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    #administrativeFilterBody .d-flex.gap-2 {
+        flex-direction: column;
+        gap: 6px !important;
+    }
+
+    #confirmAdministrativeFilter,
+    #clearAdministrativeFilter {
+        width: 100%;
+        min-width: 0;
+        padding: 5px 6px;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    #spatialAnalysisBackButton {
+        top: 10px;
+        left: 10px;
+        width: 42px;
+        height: 42px;
+    }
+
+    .spatial-options-panel {
+        position: absolute;
+        top: 10px;
+        left: 62px;
+        right: 10px;
+        width: auto;
+        max-width: none;
+        max-height: 60vh;
+        max-height: 60dvh;
+        overflow-y: auto;
+    }
+
+    .search-panel.comparison-map-mode {
+        width: auto;
+    }
+
+    .location-button {
+        right: 15px;
+        bottom: 15px;
+    }
+}
+
